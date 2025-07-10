@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:dev": "genkit start -- tsx genkit.dev.ts",
     "genkit:watch": "genkit start -- tsx --watch genkit.dev.ts",
     "build": "next build",
     "start": "next start",
@@ -47,7 +47,7 @@
     "i18next-browser-languagedetector": "^7.2.1",
     "i18next-http-backend": "^2.5.2",
     "lucide-react": "0.475.0",
-    "next": "14.2.4",
+    "next": "15.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-hook-form": "7.54.2",

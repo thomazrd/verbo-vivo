@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, updateDoc, writeBatch, increment } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
 import type { Congregation, CongregationMember } from '@/lib/types';
 
 import { ArrowLeft, Check, ShieldCheck, UserX, X } from 'lucide-react';
@@ -31,8 +31,8 @@ export default function ManageCongregationPage() {
   const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
 
   useEffect(() => {
-    if (!isAdmin) {
-      router.push(`/community/${congregationId}`);
+    if (!user || loading || (userProfile && !isAdmin)) {
+       if(!loading) router.push(`/community/${congregationId}`);
       return;
     }
 
@@ -60,7 +60,7 @@ export default function ManageCongregationPage() {
       unsubCongregation();
       unsubMembers();
     };
-  }, [isAdmin, congregationId, router]);
+  }, [user, userProfile, isAdmin, congregationId, router, loading]);
 
   const handleMemberAction = async (
     targetUserId: string, 
@@ -75,7 +75,7 @@ export default function ManageCongregationPage() {
 
       switch (action) {
         case 'approve':
-          batch.update(memberRef, { status: 'MEMBER', joinedAt: new Date() });
+          batch.update(memberRef, { status: 'APPROVED', joinedAt: serverTimestamp() });
           batch.update(userRef, { congregationStatus: 'MEMBER' });
           batch.update(congregationRef, { memberCount: increment(1) });
           toast({ title: "Membro Aprovado!", description: "O usuário agora faz parte da congregação." });
@@ -91,9 +91,13 @@ export default function ManageCongregationPage() {
             toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
             break;
         case 'remove':
+            const currentMember = members.find(m => m.id === targetUserId);
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            batch.update(congregationRef, { memberCount: increment(-1) });
+            // Decrement only if they were an approved member or admin, not pending.
+            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+              batch.update(congregationRef, { memberCount: increment(-1) });
+            }
             toast({ title: "Membro Removido." });
             break;
       }
@@ -110,7 +114,7 @@ export default function ManageCongregationPage() {
 
 
   const pendingMembers = members.filter((m) => m.status === 'PENDING');
-  const approvedMembers = members.filter((m) => m.status === 'MEMBER' || m.status === 'ADMIN');
+  const approvedMembers = members.filter((m) => m.status === 'MEMBER' || m.status === 'ADMIN' || m.status === 'APPROVED');
 
   if (loading) {
     return (
@@ -260,4 +264,3 @@ export default function ManageCongregationPage() {
     </div>
   );
 }
-

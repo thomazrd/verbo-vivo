@@ -1,109 +1,128 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isAuthOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function isAuth() {
+    // --- Helper Functions ---
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdminOf(congregationId) {
-      return get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isMemberOf(userId, congregationId) {
+        return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)) &&
+               get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)).data.status in ['MEMBER', 'ADMIN', 'APPROVED'];
     }
 
-    function isMemberOf(congregationId) {
-      let memberStatus = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus;
-      let memberCongId = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId;
-      return memberStatus == 'MEMBER' && memberCongId == congregationId;
+    function isAdminOf(userId, congregationId) {
+      return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)) &&
+             get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)).data.status == 'ADMIN';
     }
 
-    // Collection: users
+    // --- User Profiles ---
     match /users/{userId} {
-      // Um usuário pode criar seu próprio perfil e ler qualquer outro perfil.
-      allow read: if isAuth();
-      allow create: if isAuthOwner(userId);
-
-      // Um usuário pode atualizar seu próprio perfil, ou um administrador pode atualizar o status de congregação.
-      allow update: if isAuthOwner(userId)
-                    || (isAdminOf(request.resource.data.congregationId) && 
-                        request.resource.data.keys().hasOnly(['congregationId', 'congregationStatus', 'uid', 'email', 'displayName', 'photoURL', 'createdAt', 'onboardingCompleted', 'preferredLanguage']));
-    }
-
-    // Collection: journals, plans, etc (User-specific data)
-    match /journals/{docId} {
-      allow read, write, delete: if isAuth() && request.resource.data.userId == request.auth.uid;
-      allow create: if isAuth() && request.data.userId == request.auth.uid;
-    }
-    
-    match /users/{userId}/plans/{planId} {
-      allow read, write, delete, create: if isAuthOwner(userId);
-    }
-    
-    match /users/{userId}/messages/{messageId} {
-        allow read, write, delete, create: if isAuthOwner(userId);
-    }
-
-    // Collection: prayerCircles & prayerRequests
-    match /prayerCircles/{circleId} {
-      allow read: if isAuth() && resource.data.members.hasAny([request.auth.uid]);
-      allow create: if isAuth() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isAuth() && resource.data.members.hasAny([request.auth.uid]);
-    }
-
-    match /prayerRequests/{requestId} {
-      allow read, create, update: if isAuth() && get(/databases/$(database)/documents/prayerCircles/$(request.resource.data.circleId)).data.members.hasAny([request.auth.uid]);
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      
+      // Allow a user to update their own profile, with some restrictions.
+      // Also, allow an admin to update a user's congregation status.
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && !("congregationStatus" in request.resource.data.diff(resource.data))) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['congregationId', 'congregationStatus']) &&
+          (
+            // Scenario 1: User is joining (requesting access)
+            (isOwner(userId) && request.resource.data.congregationStatus == 'PENDING') ||
+            // Scenario 2: Admin is approving, promoting, or removing a user
+            isAdminOf(request.auth.uid, resource.data.congregationId) ||
+            isAdminOf(request.auth.uid, request.resource.data.congregationId)
+          )
+        )
+      );
     }
     
-    // Collection: prayers (Prayer Sanctuary)
-    match /prayers/{prayerId} {
-      allow read, write: if isAuth() && resource.data.userId == request.auth.uid;
-      allow create: if isAuth() && request.data.userId == request.auth.uid;
-    }
-    
-    // Collection: sharedContent (Ponte da Esperança)
-    match /sharedContent/{contentId} {
-        allow read: if true;
-        allow create: if isAuth() && request.resource.data.creatorId == request.auth.uid;
-        allow update: if isAuth() && resource.data.creatorId == request.auth.uid;
+    // --- Chat & Study Plans ---
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write, delete: if isOwner(userId);
     }
 
-    // --- Community Collections ---
+    // --- Journals, Meditations ---
+    match /journals/{entryId} {
+      allow read, write, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    match /meditations/{meditationId} {
+        allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+     match /prayers/{prayerId} {
+      allow read, create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+
+
+    // --- Community ---
     match /congregations/{congregationId} {
-        allow read: if isAuth();
-        allow create: if isAuth(); // User must be admin, checked in logic
-        
-        // Admins can update congregation details (e.g. memberCount)
-        allow update: if isAdminOf(congregationId);
+      allow read: if isSignedIn();
+      // Allow creating a congregation. The creator automatically becomes an admin.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy && request.resource.data.admins[request.auth.uid] == true;
+      // Allow an admin to update congregation details (e.g., name, member count).
+      allow update: if isSignedIn() && isAdminOf(request.auth.uid, congregationId);
     }
-    
-    match /congregations/{congregationId}/members/{userId} {
-        // Anyone authenticated can request to join.
-        allow create: if isAuth() && request.auth.uid == userId;
-        
-        // Members can read the member list. Admins can read everything.
-        allow read: if isMemberOf(congregationId) || isAdminOf(congregationId);
-        
-        // Admins can approve (update status) or remove (delete) members.
-        allow update, delete: if isAdminOf(congregationId);
+
+    match /congregations/{congregationId}/members/{memberId} {
+      allow read: if isMemberOf(request.auth.uid, congregationId);
+      
+      // Allow a user to request to join (create their own PENDING member doc)
+      allow create: if isOwner(memberId) && request.resource.data.status == 'PENDING';
+      
+      // Allow an admin to update a member's status (approve, promote)
+      // or allow a user to remove themselves (not implemented, but rule is safe)
+      allow update: if isSignedIn() && (
+        isAdminOf(request.auth.uid, congregationId) || isOwner(memberId)
+      );
+      
+      // Allow an admin to remove a member (reject, kick)
+      // or a user to cancel their own PENDING request
+      allow delete: if isSignedIn() && (
+        isAdminOf(request.auth.uid, congregationId) || isOwner(memberId)
+      );
     }
 
     match /congregations/{congregationId}/posts/{postId} {
-        // Members and admins can read, create, and like/comment on posts.
-        allow read, create, update: if isMemberOf(congregationId) || isAdminOf(congregationId);
-        // Only admins or the post author can delete posts.
-        allow delete: if isAdminOf(congregationId) || resource.data.authorId == request.auth.uid;
-
-        match /comments/{commentId} {
-            // Members and admins can read and create comments.
-            allow read, create: if isMemberOf(congregationId) || isAdminOf(congregationId);
-            // Only admins or the comment author can delete/update comments.
-            allow update, delete: if isAdminOf(congregationId) || resource.data.authorId == request.auth.uid;
-        }
+      allow read: if isMemberOf(request.auth.uid, congregationId);
+      // Allow a member to create a post
+      allow create: if isMemberOf(request.auth.uid, congregationId) && isOwner(request.resource.data.authorId);
+      // Allow an admin or the post author to update/delete it.
+      allow update, delete: if isSignedIn() && (isAdminOf(request.auth.uid, congregationId) || isOwner(resource.data.authorId));
     }
+    
+    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
+        allow read, create: if isMemberOf(request.auth.uid, congregationId);
+        allow update, delete: if isSignedIn() && (isAdminOf(request.auth.uid, congregationId) || isOwner(resource.data.authorId));
+    }
+
+
+    // --- Prayer Circles ---
+    match /prayerCircles/{circleId} {
+        // Only members can read the circle's details
+        allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+        // Any signed-in user can create a circle
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
+        // Only members can update (which includes joining via arrayUnion)
+        allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+    }
+    match /prayerRequests/{requestId} {
+        allow read, create: if isSignedIn() && isMemberOf(request.auth.uid, resource.data.circleId);
+        allow update: if isSignedIn() && isMemberOf(request.auth.uid, resource.data.circleId);
+    }
+    
+     // --- Shared Content (Ponte da Esperança) ---
+    match /sharedContent/{contentId} {
+      allow read: if true; // Publicly readable
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.creatorId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.creatorId; // Allow creator to update/delete
+    }
+
   }
 }

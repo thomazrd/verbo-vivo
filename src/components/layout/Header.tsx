@@ -19,6 +19,7 @@ import {
   HeartHandshake,
   Menu,
   BookMarked,
+  Share2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -45,6 +46,7 @@ const navItems = [
   { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
   { href: "/community", label: "Comunidade", icon: Users },
   { href: "/characters", label: "Personagens", icon: BookUser },
+  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
 ];
 
 export function Header() {

@@ -11,6 +11,7 @@ import {
   Users,
   BookUser,
   BookMarked,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
   { href: "/community", label: "Comunidade", icon: Users },
   { href: "/characters", label: "Personagens", icon: BookUser },
+  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
 ];
 
 export function Sidebar() {

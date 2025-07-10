@@ -18,30 +18,26 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="pt-BR">
-      <body>
-        <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-lg text-center">
-                 <CardHeader>
-                    <div className="flex justify-center mb-4">
-                        <AlertTriangle className="h-12 w-12 text-destructive" />
-                    </div>
-                    <CardTitle className="text-2xl font-bold">Ocorreu um Erro</CardTitle>
-                    <CardDescription>
-                        Desculpe, algo deu errado ao carregar a aplicação.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        Você pode tentar recarregar a página ou clicar no botão abaixo.
-                    </p>
-                </CardContent>
-                <CardFooter className="flex justify-center">
-                    <Button onClick={() => reset()}>Tentar Novamente</Button>
-                </CardFooter>
-            </Card>
-        </main>
-      </body>
-    </html>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-lg text-center">
+            <CardHeader>
+              <div className="flex justify-center mb-4">
+                  <AlertTriangle className="h-12 w-12 text-destructive" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Ocorreu um Erro</CardTitle>
+              <CardDescription>
+                  Desculpe, algo deu errado ao carregar a aplicação.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <p className="text-sm text-muted-foreground">
+                  Você pode tentar recarregar a página ou clicar no botão abaixo.
+              </p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+              <Button onClick={() => reset()}>Tentar Novamente</Button>
+          </CardFooter>
+      </Card>
+    </main>
   );
 }

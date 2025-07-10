@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import type { BibleBook, BibleChapter } from '@/lib/types';
+import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
@@ -10,9 +10,10 @@ import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
+import { useTranslation } from 'react-i18next';
 
 interface VerseDisplayProps {
-  version: string;
+  version: BibleVersion;
   book: BibleBook;
   chapter: number;
   onBack: () => void;
@@ -30,6 +31,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const { toast } = useToast();
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     // Reset states on chapter change
@@ -42,7 +44,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
       setError(null);
       setChapterData(null);
       try {
-        const response = await axios.get(`/api/bible/verses/${version}/${book.abbrev.pt}/${chapter}`);
+        const response = await axios.get(`/api/bible/verses/${version.id}/${book.abbrev.pt}/${chapter}`);
         setChapterData(response.data);
       } catch (err) {
         console.error("Erro ao buscar capítulo:", err);
@@ -72,15 +74,20 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
     const chapterText = chapterData.verses.map(v => v.text).join(' ');
 
     try {
-        const result = await generateChapterSummary({ chapterText });
+        // Use the app's current language for the summary
+        const langCode = i18n.language.split('-')[0];
+        const result = await generateChapterSummary({ 
+            chapterText,
+            language: langCode,
+        });
         setSummary(result.summary);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating summary:", error);
         setSummaryError("Não foi possível gerar o resumo.");
         toast({
             variant: "destructive",
             title: "Erro de IA",
-            description: "Não foi possível gerar o resumo neste momento. Tente novamente."
+            description: error.message || "Não foi possível gerar o resumo neste momento. Tente novamente."
         });
     } finally {
         setIsSummaryLoading(false);

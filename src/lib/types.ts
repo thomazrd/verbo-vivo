@@ -135,8 +135,10 @@ export interface Prayer {
 // --- Tipos da API da Bíblia ---
 
 export interface BibleVersion {
-  version: string;
-  verses: number;
+  id: string;
+  name: string;
+  language: string;
+  apiSource: 'abibliadigital' | 'apibible';
 }
 
 export interface BibleBook {

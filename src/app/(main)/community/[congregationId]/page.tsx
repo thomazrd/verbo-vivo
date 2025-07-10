@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,7 +11,7 @@ import type { Congregation, Post, Comment, TextContent, ImageContent, Background
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, Pencil, UserPlus, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,6 +125,14 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     switch (post.postType) {
       case 'IMAGE':
         const imageContent = post.content as ImageContent;
+        if (!imageContent.imageUrl) {
+            return (
+                <div className="mt-2 text-sm text-muted-foreground italic">
+                    {imageContent.text && <p className="mb-2 whitespace-pre-wrap">{imageContent.text}</p>}
+                    Processando imagem...
+                </div>
+            );
+        }
         return (
           <div className="mt-2 -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
             {imageContent.text && <p className="mb-2 px-4 sm:px-0 text-card-foreground whitespace-pre-wrap">{imageContent.text}</p>}
@@ -292,7 +301,7 @@ function InviteModal({ inviteCode }: { inviteCode: string }) {
 }
 
 export default function CongregationFeedPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const router = useRouter();
   const params = useParams();
   const congregationId = params.congregationId as string;
@@ -306,6 +315,9 @@ export default function CongregationFeedPage() {
   const { toast } = useToast();
   
   const listRef = useRef<HTMLDivElement>(null);
+
+  const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
+
 
   useEffect(() => {
     if (!user || !congregationId) return;
@@ -432,6 +444,12 @@ export default function CongregationFeedPage() {
                         </DialogTrigger>
                         <InviteModal inviteCode={congregation.inviteCode} />
                     </Dialog>
+                )}
+                 {isAdmin && (
+                    <Button variant="secondary" size="sm" onClick={() => router.push(`/community/${congregationId}/manage`)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Gerenciar
+                    </Button>
                 )}
             </div>
         </div>

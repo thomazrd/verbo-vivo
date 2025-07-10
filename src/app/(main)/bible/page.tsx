@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
+import { VersionSelector } from '@/components/bible/VersionSelector';
 import type { BibleBook } from '@/lib/types';
 
 export default function BibleReaderPage() {
+  const [selectedVersion, setSelectedVersion] = useState<string>('nvi');
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
 
@@ -38,7 +40,11 @@ export default function BibleReaderPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-64 flex-shrink-0">
+        <aside className="w-full md:w-64 flex-shrink-0 space-y-6">
+           <VersionSelector 
+            selectedVersion={selectedVersion} 
+            onVersionChange={setSelectedVersion} 
+          />
           <BookSelector 
             selectedBookAbbrev={selectedBook?.abbrev.pt}
             onBookSelect={handleBookSelect} 
@@ -58,6 +64,7 @@ export default function BibleReaderPage() {
             />
           ) : (
             <VerseDisplay 
+              version={selectedVersion}
               book={selectedBook} 
               chapter={selectedChapter} 
               onBack={handleBackToChapters}

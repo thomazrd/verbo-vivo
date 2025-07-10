@@ -7,18 +7,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { ArrowLeft } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface VerseDisplayProps {
+  version: string;
   book: BibleBook;
   chapter: number;
   onBack: () => void;
 }
 
-export function VerseDisplay({ book, chapter, onBack }: VerseDisplayProps) {
+export function VerseDisplay({ version, book, chapter, onBack }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchChapter = async () => {
@@ -26,8 +28,7 @@ export function VerseDisplay({ book, chapter, onBack }: VerseDisplayProps) {
       setError(null);
       setChapterData(null);
       try {
-        // A versão 'nvi' está fixa por enquanto, mas pode ser tornada dinâmica no futuro.
-        const response = await axios.get(`/api/bible/verses/nvi/${book.abbrev.pt}/${chapter}`);
+        const response = await axios.get(`/api/bible/verses/${version}/${book.abbrev.pt}/${chapter}`);
         setChapterData(response.data);
       } catch (err) {
         console.error("Erro ao buscar capítulo:", err);
@@ -45,7 +46,7 @@ export function VerseDisplay({ book, chapter, onBack }: VerseDisplayProps) {
     if (book && chapter) {
       fetchChapter();
     }
-  }, [book, chapter]);
+  }, [book, chapter, version, toast]);
 
   if (loading) {
     return (

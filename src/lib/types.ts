@@ -133,6 +133,11 @@ export interface Prayer {
 
 // --- Tipos da API da Bíblia ---
 
+export interface BibleVersion {
+  version: string;
+  verses: number;
+}
+
 export interface BibleBook {
   abbrev: { pt: string; en: string; };
   author: string;

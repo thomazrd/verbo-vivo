@@ -22,6 +22,7 @@ export function BookSelector({ onBookSelect, selectedBookAbbrev }: BookSelectorP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchBooks = async () => {

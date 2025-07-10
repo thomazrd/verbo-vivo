@@ -35,20 +35,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) {
+      if (!auth.currentUser) {
+        setLoading(false);
+      }
       return;
     }
 
+    setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
             setUserProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+        } else {
+            setUserProfile(null);
         }
         setLoading(false);
     });
     
     return () => unsubscribeProfile();
 
-  }, [user]);
+  }, [user, auth]);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, loading }}>

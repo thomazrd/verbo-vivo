@@ -17,7 +17,7 @@ import { MemberCard } from '@/components/community/MemberCard';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ManageCongregationPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const congregationId = params.congregationId as string;
@@ -28,14 +28,21 @@ export default function ManageCongregationPage() {
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<Record<string, boolean>>({});
 
-  const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
 
   useEffect(() => {
-    if (!user || loading || (userProfile && !isAdmin)) {
-       if(!loading) router.push(`/community/${congregationId}`);
+    // Wait for auth to be ready
+    if (authLoading) {
       return;
     }
 
+    // After auth is ready, check permissions
+    const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
+    if (!isAdmin) {
+      router.push(`/community/${congregationId}`);
+      return;
+    }
+
+    // User is an admin, proceed to fetch data
     const congRef = doc(db, 'congregations', congregationId);
     const membersRef = collection(db, 'congregations', congregationId, 'members');
 
@@ -53,14 +60,14 @@ export default function ManageCongregationPage() {
         allMembers.push({ id: doc.id, ...doc.data() } as CongregationMember);
       });
       setMembers(allMembers);
-      setLoading(false);
+      setLoading(false); // This will now be reached reliably
     });
 
     return () => {
       unsubCongregation();
       unsubMembers();
     };
-  }, [user, userProfile, isAdmin, congregationId, router, loading]);
+  }, [userProfile, congregationId, router, authLoading]);
 
   const handleMemberAction = async (
     targetUserId: string, 
@@ -94,8 +101,7 @@ export default function ManageCongregationPage() {
             const currentMember = members.find(m => m.id === targetUserId);
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            // Decrement only if they were an approved member or admin, not pending.
-            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN' || currentMember.status === 'APPROVED')) {
               batch.update(congregationRef, { memberCount: increment(-1) });
             }
             toast({ title: "Membro Removido." });
@@ -116,11 +122,17 @@ export default function ManageCongregationPage() {
   const pendingMembers = members.filter((m) => m.status === 'PENDING');
   const approvedMembers = members.filter((m) => m.status === 'MEMBER' || m.status === 'ADMIN' || m.status === 'APPROVED');
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto max-w-4xl py-8 px-4 space-y-4">
-        <Skeleton className="h-8 w-1/4" />
-        <Skeleton className="h-6 w-1/2" />
+        <div className="flex items-center gap-4 mb-8">
+            <Skeleton className="h-9 w-9" />
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-32" />
+            </div>
+        </div>
+        <Skeleton className="h-10 w-full" />
         <div className="mt-8 space-y-6">
           <Skeleton className="h-32 w-full" />
         </div>
@@ -209,7 +221,6 @@ export default function ManageCongregationPage() {
                     <CardDescription>Veja todos os membros da sua congregação.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* TODO: Add search input */}
                     {approvedMembers.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">Nenhum membro na congregação.</p>
                     ) : (

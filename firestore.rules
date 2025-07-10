@@ -1,81 +1,90 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- User Data ---
+
+    // Users: Can read their own data, anyone can create a user doc (on signup)
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
-    }
-
-    // --- Shareable Content (Ponte da Esperança) ---
-    match /sharedContent/{contentId} {
-      allow read: if true;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
-      // Only creator can delete (update status)
-      allow update: if request.auth.uid == resource.data.creatorId;
     }
 
-    // --- Bible Study Plans, Journal, Meditations, Prayers ---
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write: if request.auth.uid == userId;
+    // Journals: Users can only CUD their own journal entries
+    match /journals/{entryId} {
+        allow read, write, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow create: if request.auth != null && request.request.resource.data.userId == request.auth.uid;
     }
     
-    // --- Prayer Circles ---
+    // Study Plans: Users can only CUD their own plans
+    match /users/{userId}/plans/{planId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Messages: Users can only CUD their own messages
+    match /users/{userId}/messages/{messageId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Meditations: Users can only CUD their own meditations
+    match /meditations/{meditationId} {
+        allow read, write, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow create: if request.auth != null && request.request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Prayers (Sanctuary): Users can only CUD their own prayers
+    match /prayers/{prayerId} {
+        allow read, write, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow create: if request.auth != null && request.request.resource.data.userId == request.auth.uid;
+    }
+
+    // Prayer Circles: Only members of the circle can interact
     match /prayerCircles/{circleId} {
-      // Allow read only for members
-      allow read: if request.auth.uid in resource.data.members;
-      // Allow any authenticated user to create a circle
+      allow read: if request.auth != null && get(/databases/$(database)/documents/prayerCircles/$(circleId)).data.members.hasAny([request.auth.uid]);
       allow create: if request.auth != null;
-      // Allow update (join) for any authenticated user, but only creator can change other details
-      allow update: if request.auth != null;
+      allow update: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
     }
 
     match /prayerRequests/{requestId} {
-      // Allow read for members of the circle the request belongs to
-      allow read: if get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.includes(request.auth.uid);
-      // Allow write if user is the author
-      allow write: if request.auth.uid == request.resource.data.authorId;
-      // Allow update (praying) if user is a member of the circle
-      allow update: if get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.includes(request.auth.uid);
-    }
-    
-    // --- Congregations & Community Feed ---
-    
-    // Function to check if a user is a member of a congregation
-    function isCongregationMember(congregationId) {
-      return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
-    }
-    
-    // Function to check if a user is an admin of a congregation
-    function isCongregationAdmin(congregationId) {
-       return get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+        allow read, create: if request.auth != null && get(/databases/$(database)/documents/prayerCircles/$(request.resource.data.circleId)).data.members.hasAny([request.auth.uid]);
+        allow update: if request.auth != null && get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
     }
 
-    match /congregations/{congregationId} {
-      // Any authenticated user can query/read congregations (to find one to join)
-      allow read: if request.auth != null;
-      // Any authenticated user can create a congregation
+    // Shared Content (Hope Bridge): Public read, only authenticated write
+    match /sharedContent/{contentId} {
+      allow read: if true;
       allow create: if request.auth != null;
-      // Only admins can update congregation details
-      allow update: if isCongregationAdmin(congregationId);
-    }
-    
-    match /congregations/{congregationId}/members/{memberId} {
-       // Admins can manage members (approve/reject), users can request to join
-       allow write: if isCongregationAdmin(congregationId) || request.auth.uid == memberId;
-       // Members of the congregation can see other members
-       allow read: if isCongregationMember(congregationId);
+      // Allow viewCount increment by anyone, and update by creator
+      allow update: if request.auth == null || (request.auth != null && request.resource.data.creatorId == request.auth.uid);
     }
 
-    match /congregations/{congregationId}/posts/{postId} {
-      // Members can read/write posts
-      allow read, write: if isCongregationMember(congregationId);
-    }
-    
-    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
-      // Members can read/write comments on posts
-      allow read, write: if isCongregationMember(congregationId);
+    // Congregations:
+    match /congregations/{congregationId} {
+        allow read, create: if request.auth != null;
+        allow update: if request.auth != null && resource.data.admins[request.auth.uid] == true;
+
+        // Helper function to check for membership
+        function isMember() {
+            return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data != null;
+        }
+
+        // Members can be read by other members, admin can write
+        match /members/{userId} {
+            allow read: if isMember();
+            allow write: if resource.data.admins[request.auth.uid] == true || request.auth.uid == userId;
+        }
+
+        // Posts can be read/written by members
+        match /posts/{postId} {
+          allow read, create, update: if isMember();
+          allow delete: if isMember() && request.auth.uid == resource.data.authorId;
+
+          // Comments can be read/written by members
+          match /comments/{commentId} {
+            allow read, create: if isMember();
+            allow update, delete: if isMember() && request.auth.uid == resource.data.authorId;
+          }
+        }
     }
   }
 }

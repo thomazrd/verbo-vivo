@@ -130,7 +130,8 @@ export default function PrayerSanctuaryPage() {
 
   const { isListening, startListening, stopListening, error } = useSpeechToText({
     onTranscript: (result) => {
-      prayerTextRef.current += result;
+      // The hook now sends the full accumulated transcript (final or interim)
+      prayerTextRef.current = result;
     }
   });
 

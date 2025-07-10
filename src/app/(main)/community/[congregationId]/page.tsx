@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -26,6 +27,26 @@ function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLi
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [timeAgo, setTimeAgo] = useState('');
+  const [commentTimes, setCommentTimes] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (post.createdAt) {
+      setTimeAgo(formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: ptBR }));
+    }
+  }, [post.createdAt]);
+
+  useEffect(() => {
+    if (comments.length > 0) {
+      const newTimes: Record<string, string> = {};
+      comments.forEach(comment => {
+        if (comment.createdAt) {
+          newTimes[comment.id] = formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true, locale: ptBR });
+        }
+      });
+      setCommentTimes(newTimes);
+    }
+  }, [comments]);
 
   useEffect(() => {
     if (!showComments) return;
@@ -92,9 +113,9 @@ function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLi
         <div className="flex-1">
           <div className="flex items-center justify-between">
               <p className="font-semibold text-sm">{post.authorName}</p>
-              {post.createdAt && 
-                  <p className="text-xs text-muted-foreground" title={post.createdAt.toDate().toLocaleString('pt-BR')}>
-                      {formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: ptBR })}
+              {timeAgo && 
+                  <p className="text-xs text-muted-foreground" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
+                      {timeAgo}
                   </p>
               }
           </div>
@@ -133,9 +154,9 @@ function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLi
               <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
                 <div className="flex items-baseline gap-2">
                   <p className="font-semibold text-xs">{comment.authorName}</p>
-                  {comment.createdAt && 
-                      <p className="text-xs text-muted-foreground" title={comment.createdAt.toDate().toLocaleString('pt-BR')}>
-                          {formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true, locale: ptBR })}
+                  {commentTimes[comment.id] && 
+                      <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
+                          {commentTimes[comment.id]}
                       </p>
                   }
                 </div>
@@ -370,3 +391,5 @@ export default function CongregationFeedPage() {
     </div>
   );
 }
+
+    

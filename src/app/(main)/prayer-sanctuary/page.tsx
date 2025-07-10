@@ -65,6 +65,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
     const { t } = useTranslation();
     const [history, setHistory] = useState<Prayer[]>([]);
     const [loading, setLoading] = useState(true);
+    const [timeAgo, setTimeAgo] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const q = query(
@@ -80,6 +81,18 @@ function PrayerHistoryList({ userId }: { userId: string }) {
         });
         return () => unsubscribe();
     }, [userId]);
+
+    useEffect(() => {
+      if (history.length > 0) {
+        const newTimes: Record<string, string> = {};
+        history.forEach(p => {
+            if (p.createdAt) {
+                newTimes[p.id] = formatDistanceToNow(p.createdAt.toDate(), { addSuffix: true, locale: ptBR });
+            }
+        });
+        setTimeAgo(newTimes);
+      }
+    }, [history]);
 
     if (loading) {
         return <Skeleton className="h-20 w-full" />;
@@ -102,7 +115,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
                            <div className="flex justify-between w-full pr-4">
                             <span className="truncate">"{prayer.prayerText.substring(0, 50)}..."</span>
                             <span className="text-xs text-muted-foreground shrink-0 ml-4">
-                                {prayer.createdAt ? formatDistanceToNow(prayer.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : ''}
+                                {timeAgo[prayer.id] || ''}
                             </span>
                            </div>
                         </AccordionTrigger>
@@ -315,3 +328,5 @@ export default function PrayerSanctuaryPage() {
     </div>
   );
 }
+
+    

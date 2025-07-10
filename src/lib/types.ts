@@ -18,7 +18,7 @@ export interface Task {
 }
 
 export interface Plan {
-  id: string;
+  id:string;
   title: string;
   tasks: Task[];
   createdAt: Timestamp;
@@ -94,17 +94,40 @@ export interface CongregationMember {
   status: 'PENDING' | 'APPROVED';
 }
 
+export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';
+
+export interface TextContent {
+  text: string;
+}
+
+export interface ImageContent {
+  text: string;
+  imageUrl: string;
+  thumbnailUrl?: string; // Opcional, gerado por uma função
+}
+
+export interface VideoContent {
+  text: string;
+  videoUrl: string;
+  thumbnailUrl?: string; // Opcional, gerado por uma função
+}
+
+export interface BackgroundTextContent {
+  text: string;
+  backgroundStyle: string; // ex: 'gradient_blue'
+}
+
 export interface Post {
   id: string;
   authorId: string;
   authorName: string;
   authorPhotoURL: string | null;
-  text: string;
   createdAt: Timestamp;
-  type: 'ANNOUNCEMENT' | 'POST';
+  postType: PostType;
+  content: TextContent | ImageContent | VideoContent | BackgroundTextContent;
   likeCount: number;
   commentCount: number;
-  likes?: string[]; 
+  likes?: string[];
 }
 
 export interface Comment {
@@ -267,5 +290,3 @@ export type GenerateShareableContentInput = z.infer<typeof GenerateShareableCont
 // The output is the content object itself.
 export const GenerateShareableContentOutputSchema = SharedContentSchema;
 export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;
-
-    

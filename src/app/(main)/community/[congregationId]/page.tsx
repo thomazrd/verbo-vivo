@@ -5,11 +5,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, deleteDoc, setDoc } from 'firebase/firestore';
-import type { Congregation, Post, Comment } from '@/lib/types';
+import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc } from 'firebase/firestore';
+import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent } from '@/lib/types';
 import Link from 'next/link';
+import Image from 'next/image';
 
-import { ArrowLeft, Heart, HeartHandshake, Loader2, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CreatePostModal } from '@/components/community/CreatePostModal';
 
 function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
@@ -86,7 +88,6 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
               createdAt: serverTimestamp()
           });
 
-          // Also update the comment count on the post
           const postRef = doc(db, 'congregations', congregationId, 'posts', post.id);
           await updateDoc(postRef, {
               commentCount: post.commentCount + 1
@@ -111,6 +112,44 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const authorInitial = post.authorName ? post.authorName[0].toUpperCase() : '?';
   const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
 
+  const renderContent = () => {
+    switch (post.postType) {
+      case 'IMAGE':
+        const imageContent = post.content as ImageContent;
+        return (
+          <div className="mt-2 -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+            {imageContent.text && <p className="mb-2 px-4 sm:px-0 text-card-foreground whitespace-pre-wrap">{imageContent.text}</p>}
+            <Image
+              src={imageContent.imageUrl}
+              alt={imageContent.text || `Post by ${post.authorName}`}
+              width={600}
+              height={600}
+              className="w-full h-auto bg-muted object-cover"
+            />
+          </div>
+        );
+      case 'BACKGROUND_TEXT':
+        const bgTextContent = post.content as BackgroundTextContent;
+        // Mapeia o estilo do background para classes do Tailwind
+        const bgStyleClass = bgTextContent.backgroundStyle === 'gradient_blue'
+          ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
+          : 'bg-muted';
+        return (
+          <div className={cn(
+            'mt-2 h-64 flex items-center justify-center p-6 text-center rounded-lg',
+            bgStyleClass
+          )}>
+            <p className="font-bold text-2xl">{bgTextContent.text}</p>
+          </div>
+        );
+      case 'TEXT':
+      default:
+        const textContent = post.content as TextContent;
+        return <p className="mt-1 text-card-foreground whitespace-pre-wrap">{textContent.text}</p>;
+    }
+  };
+
+
   return (
     <div className="flex flex-col gap-2 p-4 rounded-lg bg-card border">
       <div className="flex gap-4">
@@ -127,7 +166,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                   </p>
               }
           </div>
-          <p className="mt-1 text-card-foreground whitespace-pre-wrap">{post.text}</p>
+          {renderContent()}
           <div className="mt-3 flex items-center gap-4 text-muted-foreground">
               <Button
                   variant="ghost"
@@ -226,10 +265,9 @@ export default function CongregationFeedPage() {
   
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [newPost, setNewPost] = useState("");
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
@@ -246,10 +284,9 @@ export default function CongregationFeedPage() {
         const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
         const memberSnap = await getDoc(memberRef);
 
-        if (memberSnap.exists()) {
+        if (memberSnap.exists() && (memberSnap.data().status === 'APPROVED' || memberSnap.data().status === 'ADMIN')) {
           setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
           
-          // Querying the subcollection now
           const postsQuery = query(
             collection(db, "congregations", congregationId, "posts"),
             orderBy("createdAt", "desc")
@@ -293,7 +330,7 @@ export default function CongregationFeedPage() {
   
   useEffect(() => {
       listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [posts.length]);
+  }, [posts.length > 0 ? posts[0].id : null]); // Scroll to top only on new post
 
   const handleLike = async (postId: string, hasLiked: boolean) => {
     if (!user) return;
@@ -316,40 +353,14 @@ export default function CongregationFeedPage() {
     }
   };
 
-  const handleAddPost = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!user || !newPost.trim() || !congregation) return;
-      setIsSubmitting(true);
-      try {
-          const postCollectionRef = collection(db, "congregations", congregationId, "posts");
-          await addDoc(postCollectionRef, {
-              authorId: user.uid,
-              authorName: user.displayName || user.email,
-              authorPhotoURL: user.photoURL,
-              text: newPost,
-              type: 'POST',
-              likeCount: 0,
-              commentCount: 0,
-              createdAt: serverTimestamp(),
-              likes: [],
-          });
-          setNewPost("");
-      } catch(error) {
-          console.error("Error adding post:", error);
-          toast({ variant: "destructive", title: "Erro", description: "Não foi possível adicionar a sua publicação." });
-      } finally {
-          setIsSubmitting(false);
-      }
-  }
-
   if (loading) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4 space-y-4">
         <Skeleton className="h-8 w-1/4" />
         <Skeleton className="h-6 w-1/2" />
         <div className="mt-8 space-y-6">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>
       </div>
@@ -366,6 +377,7 @@ export default function CongregationFeedPage() {
   }
 
   return (
+    <>
     <div className="flex h-full flex-col">
         <div className="p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
             <div className="container mx-auto max-w-3xl flex items-center gap-4">
@@ -381,6 +393,25 @@ export default function CongregationFeedPage() {
 
         <div className="flex-1 overflow-y-auto" ref={listRef}>
             <div className="container mx-auto max-w-3xl py-6 px-4">
+                <div className="p-4 rounded-lg bg-card border mb-6">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-10 w-10 border">
+                            {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''}/>}
+                            <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <Button 
+                            variant="outline"
+                            className="w-full justify-start text-muted-foreground"
+                            onClick={() => setIsPostModalOpen(true)}
+                        >
+                            Compartilhe algo com a congregação...
+                        </Button>
+                        <Button size="icon" onClick={() => setIsPostModalOpen(true)}>
+                            <Pencil className="h-5 w-5"/>
+                        </Button>
+                    </div>
+                </div>
+
                 {posts.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-muted-foreground">Nenhuma publicação ainda.</p>
@@ -395,27 +426,15 @@ export default function CongregationFeedPage() {
                 )}
             </div>
         </div>
-
-        <div className="border-t p-4 bg-background/80 backdrop-blur-sm">
-            <div className="container mx-auto max-w-3xl">
-                <form onSubmit={handleAddPost} className="relative flex items-center">
-                    <Textarea 
-                      placeholder="Compartilhe algo com a congregação..."
-                      value={newPost}
-                      onChange={(e) => setNewPost(e.target.value)}
-                      className="min-h-[48px] resize-none pr-12"
-                      rows={1}
-                      disabled={isSubmitting}
-                    />
-                    <Button type="submit" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!newPost.trim() || isSubmitting}>
-                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
-                </form>
-                {congregation && congregation.admins[user?.uid ?? ''] && <InviteCodeDisplay inviteCode={congregation.inviteCode} />}
-            </div>
-        </div>
     </div>
+    {user && congregation && (
+        <CreatePostModal 
+            isOpen={isPostModalOpen}
+            onClose={() => setIsPostModalOpen(false)}
+            user={user}
+            congregationId={congregation.id}
+        />
+    )}
+    </>
   );
 }
-
-    

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,6 +25,7 @@ type SanctuaryState = 'idle' | 'recording' | 'processing' | 'response';
 
 // PrayerResponseCard Component (Internal)
 function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseText: string, citedVerses: string[], onReset: () => void }) {
+  const { t } = useTranslation();
   const highlightedText = responseText.replace(
     /([A-Za-z]+\s\d+:\d+(-\d+)?)/g,
     '<strong class="font-semibold text-primary">$1</strong>'
@@ -34,7 +36,7 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HeartHandshake className="h-6 w-6 text-primary" />
-          Uma Palavra de Paz
+          {t('word_of_peace_title')}
         </CardTitle>
         <CardDescription>
           Uma reflexão baseada em sua oração e nas Escrituras.
@@ -51,7 +53,7 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
           </div>
         )}
         <div className="text-center pt-4">
-            <Button onClick={onReset}>Orar Novamente</Button>
+            <Button onClick={onReset}>{t('pray_again_button')}</Button>
         </div>
       </CardContent>
     </Card>
@@ -60,6 +62,7 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
 
 // PrayerHistoryList Component (Internal)
 function PrayerHistoryList({ userId }: { userId: string }) {
+    const { t } = useTranslation();
     const [history, setHistory] = useState<Prayer[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -90,7 +93,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
         <div className="w-full max-w-2xl mt-12">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-muted-foreground">
                 <History className="h-5 w-5" />
-                Histórico de Orações
+                {t('prayer_history_title')}
             </h2>
             <Accordion type="single" collapsible>
                 {history.map(prayer => (
@@ -117,6 +120,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
 }
 
 export default function PrayerSanctuaryPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
@@ -287,11 +291,11 @@ export default function PrayerSanctuaryPage() {
         default:
             return (
                 <div className="flex flex-col items-center gap-6">
-                    <h1 className="text-4xl font-bold tracking-tight text-center">Santuário de Oração</h1>
+                    <h1 className="text-4xl font-bold tracking-tight text-center">{t('sanctuary_title')}</h1>
                     <p className="text-lg text-muted-foreground max-w-md text-center">Um lugar de calma e reflexão para derramar seu coração diante de Deus.</p>
                     <Button onClick={handleStart} size="lg">
                         <Mic className="mr-2 h-5 w-5" />
-                        Orar Agora
+                        {t('pray_now_button')}
                     </Button>
                 </div>
             )

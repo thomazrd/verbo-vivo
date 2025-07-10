@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";
+import I18nInitializer from "@/components/layout/I18nInitializer";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
           fontMono.variable
         )}
       >
+        <I18nInitializer />
         <AuthProvider>
           {children}
           <Toaster />

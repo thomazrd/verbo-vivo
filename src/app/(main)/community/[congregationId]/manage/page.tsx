@@ -30,44 +30,49 @@ export default function ManageCongregationPage() {
 
 
   useEffect(() => {
-    // Wait for auth to be ready
     if (authLoading) {
       return;
     }
 
-    // After auth is ready, check permissions
-    const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
-    if (!isAdmin) {
-      router.push(`/community/${congregationId}`);
-      return;
+    if (!user) {
+        router.push('/login');
+        return;
     }
 
-    // User is an admin, proceed to fetch data
-    const congRef = doc(db, 'congregations', congregationId);
-    const membersRef = collection(db, 'congregations', congregationId, 'members');
+    const unsubProfile = onSnapshot(doc(db, 'users', user.uid), (userDoc) => {
+        if (!userDoc.exists() || userDoc.data().congregationStatus !== 'ADMIN' || userDoc.data().congregationId !== congregationId) {
+            router.push(`/community/${congregationId}`);
+            return;
+        }
 
-    const unsubCongregation = onSnapshot(congRef, (doc) => {
-      if (doc.exists()) {
-        setCongregation({ id: doc.id, ...doc.data() } as Congregation);
-      } else {
-        router.push('/community');
-      }
+        const congRef = doc(db, 'congregations', congregationId);
+        const membersRef = collection(db, 'congregations', congregationId, 'members');
+
+        const unsubCongregation = onSnapshot(congRef, (doc) => {
+          if (doc.exists()) {
+            setCongregation({ id: doc.id, ...doc.data() } as Congregation);
+          } else {
+            router.push('/community');
+          }
+        });
+
+        const unsubMembers = onSnapshot(membersRef, (snapshot) => {
+          const allMembers: CongregationMember[] = [];
+          snapshot.forEach((doc) => {
+            allMembers.push({ id: doc.id, ...doc.data() } as CongregationMember);
+          });
+          setMembers(allMembers);
+          setLoading(false);
+        });
+
+        return () => {
+            unsubCongregation();
+            unsubMembers();
+        };
     });
 
-    const unsubMembers = onSnapshot(membersRef, (snapshot) => {
-      const allMembers: CongregationMember[] = [];
-      snapshot.forEach((doc) => {
-        allMembers.push({ id: doc.id, ...doc.data() } as CongregationMember);
-      });
-      setMembers(allMembers);
-      setLoading(false); // This will now be reached reliably
-    });
-
-    return () => {
-      unsubCongregation();
-      unsubMembers();
-    };
-  }, [userProfile, congregationId, router, authLoading]);
+    return () => unsubProfile();
+  }, [congregationId, router, authLoading, user]);
 
   const handleMemberAction = async (
     targetUserId: string, 

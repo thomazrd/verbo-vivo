@@ -1,0 +1,307 @@
+
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { Prayer } from '@/lib/types';
+import { useSpeechToText } from '@/hooks/use-speech-to-text';
+import { processPrayer } from '@/ai/flows/prayer-reflection';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Mic, Square, Loader2, HeartHandshake, History } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+
+
+type SanctuaryState = 'idle' | 'recording' | 'processing' | 'response';
+
+// PrayerResponseCard Component (Internal)
+function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseText: string, citedVerses: string[], onReset: () => void }) {
+  const highlightedText = responseText.replace(
+    /([A-Za-z]+\s\d+:\d+(-\d+)?)/g,
+    '<strong class="font-semibold text-primary">$1</strong>'
+  );
+  
+  return (
+    <Card className="w-full max-w-2xl animate-in fade-in-0 zoom-in-95">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HeartHandshake className="h-6 w-6 text-primary" />
+          Uma Palavra de Paz
+        </CardTitle>
+        <CardDescription>
+          Uma reflexão baseada em sua oração e nas Escrituras.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlightedText }} />
+        {citedVerses.length > 0 && (
+          <div className="pt-4 border-t">
+            <h4 className="font-semibold mb-2">Versículos Citados:</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground font-mono">
+              {citedVerses.map(v => <li key={v}>{v}</li>)}
+            </ul>
+          </div>
+        )}
+        <div className="text-center pt-4">
+            <Button onClick={onReset}>Orar Novamente</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// PrayerHistoryList Component (Internal)
+function PrayerHistoryList({ userId }: { userId: string }) {
+    const [history, setHistory] = useState<Prayer[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(
+            collection(db, "prayers"),
+            where("userId", "==", userId),
+            orderBy("createdAt", "desc"),
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const prayers: Prayer[] = [];
+            snapshot.forEach(doc => prayers.push({ id: doc.id, ...doc.data()} as Prayer));
+            setHistory(prayers);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [userId]);
+
+    if (loading) {
+        return <Skeleton className="h-20 w-full" />;
+    }
+
+    if (history.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="w-full max-w-2xl mt-12">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-muted-foreground">
+                <History className="h-5 w-5" />
+                Histórico de Orações
+            </h2>
+            <Accordion type="single" collapsible>
+                {history.map(prayer => (
+                    <AccordionItem value={prayer.id} key={prayer.id}>
+                        <AccordionTrigger>
+                           <div className="flex justify-between w-full pr-4">
+                            <span className="truncate">"{prayer.prayerText.substring(0, 50)}..."</span>
+                            <span className="text-xs text-muted-foreground shrink-0 ml-4">
+                                {prayer.createdAt ? formatDistanceToNow(prayer.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : ''}
+                            </span>
+                           </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground">
+                            <h4 className="font-semibold mb-2 text-primary">Sua Oração:</h4>
+                            <p className="text-muted-foreground italic">"{prayer.prayerText}"</p>
+                            <h4 className="font-semibold mt-4 mb-2 text-primary">Reflexão Recebida:</h4>
+                            <div dangerouslySetInnerHTML={{ __html: prayer.responseText.replace(/([A-Za-z]+\s\d+:\d+(-\d+)?)/g, '<strong class="font-semibold">$1</strong>') }} />
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        </div>
+    );
+}
+
+export default function PrayerSanctuaryPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
+  const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
+  const prayerTextRef = useRef("");
+
+  const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  const { isListening, startListening, stopListening, error } = useSpeechToText({
+    onTranscript: (result) => {
+      prayerTextRef.current += result;
+    }
+  });
+
+  useEffect(() => {
+    if (error) {
+        toast({ variant: 'destructive', title: 'Erro de Microfone', description: error });
+        setSanctuaryState('idle');
+    }
+  }, [error, toast]);
+
+  const cleanupAudio = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+    }
+    streamRef.current = null;
+    audioContextRef.current = null;
+    animationFrameRef.current = null;
+  }, []);
+
+  const visualizeAudio = useCallback((stream: MediaStream) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioContextRef.current = audioContext;
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      animationFrameRef.current = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+
+      const sampleSize = 32;
+      const processedData = [];
+      const step = Math.floor(bufferLength / sampleSize);
+      for (let i = 0; i < sampleSize; i++) {
+        let sum = 0;
+        for (let j = 0; j < step; j++) {
+          sum += dataArray[i * step + j];
+        }
+        processedData.push({ value: sum / step });
+      }
+      setAudioData(processedData);
+    };
+    draw();
+  }, []);
+
+  const handleStart = async () => {
+    if (isListening) return;
+    prayerTextRef.current = "";
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      visualizeAudio(stream);
+      startListening(); // Hook will use the already granted permission
+      setSanctuaryState('recording');
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      toast({ variant: 'destructive', title: 'Erro de Microfone', description: 'Não foi possível acessar seu microfone. Verifique as permissões do navegador.' });
+    }
+  };
+  
+  const handleStop = async () => {
+    stopListening();
+    cleanupAudio();
+    setSanctuaryState('processing');
+
+    const prayerText = prayerTextRef.current.trim();
+    if (!prayerText) {
+        toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro.", variant: "destructive"});
+        setSanctuaryState('idle');
+        return;
+    }
+    
+    if(!user) return;
+
+    try {
+        const result = await processPrayer({ prayerText });
+        await addDoc(collection(db, "prayers"), {
+            userId: user.uid,
+            prayerText,
+            responseText: result.responseText,
+            citedVerses: result.citedVerses,
+            createdAt: serverTimestamp(),
+        });
+        setLatestResponse(result);
+        setSanctuaryState('response');
+    } catch (err) {
+        console.error("Error processing prayer:", err);
+        toast({
+            title: "Erro ao processar sua oração.",
+            description: "Não foi possível encontrar uma passagem neste momento, mas saiba que Deus ouviu sua oração.",
+            variant: "destructive"
+        });
+        setSanctuaryState('idle');
+    }
+  };
+  
+  const handleReset = () => {
+    setLatestResponse(null);
+    prayerTextRef.current = "";
+    cleanupAudio();
+    setSanctuaryState('idle');
+  }
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+        cleanupAudio();
+    };
+  }, [cleanupAudio]);
+
+  const renderMainContent = () => {
+    switch (sanctuaryState) {
+        case 'recording':
+            return (
+                <div className="flex flex-col items-center gap-6 w-full max-w-md">
+                    <div className="w-full h-24">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={audioData} barGap={2} margin={{top:10, right: 10, bottom: 10, left: 10}}>
+                                <YAxis domain={[0, 256]} hide />
+                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={4} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <p className="text-xl text-muted-foreground">Ouvindo...</p>
+                    <Button onClick={handleStop} size="lg" variant="destructive">
+                        <Square className="mr-2 h-5 w-5" />
+                        Encerrar Oração
+                    </Button>
+                </div>
+            )
+        case 'processing':
+            return (
+                <div className="flex flex-col items-center gap-6">
+                    <Loader2 className="h-20 w-20 text-primary animate-spin" />
+                    <p className="text-xl text-muted-foreground">Buscando na Palavra uma resposta de paz...</p>
+                </div>
+            )
+        case 'response':
+            if (latestResponse) {
+                return <PrayerResponseCard {...latestResponse} onReset={handleReset} />
+            }
+            return null; // Should not happen
+        case 'idle':
+        default:
+            return (
+                <div className="flex flex-col items-center gap-6">
+                    <h1 className="text-4xl font-bold tracking-tight text-center">Santuário de Oração</h1>
+                    <p className="text-lg text-muted-foreground max-w-md text-center">Um lugar de calma e reflexão para derramar seu coração diante de Deus.</p>
+                    <Button onClick={handleStart} size="lg">
+                        <Mic className="mr-2 h-5 w-5" />
+                        Orar Agora
+                    </Button>
+                </div>
+            )
+    }
+  }
+
+  return (
+    <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
+      {renderMainContent()}
+      {user && sanctuaryState === 'idle' && <PrayerHistoryList userId={user.uid} />}
+    </div>
+  );
+}

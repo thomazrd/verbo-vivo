@@ -194,4 +194,39 @@ export type MeditationQuestionsOutput = z.infer<typeof MeditationQuestionsOutput
 export const ProcessPrayerInputSchema = z.object({
   prayerText: z.string().describe('The transcribed text of the user\'s prayer.'),
 });
-export type ProcessPrayerInput = z.infe
+export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
+
+export const ProcessPrayerOutputSchema = z.object({
+    responseText: z.string().describe('The devotional reflection based on the prayer.'),
+    citedVerses: z.array(z.string()).describe('An array of Bible verse references cited in the response.'),
+});
+export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
+
+// From: study-plan-generation.ts
+export const StudyPlanInputSchema = z.object({
+  topic: z.string().describe('The topic for the Bible study plan.'),
+});
+export type StudyPlanInput = z.infer<typeof StudyPlanInputSchema>;
+
+export const StudyPlanTaskSchema = z.object({
+  day: z.number().describe('The day number of the task (1-7).'),
+  verseReference: z.string().describe('The Bible verse reference for the day.'),
+  description: z.string().describe('A brief description or reflection task.'),
+});
+
+export const StudyPlanOutputSchema = z.object({
+  title: z.string().describe('The title of the study plan.'),
+  tasks: z.array(StudyPlanTaskSchema).describe('An array of daily tasks for the study plan.'),
+});
+export type StudyPlanOutput = z.infer<typeof StudyPlanOutputSchema>;
+
+// From: chapter-summary-generation.ts
+export const ChapterSummaryInputSchema = z.object({
+  chapterText: z.string().describe('The full text of the Bible chapter.'),
+});
+export type ChapterSummaryInput = z.infer<typeof ChapterSummaryInputSchema>;
+
+export const ChapterSummaryOutputSchema = z.object({
+  summary: z.string().describe('The generated summary of the chapter.'),
+});
+export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;

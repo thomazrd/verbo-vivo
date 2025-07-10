@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLiked: boolean) => void }) {
+function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
@@ -53,7 +53,7 @@ function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLi
 
     setLoadingComments(true);
     const commentsQuery = query(
-      collection(db, "congregationPosts", post.id, "comments"),
+      collection(db, "congregations", congregationId, "posts", post.id, "comments"),
       orderBy("createdAt", "asc")
     );
     const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
@@ -70,20 +70,28 @@ function PostCard({ post, onLike }: { post: Post, onLike: (postId: string, hasLi
     });
 
     return () => unsubscribe();
-  }, [post.id, showComments, toast]);
+  }, [post.id, showComments, toast, congregationId]);
   
   const handleAddComment = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!user || !newComment.trim()) return;
       setIsSubmittingComment(true);
       try {
-          await addDoc(collection(db, 'congregationPosts', post.id, 'comments'), {
+          const commentCollectionRef = collection(db, 'congregations', congregationId, 'posts', post.id, 'comments');
+          await addDoc(commentCollectionRef, {
               authorId: user.uid,
               authorName: user.displayName || user.email,
               authorPhotoURL: user.photoURL,
               text: newComment,
               createdAt: serverTimestamp()
           });
+
+          // Also update the comment count on the post
+          const postRef = doc(db, 'congregations', congregationId, 'posts', post.id);
+          await updateDoc(postRef, {
+              commentCount: post.commentCount + 1
+          });
+
           setNewComment("");
       } catch (error) {
           console.error("Error adding comment:", error);
@@ -241,9 +249,9 @@ export default function CongregationFeedPage() {
         if (memberSnap.exists()) {
           setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
           
+          // Querying the subcollection now
           const postsQuery = query(
-            collection(db, "congregationPosts"),
-            where("congregationId", "==", congregationId),
+            collection(db, "congregations", congregationId, "posts"),
             orderBy("createdAt", "desc")
           );
           
@@ -261,7 +269,6 @@ export default function CongregationFeedPage() {
               setLoading(false);
           });
           
-          // Return the cleanup function for the posts listener
           return () => unsubscribePosts();
         } else {
           setError("Você não é um membro desta congregação.");
@@ -290,7 +297,7 @@ export default function CongregationFeedPage() {
 
   const handleLike = async (postId: string, hasLiked: boolean) => {
     if (!user) return;
-    const postRef = doc(db, 'congregationPosts', postId);
+    const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
     try {
         if (hasLiked) {
             await updateDoc(postRef, {
@@ -314,8 +321,8 @@ export default function CongregationFeedPage() {
       if (!user || !newPost.trim() || !congregation) return;
       setIsSubmitting(true);
       try {
-          await addDoc(collection(db, "congregationPosts"), {
-              congregationId,
+          const postCollectionRef = collection(db, "congregations", congregationId, "posts");
+          await addDoc(postCollectionRef, {
               authorId: user.uid,
               authorName: user.displayName || user.email,
               authorPhotoURL: user.photoURL,
@@ -382,7 +389,7 @@ export default function CongregationFeedPage() {
                 ) : (
                     <div className="space-y-6">
                         {posts.map(post => (
-                            <PostCard key={post.id} post={post} onLike={handleLike} />
+                            <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}
                     </div>
                 )}
@@ -410,3 +417,5 @@ export default function CongregationFeedPage() {
     </div>
   );
 }
+
+    

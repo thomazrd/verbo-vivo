@@ -96,7 +96,6 @@ export interface CongregationMember {
 
 export interface Post {
   id: string;
-  congregationId: string;
   authorId: string;
   authorName: string;
   authorPhotoURL: string | null;
@@ -105,7 +104,6 @@ export interface Post {
   type: 'ANNOUNCEMENT' | 'POST';
   likeCount: number;
   commentCount: number;
-  // For client-side state management
   likes?: string[]; 
 }
 
@@ -269,3 +267,5 @@ export type GenerateShareableContentInput = z.infer<typeof GenerateShareableCont
 // The output is the content object itself.
 export const GenerateShareableContentOutputSchema = SharedContentSchema;
 export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;
+
+    

@@ -1,82 +1,78 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Perfil do Usuário
-    // Cada usuário pode ler e escrever apenas em seu próprio documento.
+    // Regras para a coleção 'users'
     match /users/{userId} {
-      allow read, update, delete: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-
-      // Mensagens do Chat
-      // Usuário só pode acessar suas próprias mensagens.
-      match /messages/{messageId} {
-        allow read, write, create: if request.auth.uid == userId;
-      }
-      
-      // Planos de Estudo
-      // Usuário só pode acessar seus próprios planos.
-      match /plans/{planId} {
-        allow read, write, create: if request.auth.uid == userId;
-      }
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // Diário
-    // Usuário só pode acessar suas próprias entradas de diário.
+    // Regras para a coleção 'plans' de cada usuário
+    match /users/{userId}/plans/{planId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Regras para a coleção 'messages' de cada usuário
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Regras para a coleção 'journals'
     match /journals/{entryId} {
-        allow read, write, create, delete: if request.auth.uid == resource.data.userId;
+        // Usuários podem criar entradas para si mesmos
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        // Usuários podem ler, atualizar e deletar suas próprias entradas
+        allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Orações (Santuário)
-    // Usuário só pode acessar suas próprias orações.
+    // Regras para a coleção 'prayers'
     match /prayers/{prayerId} {
-        allow read, create: if request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Meditações
-    // Usuário só pode acessar suas próprias meditações.
-    match /meditations/{meditationId} {
-        allow read, create: if request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Congregações
-    // Permite que usuários autenticados leiam/escrevam.
-    // Idealmente, isso seria restrito a administradores.
-    match /congregations/{congregationId} {
-      allow read, write: if request.auth != null;
-      
-      // Membros da Congregação
-      // Qualquer usuário autenticado pode solicitar entrada (write).
-      // A leitura pode ser restrita a administradores no futuro.
-      match /members/{memberId} {
-        allow read, write: if request.auth != null;
-      }
-    }
-    
-    // Posts da Congregação
-    // Apenas usuários autenticados podem ler/escrever.
-    // Idealmente, restrito a membros da congregação.
-    match /congregationPosts/{postId} {
-        allow read, write: if request.auth != null;
-        
-        // Comentários nos Posts
-        // Apenas usuários autenticados podem comentar.
-        match /comments/{commentId} {
-            allow read, write: if request.auth != null;
-        }
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth.uid == resource.data.userId;
     }
 
-    // Círculos de Oração
-    // Apenas usuários autenticados podem interagir.
+    // Regras para a coleção 'prayerCircles'
     match /prayerCircles/{circleId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth.uid in resource.data.members;
+      allow create: if request.auth.uid == request.resource.data.createdBy;
+      allow update: if request.auth.uid in resource.data.members;
+    }
+
+    // Regras para a subcoleção de pedidos de oração
+    match /prayerRequests/{requestId} {
+      allow read, create: if get(/databases/$(database)/documents/prayerCircles/$(request.resource.data.circleId)).data.members.hasAny([request.auth.uid]);
+      allow update: if get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
     }
     
-    // Pedidos de Oração
-    // Apenas usuários autenticados podem interagir.
-    match /prayerRequests/{requestId} {
-      allow read, write: if request.auth != null;
+    // Regras para Congregações
+    match /congregations/{congregationId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth.uid == request.resource.data.createdBy;
+    }
+
+    match /congregations/{congregationId}/members/{memberId} {
+        allow read: if request.auth.uid == memberId || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+        allow write: if request.auth.uid == memberId || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+    }
+    
+    match /congregationPosts/{postId} {
+        allow read: if get(/databases/$(database)/documents/congregations/$(resource.data.congregationId)).data.admins[request.auth.uid] == true || exists(/databases/$(database)/documents/congregations/$(resource.data.congregationId)/members/$(request.auth.uid));
+        allow create, update: if get(/databases/$(database)/documents/congregations/$(request.resource.data.congregationId)).data.admins[request.auth.uid] == true || exists(/databases/$(database)/documents/congregations/$(request.resource.data.congregationId)/members/$(request.auth.uid));
+    }
+    
+    match /congregationPosts/{postId}/comments/{commentId} {
+      allow read, create: if exists(/databases/$(database)/documents/congregationPosts/$(postId)); // Simplificado, idealmente checa se é membro
+    }
+
+    // Regras para a coleção 'sharedContent' (Ponte da Esperança)
+    match /sharedContent/{contentId} {
+      // Qualquer pessoa pode ler o conteúdo
+      allow read: if true;
+      // Apenas usuários autenticados podem criar conteúdo
+      allow create: if request.auth != null && request.resource.data.creatorId == request.auth.uid;
+      // Apenas o criador pode atualizar (ex: deletar)
+      allow update: if request.auth != null && resource.data.creatorId == request.auth.uid;
     }
   }
 }

@@ -10,12 +10,14 @@ import {
   HeartHandshake,
   Users,
   BookUser,
+  BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/plans", label: "Planos", icon: BookOpen },
+  { href: "/bible", label: "Bíblia", icon: BookMarked },
   { href: "/journal", label: "Diário", icon: NotebookText },
   { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
   { href: "/community", label: "Comunidade", icon: Users },

@@ -1,11 +1,11 @@
-import type { Timestamp } from "firebase/firestore";
+import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
 export interface Message {
   id: string;
   text: string;
   sender: 'user' | 'ai';
-  createdAt: Timestamp;
+  createdAt: Timestamp | FieldValue;
   hasPlanButton?: boolean;
   topic?: string;
 }
@@ -131,6 +131,37 @@ export interface Prayer {
   citedVerses: string[];
 }
 
+// --- Tipos da API da Bíblia ---
+
+export interface BibleBook {
+  abbrev: { pt: string; en: string; };
+  author: string;
+  chapters: number;
+  group: string;
+  name: string;
+  testament: 'VT' | 'NT';
+  comment?: string;
+}
+
+export interface BibleChapter {
+    book: {
+      abbrev: { pt: string; en: string };
+      name: string;
+      author: string;
+      group: string;
+      version: string;
+      testament: 'VT' | 'NT';
+    };
+    chapter: {
+      number: number;
+      verses: number;
+    };
+    verses: {
+      number: number;
+      text: string;
+    }[];
+}
+
 
 // === AI Flow Schemas and Types ===
 
@@ -158,28 +189,4 @@ export type MeditationQuestionsOutput = z.infer<typeof MeditationQuestionsOutput
 export const ProcessPrayerInputSchema = z.object({
   prayerText: z.string().describe('The transcribed text of the user\'s prayer.'),
 });
-export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
-
-export const ProcessPrayerOutputSchema = z.object({
-  responseText: z.string().describe('The AI-generated devotional reflection.'),
-  citedVerses: z.array(z.string()).describe('An array of Bible verse references used in the reflection.'),
-});
-export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
-
-// From: study-plan-generation.ts
-export const StudyPlanInputSchema = z.object({
-  topic: z.string().describe('The topic for the study plan.'),
-});
-export type StudyPlanInput = z.infer<typeof StudyPlanInputSchema>;
-
-export const StudyPlanOutputSchema = z.object({
-  title: z.string().describe('The title of the study plan.'),
-  tasks: z.array(
-    z.object({
-      day: z.number().describe('The day of the plan (1-7).'),
-      verseReference: z.string().describe('The Bible verse reference for the day.'),
-      description: z.string().describe('A short description or reflection for the day.'),
-    })
-  ),
-});
-export type StudyPlanOutput = z.infer<typeof StudyPlanOutputSchema>;
+export type ProcessPrayerInput = z.infe

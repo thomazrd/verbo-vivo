@@ -43,6 +43,12 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
     fetchVersions();
   }, []);
 
+  const getDisplayName = (versionKey: string) => {
+    const fullName = versionNames[versionKey];
+    const abbreviation = versionKey.toUpperCase();
+    return fullName ? `${fullName} (${abbreviation})` : abbreviation;
+  };
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -62,7 +68,7 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
         <SelectContent>
           {versions.map((v) => (
             <SelectItem key={v.version} value={v.version}>
-              {versionNames[v.version] || v.version.toUpperCase()}
+              {getDisplayName(v.version)}
             </SelectItem>
           ))}
         </SelectContent>

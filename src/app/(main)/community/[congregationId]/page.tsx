@@ -10,7 +10,7 @@ import type { Congregation, Post, Comment, TextContent, ImageContent, Background
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, Pencil } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, Pencil, UserPlus, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +20,9 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CreatePostModal } from '@/components/community/CreatePostModal';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
@@ -130,6 +133,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
               width={600}
               height={600}
               className="w-full h-auto bg-muted object-cover"
+              data-ai-hint="community post"
             />
           </div>
         );
@@ -138,6 +142,12 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         // Mapeia o estilo do background para classes do Tailwind
         const bgStyleClass = bgTextContent.backgroundStyle === 'gradient_blue'
           ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
+          : bgTextContent.backgroundStyle === 'gradient_green'
+          ? 'bg-gradient-to-br from-green-400 to-blue-500 text-white'
+          : bgTextContent.backgroundStyle === 'gradient_orange'
+          ? 'bg-gradient-to-br from-yellow-400 via-red-500 to-pink-500 text-white'
+          : bgTextContent.backgroundStyle === 'gradient_pink'
+          ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white'
           : 'bg-muted';
         return (
           <div className={cn(
@@ -245,20 +255,39 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   )
 }
 
-function InviteCodeDisplay({ inviteCode }: { inviteCode: string }) {
+function InviteModal({ inviteCode }: { inviteCode: string }) {
     const { toast } = useToast();
+    const [hasCopied, setHasCopied] = useState(false);
+
     const handleCopy = () => {
         navigator.clipboard.writeText(inviteCode);
+        setHasCopied(true);
         toast({ title: "Código copiado!", description: "Você pode compartilhar este código para convidar pessoas." });
+        setTimeout(() => setHasCopied(false), 2000);
     }
     return (
-        <div className="mt-4 p-3 rounded-lg bg-muted/70 flex items-center justify-between">
-            <div>
-                <p className="text-sm font-semibold">Código de Convite</p>
-                <p className="text-2xl font-mono tracking-widest">{inviteCode}</p>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Convidar para a Congregação</DialogTitle>
+                <DialogDescription>
+                    Compartilhe este código com pessoas da sua igreja para que possam se juntar à comunidade.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-2">
+                <Label htmlFor="invite-code">Código de Convite</Label>
+                <div className="flex items-center gap-2">
+                    <Input id="invite-code" value={inviteCode} readOnly className="font-mono tracking-widest text-lg h-11" />
+                    <Button onClick={handleCopy} size="icon" variant="outline" className="h-11 w-11">
+                        {hasCopied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                    </Button>
+                </div>
             </div>
-            <Button onClick={handleCopy} variant="ghost" size="sm">Copiar</Button>
-        </div>
+            <DialogFooter>
+                <DialogTrigger asChild>
+                    <Button variant="outline">Fechar</Button>
+                </DialogTrigger>
+            </DialogFooter>
+        </DialogContent>
     )
 }
 
@@ -389,10 +418,21 @@ export default function CongregationFeedPage() {
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.push('/community')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div>
+                <div className="flex-1">
                     <h1 className="text-xl font-bold">{congregation?.name}</h1>
                     <p className="text-sm text-muted-foreground">{congregation?.memberCount} membro(s)</p>
                 </div>
+                {congregation && (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Convidar
+                            </Button>
+                        </DialogTrigger>
+                        <InviteModal inviteCode={congregation.inviteCode} />
+                    </Dialog>
+                )}
             </div>
         </div>
 
@@ -443,5 +483,3 @@ export default function CongregationFeedPage() {
     </>
   );
 }
-
-    

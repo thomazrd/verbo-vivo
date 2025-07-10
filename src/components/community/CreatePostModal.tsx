@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image as ImageIcon, Video, Palette, X } from "lucide-react";
+import { Loader2, Image as ImageIcon, Palette, X } from "lucide-react";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -52,6 +52,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setPostType('IMAGE');
+      setBackgroundStyle('');
     }
   };
   
@@ -137,6 +138,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
   };
 
   const currentBgClass = backgroundStyles.find(bg => bg.id === backgroundStyle)?.class || 'bg-background';
+  const currentBgId = backgroundStyles.find(bg => bg.id === backgroundStyle)?.id || '';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -158,7 +160,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
             </div>
 
             <Textarea
-              placeholder="No que você está pensando?"
+              placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
               value={text}
               onChange={(e) => setText(e.target.value)}
               className={cn(
@@ -175,6 +177,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
                       width={500}
                       height={300}
                       className="w-full h-auto object-cover"
+                      data-ai-hint="user uploaded image"
                     />
                     <Button 
                         variant="destructive" size="icon" 
@@ -192,11 +195,11 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
                     <ImageIcon className="h-5 w-5 text-green-500" />
                  </Button>
-                 <Button variant="ghost" size="icon" disabled>
-                    <Video className="h-5 w-5 text-blue-500" />
+                 <Button variant="ghost" size="icon" onClick={() => handleSelectBg(currentBgId ? '' : 'gradient_blue')}>
+                    <Palette className="h-5 w-5 text-blue-500" />
                  </Button>
                  <div className="flex-1" />
-                 {backgroundStyles.map(bg => (
+                 {postType === 'BACKGROUND_TEXT' && backgroundStyles.map(bg => (
                      <button
                         key={bg.id}
                         className={cn("h-6 w-6 rounded-full", bg.class, backgroundStyle === bg.id && "ring-2 ring-offset-2 ring-primary")}

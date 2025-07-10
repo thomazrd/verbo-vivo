@@ -1,127 +1,83 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Helper Functions ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    
+    // -- Funções de Utilidade --
+    
+    // Verifica se o UID do usuário solicitante é um administrador da congregação especificada.
+    function isAdminOf(congregationId) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN' &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId;
     }
     
-    function isMemberOf(userId, congregationId) {
-        return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)) &&
-               get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)).data.status in ['MEMBER', 'ADMIN', 'APPROVED'];
+    // Verifica se o usuário é um membro aprovado da congregação.
+    function isMemberOf(congregationId) {
+      let userStatus = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus;
+      let userCongregationId = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId;
+      return request.auth != null &&
+             userCongregationId == congregationId &&
+             (userStatus == 'MEMBER' || userStatus == 'ADMIN' || userStatus == 'APPROVED');
     }
+    
+    // -- Regras por Coleção --
 
-    function isAdminOf(userId, congregationId) {
-      return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)) &&
-             get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(userId)).data.status == 'ADMIN';
-    }
-
-    // --- User Profiles ---
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(userId);
-      
-      // Allow a user to update their own profile, with some restrictions.
-      // Also, allow an admin to update a user's congregation status.
-      allow update: if isSignedIn() && (
-        (isOwner(userId) && !("congregationStatus" in request.resource.data.diff(resource.data))) ||
-        (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['congregationId', 'congregationStatus']) &&
-          (
-            // Scenario 1: User is joining (requesting access)
-            (isOwner(userId) && request.resource.data.congregationStatus == 'PENDING') ||
-            // Scenario 2: Admin is approving, promoting, or removing a user
-            isAdminOf(request.auth.uid, resource.data.congregationId) ||
-            isAdminOf(request.auth.uid, request.resource.data.congregationId)
-          )
-        )
-      );
-    }
-    
-    // --- Chat & Study Plans ---
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write, delete: if isOwner(userId);
+      allow read: if request.auth != null;
+      // Permite que o próprio usuário atualize seu perfil OU que um admin atualize o status de um membro de sua congregação.
+      allow update: if request.auth.uid == userId || 
+                     (isAdminOf(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId) && 
+                      request.resource.data.congregationId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId);
+      allow create: if request.auth.uid == userId;
     }
 
-    // --- Journals, Meditations ---
-    match /journals/{entryId} {
-      allow read, write, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
-    }
-    match /meditations/{meditationId} {
-        allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
-    }
-     match /prayers/{prayerId} {
-      allow read, create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-    }
-
-
-    // --- Community ---
     match /congregations/{congregationId} {
-      allow read: if isSignedIn();
-      // Allow creating a congregation. The creator automatically becomes an admin.
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy && request.resource.data.admins[request.auth.uid] == true;
-      // Allow an admin to update congregation details (e.g., name, member count).
-      allow update: if isSignedIn() && isAdminOf(request.auth.uid, congregationId);
+      allow read: if isMemberOf(congregationId);
+      // Apenas administradores podem atualizar os detalhes da congregação.
+      allow update: if isAdminOf(congregationId);
     }
-
+    
     match /congregations/{congregationId}/members/{memberId} {
-      allow read: if isMemberOf(request.auth.uid, congregationId);
-      
-      // Allow a user to request to join (create their own PENDING member doc)
-      allow create: if isOwner(memberId) && request.resource.data.status == 'PENDING';
-      
-      // Allow an admin to update a member's status (approve, promote)
-      // or allow a user to remove themselves (not implemented, but rule is safe)
-      allow update: if isSignedIn() && (
-        isAdminOf(request.auth.uid, congregationId) || isOwner(memberId)
-      );
-      
-      // Allow an admin to remove a member (reject, kick)
-      // or a user to cancel their own PENDING request
-      allow delete: if isSignedIn() && (
-        isAdminOf(request.auth.uid, congregationId) || isOwner(memberId)
-      );
+        allow read: if isMemberOf(congregationId);
+        // Usuário só pode criar sua própria solicitação de entrada.
+        allow create: if request.auth.uid == memberId;
+        // Admins podem atualizar (aprovar/promover) ou deletar (rejeitar/remover) membros.
+        allow update, delete: if isAdminOf(congregationId);
     }
-
+    
     match /congregations/{congregationId}/posts/{postId} {
-      allow read: if isMemberOf(request.auth.uid, congregationId);
-      // Allow a member to create a post
-      allow create: if isMemberOf(request.auth.uid, congregationId) && isOwner(request.resource.data.authorId);
-      // Allow an admin or the post author to update/delete it.
-      allow update, delete: if isSignedIn() && (isAdminOf(request.auth.uid, congregationId) || isOwner(resource.data.authorId));
+      allow read, create: if isMemberOf(congregationId);
+      // O autor do post ou um admin pode atualizar ou deletar o post.
+      allow update, delete: if request.auth.uid == resource.data.authorId || isAdminOf(congregationId);
     }
-    
+
     match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
-        allow read, create: if isMemberOf(request.auth.uid, congregationId);
-        allow update, delete: if isSignedIn() && (isAdminOf(request.auth.uid, congregationId) || isOwner(resource.data.authorId));
-    }
-
-
-    // --- Prayer Circles ---
-    match /prayerCircles/{circleId} {
-        // Only members can read the circle's details
-        allow read: if isSignedIn() && request.auth.uid in resource.data.members;
-        // Any signed-in user can create a circle
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
-        // Only members can update (which includes joining via arrayUnion)
-        allow update: if isSignedIn() && request.auth.uid in resource.data.members;
-    }
-    match /prayerRequests/{requestId} {
-        allow read, create: if isSignedIn() && isMemberOf(request.auth.uid, resource.data.circleId);
-        allow update: if isSignedIn() && isMemberOf(request.auth.uid, resource.data.circleId);
+        allow read, create: if isMemberOf(congregationId);
     }
     
-     // --- Shared Content (Ponte da Esperança) ---
+    match /prayerCircles/{circleId} {
+        allow create: if request.auth != null;
+        // Apenas membros podem ler ou atualizar (adicionar/remover membros) o círculo.
+        allow read, update: if request.auth.uid in resource.data.members;
+    }
+    
+    match /prayerRequests/{requestId} {
+        // Apenas membros do círculo correspondente podem interagir com os pedidos.
+        allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/prayerCircles/$(request.resource.data.circleId)).data.members;
+        allow update: if request.auth.uid in get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members;
+    }
+
+    match /journals/{journalId} {
+      // Usuário só pode ler, atualizar ou deletar seus próprios diários.
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Usuário só pode criar diários para si mesmo.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+    
     match /sharedContent/{contentId} {
-      allow read: if true; // Publicly readable
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.creatorId;
-      allow update: if isSignedIn() && request.auth.uid == resource.data.creatorId; // Allow creator to update/delete
+      allow read;
+      allow create: if request.auth != null;
     }
 
   }

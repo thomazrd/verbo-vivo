@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, Send, Loader2 } from "lucide-react";
@@ -15,15 +15,26 @@ interface ChatInputProps {
 export function ChatInput({ onSubmit, isSending }: ChatInputProps) {
   const [text, setText] = useState("");
   const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({
-    onTranscript: (result) => {
-        setText(prev => prev + result);
+    onTranscriptChange: (newTranscript) => {
+        setText(newTranscript);
     }
   });
+  
+  useEffect(() => {
+      if (!isListening && transcript) {
+          // Optional: handle submission automatically when listening stops
+          // onSubmit(transcript);
+          // setText('');
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening]);
+
 
   const handleMicClick = () => {
     if (isListening) {
       stopListening();
     } else {
+      setText(''); // Clear text before starting new recording
       startListening();
     }
   };

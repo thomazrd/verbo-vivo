@@ -125,7 +125,6 @@ export default function PrayerSanctuaryPage() {
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
-  const prayerTextRef = useRef("");
   const [processingText, setProcessingText] = useState("");
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
@@ -133,12 +132,7 @@ export default function PrayerSanctuaryPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const { isListening, startListening, stopListening, error } = useSpeechToText({
-    onTranscript: (result) => {
-      // The hook now sends the full accumulated transcript (final or interim)
-      prayerTextRef.current = result;
-    }
-  });
+  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({});
 
   useEffect(() => {
     if (error) {
@@ -194,7 +188,6 @@ export default function PrayerSanctuaryPage() {
 
   const handleStart = async () => {
     if (isListening) return;
-    prayerTextRef.current = "";
     setProcessingText("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -212,7 +205,7 @@ export default function PrayerSanctuaryPage() {
     stopListening();
     cleanupAudio();
     
-    const prayerText = prayerTextRef.current.trim();
+    const prayerText = transcript.trim();
     setProcessingText(prayerText);
     setSanctuaryState('processing');
 
@@ -249,7 +242,6 @@ export default function PrayerSanctuaryPage() {
   
   const handleReset = () => {
     setLatestResponse(null);
-    prayerTextRef.current = "";
     setProcessingText("");
     cleanupAudio();
     setSanctuaryState('idle');

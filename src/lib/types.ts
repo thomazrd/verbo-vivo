@@ -1,3 +1,4 @@
+
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
@@ -91,7 +92,7 @@ export interface CongregationMember {
   photoURL: string | null;
   joinedAt?: Timestamp;
   requestedAt?: Timestamp;
-  status: 'PENDING' | 'APPROVED';
+  status: 'PENDING' | 'MEMBER' | 'ADMIN';
 }
 
 export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';
@@ -177,6 +178,15 @@ export interface SharedContentDocument {
     viewCount: number;
 }
 
+export interface CongregationReport {
+  id: string;
+  congregationId: string;
+  reportedPostId: string;
+  reporterId: string;
+  reason?: string;
+  status: 'PENDING' | 'RESOLVED';
+  createdAt: Timestamp;
+}
 
 // --- Tipos da API da Bíblia ---
 

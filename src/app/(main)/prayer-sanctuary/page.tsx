@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,6 +25,7 @@ type SanctuaryState = 'idle' | 'recording' | 'processing' | 'response';
 
 // PrayerResponseCard Component (Internal)
 function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseText: string, citedVerses: string[], onReset: () => void }) {
+  const { t } = useTranslation();
   const highlightedText = responseText.replace(
     /([A-Za-z]+\s\d+:\d+(-\d+)?)/g,
     '<strong class="font-semibold text-primary">$1</strong>'
@@ -34,7 +36,7 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HeartHandshake className="h-6 w-6 text-primary" />
-          Uma Palavra de Paz
+          {t('word_of_peace_title')}
         </CardTitle>
         <CardDescription>
           Uma reflexão baseada em sua oração e nas Escrituras.
@@ -51,7 +53,7 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
           </div>
         )}
         <div className="text-center pt-4">
-            <Button onClick={onReset}>Orar Novamente</Button>
+            <Button onClick={onReset}>{t('pray_again_button')}</Button>
         </div>
       </CardContent>
     </Card>
@@ -60,8 +62,10 @@ function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseTe
 
 // PrayerHistoryList Component (Internal)
 function PrayerHistoryList({ userId }: { userId: string }) {
+    const { t } = useTranslation();
     const [history, setHistory] = useState<Prayer[]>([]);
     const [loading, setLoading] = useState(true);
+    const [timeAgo, setTimeAgo] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const q = query(
@@ -78,6 +82,24 @@ function PrayerHistoryList({ userId }: { userId: string }) {
         return () => unsubscribe();
     }, [userId]);
 
+    useEffect(() => {
+      const updateTimes = () => {
+        if (history.length > 0) {
+          const newTimes: Record<string, string> = {};
+          history.forEach(p => {
+              if (p.createdAt) {
+                  newTimes[p.id] = formatDistanceToNow(p.createdAt.toDate(), { addSuffix: true, locale: ptBR });
+              }
+          });
+          setTimeAgo(newTimes);
+        }
+      }
+      updateTimes();
+      // Optional: set an interval to update times periodically
+      const intervalId = setInterval(updateTimes, 60000); // every minute
+      return () => clearInterval(intervalId);
+    }, [history]);
+
     if (loading) {
         return <Skeleton className="h-20 w-full" />;
     }
@@ -90,7 +112,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
         <div className="w-full max-w-2xl mt-12">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-muted-foreground">
                 <History className="h-5 w-5" />
-                Histórico de Orações
+                {t('prayer_history_title')}
             </h2>
             <Accordion type="single" collapsible>
                 {history.map(prayer => (
@@ -99,7 +121,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
                            <div className="flex justify-between w-full pr-4">
                             <span className="truncate">"{prayer.prayerText.substring(0, 50)}..."</span>
                             <span className="text-xs text-muted-foreground shrink-0 ml-4">
-                                {prayer.createdAt ? formatDistanceToNow(prayer.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : ''}
+                                {timeAgo[prayer.id] || ''}
                             </span>
                            </div>
                         </AccordionTrigger>
@@ -117,22 +139,25 @@ function PrayerHistoryList({ userId }: { userId: string }) {
 }
 
 export default function PrayerSanctuaryPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
-  const prayerTextRef = useRef("");
+  const [processingText, setProcessingText] = useState("");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const { isListening, startListening, stopListening, error } = useSpeechToText({
-    onTranscript: (result) => {
-      prayerTextRef.current += result;
-    }
-  });
+  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({});
 
   useEffect(() => {
     if (error) {
@@ -188,7 +213,7 @@ export default function PrayerSanctuaryPage() {
 
   const handleStart = async () => {
     if (isListening) return;
-    prayerTextRef.current = "";
+    setProcessingText("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -204,12 +229,15 @@ export default function PrayerSanctuaryPage() {
   const handleStop = async () => {
     stopListening();
     cleanupAudio();
+    
+    const prayerText = transcript.trim();
+    setProcessingText(prayerText);
     setSanctuaryState('processing');
 
-    const prayerText = prayerTextRef.current.trim();
     if (!prayerText) {
         toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro.", variant: "destructive"});
         setSanctuaryState('idle');
+        setProcessingText("");
         return;
     }
     
@@ -239,7 +267,7 @@ export default function PrayerSanctuaryPage() {
   
   const handleReset = () => {
     setLatestResponse(null);
-    prayerTextRef.current = "";
+    setProcessingText("");
     cleanupAudio();
     setSanctuaryState('idle');
   }
@@ -252,6 +280,16 @@ export default function PrayerSanctuaryPage() {
   }, [cleanupAudio]);
 
   const renderMainContent = () => {
+    if (!isClient) {
+      return (
+        <div className="flex flex-col items-center gap-6">
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-6 w-full max-w-md" />
+          <Skeleton className="h-12 w-48" />
+        </div>
+      );
+    }
+    
     switch (sanctuaryState) {
         case 'recording':
             return (
@@ -273,9 +311,16 @@ export default function PrayerSanctuaryPage() {
             )
         case 'processing':
             return (
-                <div className="flex flex-col items-center gap-6">
-                    <Loader2 className="h-20 w-20 text-primary animate-spin" />
-                    <p className="text-xl text-muted-foreground">Buscando na Palavra uma resposta de paz...</p>
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                    {processingText && (
+                        <div className="p-4 rounded-lg bg-muted/50 w-full animate-in fade-in-0">
+                            <p className="text-sm text-center italic text-muted-foreground line-clamp-3">
+                                "{processingText}"
+                            </p>
+                        </div>
+                    )}
+                    <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                    <p className="text-xl text-muted-foreground text-center">Buscando na Palavra uma resposta de paz...</p>
                 </div>
             )
         case 'response':
@@ -287,11 +332,11 @@ export default function PrayerSanctuaryPage() {
         default:
             return (
                 <div className="flex flex-col items-center gap-6">
-                    <h1 className="text-4xl font-bold tracking-tight text-center">Santuário de Oração</h1>
+                    <h1 className="text-4xl font-bold tracking-tight text-center">{t('sanctuary_title')}</h1>
                     <p className="text-lg text-muted-foreground max-w-md text-center">Um lugar de calma e reflexão para derramar seu coração diante de Deus.</p>
                     <Button onClick={handleStart} size="lg">
                         <Mic className="mr-2 h-5 w-5" />
-                        Orar Agora
+                        {t('pray_now_button')}
                     </Button>
                 </div>
             )
@@ -301,7 +346,7 @@ export default function PrayerSanctuaryPage() {
   return (
     <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
       {renderMainContent()}
-      {user && sanctuaryState === 'idle' && <PrayerHistoryList userId={user.uid} />}
+      {user && sanctuaryState === 'idle' && isClient && <PrayerHistoryList userId={user.uid} />}
     </div>
   );
 }

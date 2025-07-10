@@ -94,6 +94,29 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
     yarn genkit:watch
     ```
 
+## Firestore Data Model
+
+This section outlines key collections and their structures in Firestore.
+
+### `users` Collection
+
+*   **Document ID:** `userId` (same as Firebase Auth UID)
+*   **Description:** Stores user profile information.
+*   **Fields:**
+    *   `uid`: (string) User ID.
+    *   `email`: (string|null) User's email address.
+    *   `displayName`: (string|null) User's display name.
+    *   `photoURL`: (string|null) URL of the user's profile picture.
+    *   `createdAt`: (Timestamp) Timestamp of account creation.
+    *   `onboardingCompleted`: (boolean) Flag indicating if the user has completed the onboarding process.
+    *   `congregationId`: (string|null) ID of the congregation the user belongs to or has requested to join.
+    *   `congregationStatus`: (string|null) User's status within a congregation ('MEMBER', 'PENDING', 'ADMIN', 'NONE').
+    *   `preferredLanguage`: (string|null) User's preferred language code for the application (e.g., "pt", "en", "es", "ja", "zh"). Defaults to `null` (app then uses detection or fallback).
+
+### Other Collections
+(Details for other collections like `prayers`, `congregations`, `posts`, etc., can be added here as needed.)
+
+
 ## 🤝 Como Contribuir
 
 Agradecemos o interesse em contribuir com o Verbo Vivo! No momento, estamos estruturando nosso processo de contribuição. Em breve, adicionaremos mais informações sobre como você pode participar.

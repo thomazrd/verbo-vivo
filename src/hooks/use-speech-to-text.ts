@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface SpeechToTextOptions {
-  onTranscript: (transcript: string) => void;
+  onTranscriptChange?: (transcript: string) => void;
 }
 
-export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
+export const useSpeechToText = ({ onTranscriptChange }: SpeechToTextOptions = {}) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,13 +26,12 @@ export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
 
     recognition.onresult = (event) => {
       let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
+      for (let i = 0; i < event.results.length; ++i) {
+        finalTranscript += event.results[i][0].transcript;
       }
-      if (finalTranscript) {
-        onTranscript(finalTranscript + ' ');
+      setTranscript(finalTranscript);
+      if (onTranscriptChange) {
+        onTranscriptChange(finalTranscript);
       }
     };
     
@@ -46,11 +45,7 @@ export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
     };
 
     recognition.onend = () => {
-      if (isListening) {
-        recognition.start();
-      } else {
-        recognition.stop();
-      }
+      setIsListening(false);
     };
     
     recognitionRef.current = recognition;
@@ -61,7 +56,7 @@ export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startListening = () => {
+  const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(() => {
@@ -74,14 +69,14 @@ export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
             setError('Permissão para microfone negada. Por favor, habilite o acesso nas configurações do seu navegador.');
         });
     }
-  };
+  }, [isListening]);
 
-  const stopListening = () => {
+  const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
     }
-  };
+  }, [isListening]);
 
   return { isListening, transcript, startListening, stopListening, error };
 };

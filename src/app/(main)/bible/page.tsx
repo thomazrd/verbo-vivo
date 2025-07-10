@@ -5,10 +5,10 @@ import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import { VersionSelector } from '@/components/bible/VersionSelector';
-import type { BibleBook } from '@/lib/types';
+import type { BibleBook, BibleVersion } from '@/lib/types';
 
 export default function BibleReaderPage() {
-  const [selectedVersion, setSelectedVersion] = useState<string>('nvi');
+  const [selectedVersion, setSelectedVersion] = useState<BibleVersion>({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
 

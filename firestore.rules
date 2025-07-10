@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Perfil do Usuário
+    // Cada usuário pode ler e escrever apenas em seu próprio documento.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
+
+      // Mensagens do Chat
+      // Usuário só pode acessar suas próprias mensagens.
+      match /messages/{messageId} {
+        allow read, write, create: if request.auth.uid == userId;
+      }
+      
+      // Planos de Estudo
+      // Usuário só pode acessar seus próprios planos.
+      match /plans/{planId} {
+        allow read, write, create: if request.auth.uid == userId;
+      }
+    }
+
+    // Diário
+    // Usuário só pode acessar suas próprias entradas de diário.
+    match /journals/{entryId} {
+        allow read, write, create, delete: if request.auth.uid == resource.data.userId;
+    }
+    
+    // Orações (Santuário)
+    // Usuário só pode acessar suas próprias orações.
+    match /prayers/{prayerId} {
+        allow read, create: if request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Meditações
+    // Usuário só pode acessar suas próprias meditações.
+    match /meditations/{meditationId} {
+        allow read, create: if request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Congregações
+    // Permite que usuários autenticados leiam/escrevam.
+    // Idealmente, isso seria restrito a administradores.
+    match /congregations/{congregationId} {
+      allow read, write: if request.auth != null;
+      
+      // Membros da Congregação
+      // Qualquer usuário autenticado pode solicitar entrada (write).
+      // A leitura pode ser restrita a administradores no futuro.
+      match /members/{memberId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Posts da Congregação
+    // Apenas usuários autenticados podem ler/escrever.
+    // Idealmente, restrito a membros da congregação.
+    match /congregationPosts/{postId} {
+        allow read, write: if request.auth != null;
+        
+        // Comentários nos Posts
+        // Apenas usuários autenticados podem comentar.
+        match /comments/{commentId} {
+            allow read, write: if request.auth != null;
+        }
+    }
+
+    // Círculos de Oração
+    // Apenas usuários autenticados podem interagir.
+    match /prayerCircles/{circleId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Pedidos de Oração
+    // Apenas usuários autenticados podem interagir.
+    match /prayerRequests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

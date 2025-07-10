@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -20,6 +21,13 @@ import { cn } from '@/lib/utils';
 function PrayerRequestCard({ request, onPray, currentUserId }: { request: PrayerRequest, onPray: (requestId: string, hasPrayed: boolean) => void, currentUserId: string }) {
   const hasPrayed = request.prayingUsers.includes(currentUserId);
   const authorInitial = request.authorName ? request.authorName[0].toUpperCase() : '?';
+  const [dateString, setDateString] = useState('');
+
+  useEffect(() => {
+    if (request.createdAt) {
+      setDateString(request.createdAt.toDate().toLocaleDateString('pt-BR'));
+    }
+  }, [request.createdAt]);
 
   return (
     <div className="flex gap-4 p-4 rounded-lg bg-card border">
@@ -29,9 +37,11 @@ function PrayerRequestCard({ request, onPray, currentUserId }: { request: Prayer
       <div className="flex-1">
         <div className="flex items-center justify-between">
             <p className="font-semibold text-sm">{request.authorName}</p>
-            <p className="text-xs text-muted-foreground">
-                {request.createdAt?.toDate().toLocaleDateString('pt-BR')}
-            </p>
+            {dateString && (
+              <p className="text-xs text-muted-foreground">
+                  {dateString}
+              </p>
+            )}
         </div>
         <p className="mt-1 text-card-foreground whitespace-pre-wrap">{request.text}</p>
         <div className="mt-3 flex items-center justify-between text-muted-foreground">
@@ -241,3 +251,5 @@ export default function CircleDetailPage() {
     </div>
   );
 }
+
+    

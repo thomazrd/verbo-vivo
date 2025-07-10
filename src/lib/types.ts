@@ -70,6 +70,7 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
+  preferredLanguage?: string | null; // User's preferred language code (e.g., "pt", "en", "es"). null by default.
 }
 
 export interface Congregation {
@@ -134,8 +135,10 @@ export interface Prayer {
 // --- Tipos da API da Bíblia ---
 
 export interface BibleVersion {
-  version: string;
-  verses: number;
+  id: string;
+  name: string;
+  language: string;
+  apiSource: 'abibliadigital' | 'apibible';
 }
 
 export interface BibleBook {
@@ -223,6 +226,7 @@ export type StudyPlanOutput = z.infer<typeof StudyPlanOutputSchema>;
 // From: chapter-summary-generation.ts
 export const ChapterSummaryInputSchema = z.object({
   chapterText: z.string().describe('The full text of the Bible chapter.'),
+  language: z.string().describe('The language code for the summary (e.g., "pt", "en").'),
 });
 export type ChapterSummaryInput = z.infer<typeof ChapterSummaryInputSchema>;
 

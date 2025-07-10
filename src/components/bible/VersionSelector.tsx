@@ -44,6 +44,7 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
   }, []);
 
   const getDisplayName = (versionKey: string) => {
+    if (!versionKey) return "";
     const fullName = versionNames[versionKey];
     const abbreviation = versionKey.toUpperCase();
     return fullName ? `${fullName} (${abbreviation})` : abbreviation;
@@ -67,8 +68,8 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
         </SelectTrigger>
         <SelectContent>
           {versions.map((v) => (
-            <SelectItem key={v.version} value={v.version}>
-              {getDisplayName(v.version)}
+            <SelectItem key={v.id} value={v.id}>
+              {v.name}
             </SelectItem>
           ))}
         </SelectContent>

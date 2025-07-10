@@ -25,14 +25,25 @@ export const useSpeechToText = ({ onTranscript }: SpeechToTextOptions) => {
     recognition.continuous = true;
 
     recognition.onresult = (event) => {
+      let interimTranscript = '';
       let finalTranscript = '';
+
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcriptPart = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          finalTranscript += transcriptPart;
+        } else {
+          interimTranscript += transcriptPart;
         }
       }
+
       if (finalTranscript) {
         onTranscript(finalTranscript + ' ');
+        // Clear interim transcript if we have a final one for this segment
+        interimTranscript = '';
+      } else if (interimTranscript) {
+        // Send the latest interim transcript
+        onTranscript(interimTranscript);
       }
     };
     

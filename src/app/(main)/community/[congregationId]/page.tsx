@@ -232,36 +232,55 @@ export default function CongregationFeedPage() {
     setLoading(true);
     
     const congregationRef = doc(db, 'congregations', congregationId);
-    const unsubscribeCongregation = onSnapshot(congregationRef, (docSnap) => {
-      if (docSnap.exists() && docSnap.data().members[user.uid]) {
-        setCongregation({ id: docSnap.id, ...docSnap.data() } as Congregation);
+    
+    const unsubscribeCongregation = onSnapshot(congregationRef, async (congDoc) => {
+      if (congDoc.exists()) {
+        const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
+        const memberSnap = await getDoc(memberRef);
+
+        if (memberSnap.exists()) {
+          setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
+          
+          const postsQuery = query(
+            collection(db, "congregationPosts"),
+            where("congregationId", "==", congregationId),
+            orderBy("createdAt", "desc")
+          );
+          
+          const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
+            const congregationPosts: Post[] = [];
+            snapshot.forEach((doc) => {
+              congregationPosts.push({ id: doc.id, ...doc.data() } as Post);
+            });
+            setPosts(congregationPosts);
+            setError(null);
+            setLoading(false);
+          }, (err) => {
+              console.error("Error fetching posts:", err);
+              setError("Falha ao carregar as publicações.");
+              setLoading(false);
+          });
+          
+          // Return the cleanup function for the posts listener
+          return () => unsubscribePosts();
+        } else {
+          setError("Você não é um membro desta congregação.");
+          setCongregation(null);
+          setLoading(false);
+        }
       } else {
-        setError("Congregação não encontrada ou você não é um membro.");
+        setError("Congregação não encontrada.");
         setCongregation(null);
+        setLoading(false);
       }
     }, (err) => {
         console.error("Error fetching congregation:", err);
         setError("Falha ao carregar a congregação.");
         setLoading(false);
     });
-    
-    const postsQuery = query(
-      collection(db, "congregationPosts"),
-      where("congregationId", "==", congregationId),
-      orderBy("createdAt", "desc")
-    );
-    const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
-      const congregationPosts: Post[] = [];
-      snapshot.forEach((doc) => {
-        congregationPosts.push({ id: doc.id, ...doc.data() } as Post);
-      });
-      setPosts(congregationPosts);
-      setLoading(false);
-    });
 
     return () => {
       unsubscribeCongregation();
-      unsubscribePosts();
     };
   }, [user, congregationId]);
   
@@ -391,5 +410,3 @@ export default function CongregationFeedPage() {
     </div>
   );
 }
-
-    

@@ -11,7 +11,7 @@ import type { Congregation, Post, Comment, TextContent, ImageContent, Background
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';

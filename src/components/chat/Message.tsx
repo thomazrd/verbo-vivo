@@ -60,15 +60,15 @@ export function Message({ message }: MessageProps) {
             )}
             >
             <div
-                className="prose prose-sm max-w-none text-inherit prose-p:my-4 prose-headings:my-3"
+                className="prose prose-sm max-w-none text-inherit prose-p:my-6 prose-headings:my-3"
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
             </div>
             
             {citedVerses.map((verse, index) => (
-                <blockquote key={index} className="mt-2 border-l-4 border-primary/50 pl-4 italic bg-muted/50 p-4 rounded-r-lg">
-                    <p className="text-sm text-foreground not-italic leading-relaxed">"{verse.text}"</p>
-                    <footer className="text-xs text-right text-muted-foreground not-italic mt-3">— {verse.reference}</footer>
+                <blockquote key={index} className="mt-2 border-l-4 border-primary bg-primary/10 p-4 rounded-r-lg">
+                    <p className="text-sm font-medium text-primary-foreground/90 not-italic leading-relaxed">“{verse.text}”</p>
+                    <footer className="text-xs text-right text-primary/80 not-italic mt-3">— {verse.reference}</footer>
                 </blockquote>
             ))}
 

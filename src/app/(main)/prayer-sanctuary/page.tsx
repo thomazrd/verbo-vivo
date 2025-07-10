@@ -126,6 +126,7 @@ export default function PrayerSanctuaryPage() {
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
   const prayerTextRef = useRef("");
+  const [processingText, setProcessingText] = useState("");
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -194,6 +195,7 @@ export default function PrayerSanctuaryPage() {
   const handleStart = async () => {
     if (isListening) return;
     prayerTextRef.current = "";
+    setProcessingText("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -209,12 +211,15 @@ export default function PrayerSanctuaryPage() {
   const handleStop = async () => {
     stopListening();
     cleanupAudio();
+    
+    const prayerText = prayerTextRef.current.trim();
+    setProcessingText(prayerText);
     setSanctuaryState('processing');
 
-    const prayerText = prayerTextRef.current.trim();
     if (!prayerText) {
         toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro.", variant: "destructive"});
         setSanctuaryState('idle');
+        setProcessingText("");
         return;
     }
     
@@ -245,6 +250,7 @@ export default function PrayerSanctuaryPage() {
   const handleReset = () => {
     setLatestResponse(null);
     prayerTextRef.current = "";
+    setProcessingText("");
     cleanupAudio();
     setSanctuaryState('idle');
   }
@@ -278,9 +284,16 @@ export default function PrayerSanctuaryPage() {
             )
         case 'processing':
             return (
-                <div className="flex flex-col items-center gap-6">
-                    <Loader2 className="h-20 w-20 text-primary animate-spin" />
-                    <p className="text-xl text-muted-foreground">Buscando na Palavra uma resposta de paz...</p>
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                    {processingText && (
+                        <div className="p-4 rounded-lg bg-muted/50 w-full animate-in fade-in-0">
+                            <p className="text-sm text-center italic text-muted-foreground line-clamp-3">
+                                "{processingText}"
+                            </p>
+                        </div>
+                    )}
+                    <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                    <p className="text-xl text-muted-foreground text-center">Buscando na Palavra uma resposta de paz...</p>
                 </div>
             )
         case 'response':

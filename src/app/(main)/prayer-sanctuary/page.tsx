@@ -83,15 +83,21 @@ function PrayerHistoryList({ userId }: { userId: string }) {
     }, [userId]);
 
     useEffect(() => {
-      if (history.length > 0) {
-        const newTimes: Record<string, string> = {};
-        history.forEach(p => {
-            if (p.createdAt) {
-                newTimes[p.id] = formatDistanceToNow(p.createdAt.toDate(), { addSuffix: true, locale: ptBR });
-            }
-        });
-        setTimeAgo(newTimes);
+      const updateTimes = () => {
+        if (history.length > 0) {
+          const newTimes: Record<string, string> = {};
+          history.forEach(p => {
+              if (p.createdAt) {
+                  newTimes[p.id] = formatDistanceToNow(p.createdAt.toDate(), { addSuffix: true, locale: ptBR });
+              }
+          });
+          setTimeAgo(newTimes);
+        }
       }
+      updateTimes();
+      // Optional: set an interval to update times periodically
+      const intervalId = setInterval(updateTimes, 60000); // every minute
+      return () => clearInterval(intervalId);
     }, [history]);
 
     if (loading) {
@@ -139,6 +145,12 @@ export default function PrayerSanctuaryPage() {
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
   const [processingText, setProcessingText] = useState("");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -268,6 +280,16 @@ export default function PrayerSanctuaryPage() {
   }, [cleanupAudio]);
 
   const renderMainContent = () => {
+    if (!isClient) {
+      return (
+        <div className="flex flex-col items-center gap-6">
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-6 w-full max-w-md" />
+          <Skeleton className="h-12 w-48" />
+        </div>
+      );
+    }
+    
     switch (sanctuaryState) {
         case 'recording':
             return (
@@ -324,9 +346,7 @@ export default function PrayerSanctuaryPage() {
   return (
     <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
       {renderMainContent()}
-      {user && sanctuaryState === 'idle' && <PrayerHistoryList userId={user.uid} />}
+      {user && sanctuaryState === 'idle' && isClient && <PrayerHistoryList userId={user.uid} />}
     </div>
   );
 }
-
-    

@@ -1,8 +1,6 @@
 // /api/bible/versions
 import { NextResponse } from 'next/server';
 
-import { NextResponse } from 'next/server';
-
 // Define a consistent output structure for Bible versions
 interface NormalizedBibleVersion {
   id: string; // e.g., "nvi", "kjv", "cmn-union"

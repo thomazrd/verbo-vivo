@@ -113,6 +113,11 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
 
   const renderContent = () => {
+    // Add a guard clause to handle old posts without a content object
+    if (!post.content) {
+      return null;
+    }
+    
     switch (post.postType) {
       case 'IMAGE':
         const imageContent = post.content as ImageContent;
@@ -438,3 +443,5 @@ export default function CongregationFeedPage() {
     </>
   );
 }
+
+    

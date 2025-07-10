@@ -4,5 +4,20 @@
   "community_welcome": "Bem-vindo à sua comunidade",
   "word_of_peace_title": "Uma Palavra de Paz",
   "pray_again_button": "Orar Novamente",
-  "prayer_history_title": "Histórico de Orações"
+  "prayer_history_title": "Histórico de Orações",
+  "language_setting_label": "Idioma",
+  "select_language_placeholder": "Selecione um idioma",
+  "language_setting_description": "Escolha o idioma de exibição da interface.",
+  "profile_settings_title": "Perfil",
+  "profile_settings_description": "Informações da sua conta.",
+  "email_label": "Email",
+  "language_settings_title": "Idioma",
+  "language_settings_card_description": "Escolha o idioma de preferência para a interface.",
+  "account_settings_title": "Conta",
+  "account_settings_description": "Gerenciamento da sua conta.",
+  "error_saving_language_title": "Erro ao Salvar Preferência",
+  "user_not_logged_in_error": "Usuário não autenticado. Por favor, faça login novamente.",
+  "language_saved_success_title": "Preferência Salva",
+  "language_preference_saved_desc": "Seu idioma de preferência foi salvo como {{newLangCode}}.",
+  "error_saving_language_desc": "Não foi possível salvar sua preferência de idioma. Tente novamente."
 }

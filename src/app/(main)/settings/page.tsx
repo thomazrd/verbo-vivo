@@ -28,16 +28,41 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { LanguageSelector } from "@/components/settings/LanguageSelector" // Added import
+import { useTranslation } from "react-i18next" // Added import for t function
+
+import { doc, updateDoc } from "firebase/firestore"; // Added imports
+import { db } from "@/lib/firebase"; // db was already in auth, but good to be explicit if needed elsewhere
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { t } = useTranslation(); // Added for card titles/descriptions
+  const { user, loading } = useAuth(); // Added loading state from useAuth
   const router = useRouter()
   const { toast } = useToast()
 
   const handleSignOut = async () => {
-    await signOut(auth)
+    await signOut(auth) // auth is already imported from @/lib/firebase
     router.push("/login")
   }
+
+  const handleSaveLanguagePreference = async (newLangCode: string) => {
+    if (!user) {
+      toast({ title: t('error_saving_language_title') || "Erro", description: t('user_not_logged_in_error') || "Usuário não autenticado.", variant: "destructive" });
+      return;
+    }
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+      await updateDoc(userDocRef, {
+        preferredLanguage: newLangCode,
+      });
+      toast({ title: t('language_saved_success_title') || "Preferência Salva", description: t('language_preference_saved_desc') || `Idioma preferido salvo como ${newLangCode}.` });
+    } catch (error) {
+      console.error("Error updating language preference:", error);
+      toast({ title: t('error_saving_language_title') || "Erro ao Salvar", description: t('error_saving_language_desc') || "Não foi possível salvar a preferência de idioma.", variant: "destructive" });
+      // Re-throw to allow LanguageSelector to handle its state if needed
+      throw error;
+    }
+  };
 
   const handleDeleteAccount = () => {
     // This is a placeholder for the actual account deletion logic.
@@ -61,14 +86,14 @@ export default function SettingsPage() {
       <div className="mt-8 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Perfil</CardTitle>
+            <CardTitle>{t('profile_settings_title') || 'Perfil'}</CardTitle>
             <CardDescription>
-              Informações da sua conta.
+              {t('profile_settings_description') || 'Informações da sua conta.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <Label>Email</Label>
+              <Label>{t('email_label') || 'Email'}</Label>
               <span className="text-sm text-muted-foreground">{user?.email}</span>
             </div>
           </CardContent>
@@ -76,7 +101,19 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Conta</CardTitle>
+            <CardTitle>{t('language_settings_title') || 'Idioma'}</CardTitle>
+            <CardDescription>
+              {t('language_settings_card_description') || 'Escolha o idioma de preferência para a interface.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LanguageSelector onLanguageSave={handleSaveLanguagePreference} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('account_settings_title') || 'Conta'}</CardTitle>
             <CardDescription>
               Gerenciamento da sua conta.
             </CardDescription>

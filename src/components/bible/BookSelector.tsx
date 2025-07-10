@@ -17,6 +17,9 @@ interface BookSelectorProps {
   selectedBookAbbrev?: string;
 }
 
+const normalizeString = (str: string) => 
+  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 export function BookSelector({ onBookSelect, selectedBookAbbrev }: BookSelectorProps) {
   const [books, setBooks] = useState<BibleBook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +54,7 @@ export function BookSelector({ onBookSelect, selectedBookAbbrev }: BookSelectorP
   }, [toast]);
 
   const filteredBooks = books.filter(book => 
-    book.name.toLowerCase().includes(searchTerm.toLowerCase())
+    normalizeString(book.name).includes(normalizeString(searchTerm))
   );
   
   const oldTestamentBooks = filteredBooks.filter(book => book.testament === 'VT');

@@ -10,6 +10,8 @@ import { ai } from '../genkit';
 import type { StudyPlanInput, StudyPlanOutput } from '@/lib/types';
 import { StudyPlanInputSchema, StudyPlanOutputSchema } from '@/lib/types';
 
+// Re-export the type for use in components
+export type { StudyPlanOutput };
 
 export async function generateStudyPlan(input: StudyPlanInput): Promise<StudyPlanOutput> {
   return generateStudyPlanFlow(input);

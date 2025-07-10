@@ -182,7 +182,7 @@ export default function PrayerSanctuaryPage() {
   }, []);
 
   const visualizeAudio = useCallback((stream: MediaStream) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = audioContext;
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();

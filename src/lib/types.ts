@@ -94,6 +94,27 @@ export interface CongregationMember {
   status: 'PENDING' | 'APPROVED';
 }
 
+export interface PrayerCircle {
+  id: string;
+  name: string;
+  description?: string; // Optional, as it's not directly used in the page.tsx
+  members: string[]; // Array of user UIDs
+  createdBy: string; // UID of the creator
+  createdAt: Timestamp;
+  inviteCode: string;
+  // Add other fields if they exist on the Firestore document and are needed
+}
+
+export interface PrayerRequest {
+  id: string;
+  circleId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  prayingUsers: string[]; // Array of user UIDs who have prayed
+  createdAt: Timestamp;
+}
+
 export interface Post {
   id: string;
   congregationId: string;

@@ -23,7 +23,11 @@ const prompt = ai.definePrompt({
     system: "Você é um escritor cristão com um dom especial para explicar as verdades da Bíblia de forma simples, amorosa e acolhedora para pessoas que podem estar feridas ou não conhecerem a Deus. Sua linguagem deve ser universal e livre de jargão religioso. O objetivo é oferecer esperança e luz, nunca julgar ou impor. Fale como um amigo sábio e compassivo que se importa genuinamente com a dor da pessoa. Retorne o conteúdo exclusivamente no formato JSON especificado. Para encontrar os versículos, busque na Bíblia por passagens que falem de esperança, conforto e força em meio à dificuldade descrita. Escolha de 2 a 3 versículos que se apliquem bem.",
     prompt: `
         Problem Description: "{{problemDescription}}"
-    `
+    `,
+    model: 'googleai/gemini-1.5-flash', // This was missing
+    config: {
+        temperature: 0.7,
+    },
 });
 
 const generateShareableContentFlow = ai.defineFlow(

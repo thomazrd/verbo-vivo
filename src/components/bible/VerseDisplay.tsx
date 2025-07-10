@@ -5,8 +5,8 @@ import axios from 'axios';
 import type { BibleBook, BibleChapter } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface VerseDisplayProps {
@@ -14,9 +14,11 @@ interface VerseDisplayProps {
   book: BibleBook;
   chapter: number;
   onBack: () => void;
+  onNextChapter: () => void;
+  onPrevChapter: () => void;
 }
 
-export function VerseDisplay({ version, book, chapter, onBack }: VerseDisplayProps) {
+export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, onPrevChapter }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,20 +47,26 @@ export function VerseDisplay({ version, book, chapter, onBack }: VerseDisplayPro
 
     if (book && chapter) {
       fetchChapter();
+      window.scrollTo(0, 0); // Scroll to top on chapter change
     }
   }, [book, chapter, version, toast]);
 
   if (loading) {
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 p-4">
             <div className="flex items-center gap-4">
                  <Skeleton className="h-8 w-8 rounded-md" />
-                 <Skeleton className="h-8 w-48" />
+                 <div className="space-y-2">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                 </div>
             </div>
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-6 w-full" />
+            <div className="pt-4 space-y-3">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-full" />
+            </div>
         </div>
     );
   }
@@ -70,6 +78,9 @@ export function VerseDisplay({ version, book, chapter, onBack }: VerseDisplayPro
   if (!chapterData) {
     return null;
   }
+
+  const hasPrevChapter = chapter > 1;
+  const hasNextChapter = chapter < book.chapters;
 
   return (
     <Card>
@@ -93,6 +104,16 @@ export function VerseDisplay({ version, book, chapter, onBack }: VerseDisplayPro
           </p>
         ))}
       </CardContent>
+      <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={onPrevChapter} disabled={!hasPrevChapter}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Anterior
+            </Button>
+            <Button variant="outline" onClick={onNextChapter} disabled={!hasNextChapter}>
+                Próximo
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+      </CardFooter>
     </Card>
   );
 }

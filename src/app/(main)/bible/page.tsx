@@ -30,6 +30,19 @@ export default function BibleReaderPage() {
       setSelectedChapter(null);
   }
 
+  const handleNextChapter = () => {
+    if (selectedBook && selectedChapter && selectedChapter < selectedBook.chapters) {
+      setSelectedChapter(selectedChapter + 1);
+    }
+  };
+
+  const handlePrevChapter = () => {
+    if (selectedBook && selectedChapter && selectedChapter > 1) {
+      setSelectedChapter(selectedChapter - 1);
+    }
+  };
+
+
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4">
       <div className="mb-8">
@@ -68,6 +81,8 @@ export default function BibleReaderPage() {
               book={selectedBook} 
               chapter={selectedChapter} 
               onBack={handleBackToChapters}
+              onNextChapter={handleNextChapter}
+              onPrevChapter={handlePrevChapter}
             />
           )}
         </main>

@@ -92,7 +92,7 @@ export interface CongregationMember {
   photoURL: string | null;
   joinedAt?: Timestamp;
   requestedAt?: Timestamp;
-  status: 'PENDING' | 'MEMBER' | 'ADMIN';
+  status: 'PENDING' | 'MEMBER' | 'ADMIN' | 'APPROVED';
 }
 
 export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';

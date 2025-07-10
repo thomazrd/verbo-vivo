@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import type { SharedContentDocument } from '@/lib/types';
@@ -14,7 +15,6 @@ async function getSharedContent(id: string): Promise<SharedContentDocument | nul
     return null;
   }
   
-  // Increment view count - do not await to avoid blocking render
   updateDoc(docRef, { viewCount: increment(1) }).catch(console.error);
   
   return { id: docSnap.id, ...docSnap.data() } as SharedContentDocument;
@@ -33,16 +33,21 @@ export default async function SharedContentPage({ params }: { params: { contentI
     <div className="container mx-auto max-w-3xl py-12 px-4">
         <div className="bg-white p-8 sm:p-12 rounded-lg shadow-lg">
             <article className="prose prose-lg max-w-none prose-h1:text-primary prose-h1:font-bold prose-blockquote:border-primary">
-                <h1>{content.title}</h1>
-                <p className="lead">{content.opening}</p>
+                <h1>Uma Palavra de Paz para o seu Coração</h1>
+                <p className="lead">
+                  Um amigo que se importa com você pediu para lhe entregar esta mensagem de esperança.
+                  Acreditamos que, mesmo nos momentos difíceis, a Palavra de Deus pode trazer conforto e direção.
+                </p>
+
+                <p className="mt-8">{content.opening}</p>
                 
                 {content.sections.map((section, index) => (
                     <div key={index} className="mt-8">
-                        <blockquote>
-                            <p className="text-xl italic">“{section.verse_text}”</p>
-                            <footer>— {section.verse}</footer>
+                        <blockquote className="border-l-4 border-primary bg-muted/30 p-4 italic rounded-r-lg">
+                            <p className="text-xl">“{section.verse_text}”</p>
+                            <footer className="text-base not-italic text-right">— {section.verse}</footer>
                         </blockquote>
-                        <p>{section.explanation}</p>
+                        <p className="mt-4">{section.explanation}</p>
                     </div>
                 ))}
 
@@ -71,8 +76,8 @@ export default async function SharedContentPage({ params }: { params: { contentI
 
 export async function generateMetadata({ params }: { params: { contentId: string } }) {
   const data = await getSharedContent(params.contentId);
-  const title = data ? data.content.title : "Uma mensagem de esperança para você";
-  const description = data ? data.content.opening : "Uma reflexão baseada na Bíblia, preparada com carinho.";
+  const title = "Uma Palavra de Paz para o seu Coração";
+  const description = data ? `Enviado por um amigo através do Verbo Vivo: ${data.content.opening}` : "Uma reflexão baseada na Bíblia, preparada com carinho para você.";
 
   return {
     title: `${title} | Verbo Vivo`,

@@ -1,7 +1,8 @@
+
 "use client"
 
 import * as React from "react"
-
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,7 +15,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/use-auth"
 import { signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
+import { doc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -28,11 +30,50 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+
+const languages = [
+    { code: 'pt', name: 'Português' },
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'zh', name: '中文 (Chinês)' },
+    { code: 'ja', name: '日本語 (Japonês)' },
+];
 
 export default function SettingsPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const { t, i18n } = useTranslation();
+  const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
+  const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
+
+
+  const handleLanguageChange = async (newLang: string) => {
+    if (!user) return;
+    setIsSavingLanguage(true);
+    setSelectedLanguage(newLang);
+    try {
+        await i18n.changeLanguage(newLang);
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { preferredLanguage: newLang });
+        toast({
+            title: "Idioma atualizado!",
+            description: `O idioma foi alterado para ${languages.find(l => l.code === newLang)?.name}.`,
+        });
+    } catch (error) {
+        console.error("Error changing language:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Não foi possível alterar o idioma.",
+        });
+    } finally {
+        setIsSavingLanguage(false);
+    }
+  };
+
 
   const handleSignOut = async () => {
     await signOut(auth)
@@ -66,10 +107,43 @@ export default function SettingsPage() {
               Informações da sua conta.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Email</Label>
               <span className="text-sm text-muted-foreground">{user?.email}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Idioma</CardTitle>
+            <CardDescription>
+              Escolha o idioma de sua preferência para a interface.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+                <Label htmlFor="language-select">Idioma</Label>
+                <div className="flex items-center gap-2">
+                    {isSavingLanguage && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Select
+                        value={selectedLanguage}
+                        onValueChange={handleLanguageChange}
+                        disabled={isSavingLanguage}
+                    >
+                        <SelectTrigger id="language-select" className="w-[200px]">
+                            <SelectValue placeholder="Selecione o idioma" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map((lang) => (
+                                <SelectItem key={lang.code} value={lang.code}>
+                                    {lang.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
           </CardContent>
         </Card>

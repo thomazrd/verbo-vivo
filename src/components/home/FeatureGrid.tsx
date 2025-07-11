@@ -17,7 +17,7 @@ const features = [
       title: "Santuário de Oração",
       description: "Grave suas orações com a voz e receba reflexões personalizadas.",
       linkTo: "/prayer-sanctuary",
-      imageUrl: "/features/santurario.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/santurario.jpg",
       imageHint: "serene prayer light",
     },
     {
@@ -25,7 +25,7 @@ const features = [
       title: "Converse com o Assistente",
       description: "Tire dúvidas e explore temas bíblicos com um assistente de IA.",
       linkTo: "/chat",
-      imageUrl: "/features/chat.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/chat.jpg",
       imageHint: "person phone cafe",
     },
     {
@@ -33,7 +33,7 @@ const features = [
       title: "Comunidade da Igreja",
       description: "Conecte-se, compartilhe e cresça junto com sua congregação local.",
       linkTo: "/community",
-      imageUrl: "/features/comunidade.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/comunidade.jpg",
       imageHint: "community picnic laughing",
     },
     {
@@ -41,7 +41,7 @@ const features = [
       title: "Leitor da Bíblia",
       description: "Navegue pelas Escrituras e obtenha resumos de capítulos gerados por IA.",
       linkTo: "/bible",
-      imageUrl: "/features/biblia.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/biblia.jpg",
       imageHint: "open bible coffee",
     },
     {
@@ -49,7 +49,7 @@ const features = [
       title: "Planos de Estudo",
       description: "Transforme conversas em planos de 7 dias e acompanhe seu progresso.",
       linkTo: "/plans",
-      imageUrl: "/features/planos.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/planos.jpg",
       imageHint: "person walking trail",
     },
     {
@@ -57,7 +57,7 @@ const features = [
       title: "Heróis da Fé",
       description: "Explore a vida e as lições de figuras bíblicas importantes.",
       linkTo: "/characters",
-      imageUrl: "/features/personagens.jpg", 
+      imageUrl: "https://dynamic.tiggomark.com.br/images/personagens.jpg", 
       imageHint: "ancient crown map",
     },
     {
@@ -65,7 +65,7 @@ const features = [
       title: "Diário da Fé",
       description: "Um espaço seguro para registrar suas orações, gratidões e reflexões.",
       linkTo: "/journal",
-      imageUrl: "/features/diario.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/diario.jpg",
       imageHint: "writing leather journal",
     },
     {
@@ -73,7 +73,7 @@ const features = [
       title: "Ponte da Esperança",
       description: "Gere e compartilhe páginas de conforto para quem precisa de apoio.",
       linkTo: "/ponte-da-esperanca",
-      imageUrl: "/features/ponte-esperanca.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/ponte-esperanca.jpg",
       imageHint: "empathy comforting friend",
     },
 ];

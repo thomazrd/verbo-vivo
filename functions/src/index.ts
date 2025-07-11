@@ -88,7 +88,7 @@ async function cleanupInvalidTokens(response: admin.messaging.BatchResponse, tok
             if (error.code === "messaging/invalid-registration-token" ||
                 error.code === "messaging/registration-token-not-registered") {
                 const tokenRef = db.collection("userPushTokens").where("token", "==", tokens[index]);
-                tokensToDelete.push(tokenRef.get().then(snap => snap.forEach(doc => doc.ref.delete())));
+                tokensToDelete.push(tokenRef.get().then((snap) => snap.forEach((doc) => doc.ref.delete())));
             }
         }
     });
@@ -103,7 +103,7 @@ const region = "us-central1";
 export const onNewPostLike = functions.region(region)
     .firestore.document("congregations/{congregationId}/posts/{postId}/likes/{userId}")
     .onCreate(async (snapshot, context) => {
-        const { congregationId, postId, userId: actorId } = context.params;
+        const {congregationId, postId, userId: actorId} = context.params;
         const postDoc = await db.doc(`congregations/${congregationId}/posts/${postId}`).get();
         if (!postDoc.exists) return;
         const actorDoc = await db.doc(`users/${actorId}`).get();
@@ -122,7 +122,7 @@ export const onNewPostLike = functions.region(region)
 export const onNewComment = functions.region(region)
     .firestore.document("congregations/{congregationId}/posts/{postId}/comments/{commentId}")
     .onCreate(async (snapshot, context) => {
-        const { congregationId, postId, commentId } = context.params;
+        const {congregationId, postId, commentId} = context.params;
         const commentData = snapshot.data();
         const actorId = commentData.authorId;
         const actorDoc = await db.doc(`users/${actorId}`).get();
@@ -160,7 +160,7 @@ export const onNewComment = functions.region(region)
 export const onCongregationApproval = functions.region(region)
     .firestore.document("congregations/{congregationId}/members/{userId}")
     .onUpdate(async (change, context) => {
-        const { congregationId, userId: recipientId } = context.params;
+        const {congregationId, userId: recipientId} = context.params;
         const before = change.before.data();
         const after = change.after.data();
 

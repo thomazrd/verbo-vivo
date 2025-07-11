@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,6 +12,7 @@ import { JournalEditor } from "@/components/journal/JournalEditor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function JournalPage() {
   const { user } = useAuth();
@@ -20,12 +22,15 @@ export default function JournalPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    };
     setIsLoading(true);
+    // Query without server-side ordering to avoid needing a composite index
     const q = query(
       collection(db, "journals"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -33,9 +38,20 @@ export default function JournalPage() {
       snapshot.forEach((doc) => {
         userEntries.push({ id: doc.id, ...doc.data() } as JournalEntry);
       });
-      setEntries(userEntries);
+      
+      // Sort entries on the client-side
+      const sortedEntries = userEntries.sort((a, b) => {
+        const dateA = a.createdAt?.toDate() || new Date(0);
+        const dateB = b.createdAt?.toDate() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setEntries(sortedEntries);
       setIsLoading(false);
-    }, () => setIsLoading(false));
+    }, (error) => {
+      console.error("Error fetching journal entries:", error);
+      setIsLoading(false)
+    });
 
     return () => unsubscribe();
   }, [user]);
@@ -53,68 +69,73 @@ export default function JournalPage() {
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
       case "Pedido":
-        return "bg-primary/20 text-primary-foreground";
+        return "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/20";
       case "Agradecimento":
-        return "bg-accent/20 text-accent-foreground";
+        return "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/20";
       case "Reflexão":
-        return "bg-secondary text-secondary-foreground";
+        return "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/20";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
   return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meu Diário</h1>
-          <p className="mt-1 text-muted-foreground">
-            Um espaço para suas orações, agradecimentos e reflexões.
-          </p>
-        </div>
-        <Button onClick={handleNewEntry}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nova Entrada
-        </Button>
-      </div>
-
-      <div className="mt-8 space-y-4">
-        {isLoading ? (
-          <p>Carregando...</p>
-        ) : entries.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-muted-foreground/30 rounded-lg">
-            <p className="text-muted-foreground">Nenhuma entrada no diário ainda.</p>
-            <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+    <>
+      <div className="container mx-auto max-w-4xl py-8 px-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Meu Diário</h1>
+            <p className="mt-1 text-muted-foreground">
+              Um espaço para suas orações, agradecimentos e reflexões.
+            </p>
           </div>
-        ) : (
-          entries.map((entry) => (
-            <Card key={entry.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleEditEntry(entry)}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{entry.title || "Sem título"}</CardTitle>
-                    <CardDescription>
-                      {entry.createdAt ? format(entry.createdAt.toDate(), "dd 'de' MMMM, yyyy", { locale: ptBR }) : ''}
-                    </CardDescription>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getCategoryBadgeColor(entry.category)}`}>
-                    {entry.category}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="line-clamp-2 text-muted-foreground">{entry.content}</p>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+          <Button onClick={handleNewEntry}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nova Entrada
+          </Button>
+        </div>
 
+        <div className="mt-8 space-y-4">
+          {isLoading ? (
+            <>
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </>
+          ) : entries.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed border-muted-foreground/30 rounded-lg">
+              <p className="text-muted-foreground">Nenhuma entrada no diário ainda.</p>
+              <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+            </div>
+          ) : (
+            entries.map((entry) => (
+              <Card key={entry.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleEditEntry(entry)}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{entry.title || "Sem título"}</CardTitle>
+                      <CardDescription>
+                        {entry.createdAt ? format(entry.createdAt.toDate(), "dd 'de' MMMM, yyyy", { locale: ptBR }) : ''}
+                      </CardDescription>
+                    </div>
+                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getCategoryBadgeColor(entry.category)}`}>
+                      {entry.category}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="line-clamp-2 text-muted-foreground">{entry.content}</p>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
       <JournalEditor
         isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
+        onOpenChange={setIsEditorOpen}
         entry={selectedEntry}
       />
-    </div>
+    </>
   );
 }

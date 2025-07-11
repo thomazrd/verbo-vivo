@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@genkit-ai/googleai": "1.1.0",
-    "@genkit-ai/next": "1.1.0",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "1.2.3",
     "@radix-ui/react-alert-dialog": "1.1.6",
@@ -48,6 +47,7 @@
     "i18next-browser-languagedetector": "^7.2.1",
     "i18next-http-backend": "^2.5.2",
     "lucide-react": "0.475.0",
+    "marked": "^13.0.2",
     "next": "14.2.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -61,6 +61,7 @@
   },
   "devDependencies": {
     "@types/i18next-browser-languagedetector": "^3.0.0",
+    "@types/marked": "^6.0.0",
     "@types/node": "20.12.12",
     "@types/react": "18.3.1",
     "@types/react-dom": "18.3.0",

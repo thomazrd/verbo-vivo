@@ -19,6 +19,7 @@ import {
   HeartHandshake,
   Menu,
   BookMarked,
+  Share2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -29,7 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
@@ -45,12 +46,13 @@ const navItems = [
   { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
   { href: "/community", label: "Comunidade", icon: Users },
   { href: "/characters", label: "Personagens", icon: BookUser },
+  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -105,8 +107,9 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                   <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                    {user.email ? user.email[0].toUpperCase() : <User />}
+                  <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || ''} />
+                  <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                    {userProfile?.displayName?.[0]?.toUpperCase() || <User />}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -114,7 +117,7 @@ export function Header() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Minha Conta</p>
+                  <p className="text-sm font-medium leading-none">{userProfile?.displayName || 'Minha Conta'}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user.email}
                   </p>

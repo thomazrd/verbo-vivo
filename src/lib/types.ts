@@ -1,3 +1,4 @@
+
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
@@ -18,7 +19,7 @@ export interface Task {
 }
 
 export interface Plan {
-  id: string;
+  id:string;
   title: string;
   tasks: Task[];
   createdAt: Timestamp;
@@ -91,22 +92,44 @@ export interface CongregationMember {
   photoURL: string | null;
   joinedAt?: Timestamp;
   requestedAt?: Timestamp;
-  status: 'PENDING' | 'APPROVED';
+  status: 'PENDING' | 'MEMBER' | 'ADMIN';
+}
+
+export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';
+
+export interface TextContent {
+  text: string;
+}
+
+export interface ImageContent {
+  text: string;
+  imageUrl: string;
+  thumbnailUrl?: string; // Opcional, gerado por uma função
+}
+
+export interface VideoContent {
+  text: string;
+  videoUrl: string;
+  videoId: string;
+  thumbnailUrl?: string;
+}
+
+export interface BackgroundTextContent {
+  text: string;
+  backgroundStyle: string; // ex: 'gradient_blue'
 }
 
 export interface Post {
   id: string;
-  congregationId: string;
   authorId: string;
   authorName: string;
   authorPhotoURL: string | null;
-  text: string;
   createdAt: Timestamp;
-  type: 'ANNOUNCEMENT' | 'POST';
+  postType: PostType;
+  content: TextContent | ImageContent | VideoContent | BackgroundTextContent;
   likeCount: number;
   commentCount: number;
-  // For client-side state management
-  likes?: string[]; 
+  likes?: string[];
 }
 
 export interface Comment {
@@ -116,7 +139,10 @@ export interface Comment {
     authorPhotoURL: string | null;
     text: string;
     createdAt: Timestamp;
+    parentCommentId?: string | null; // ID of the parent comment if this is a reply
+    replyCount: number;
 }
+
 
 export interface Like {
   // The document ID will be the userId
@@ -130,6 +156,40 @@ export interface Prayer {
   prayerText: string;
   responseText: string;
   citedVerses: string[];
+}
+
+// --- Tipos da Ponte da Esperança ---
+
+export const SharedContentSchema = z.object({
+  title: z.string().describe("Um título curto e acolhedor para a página"),
+  opening: z.string().describe("Um parágrafo de abertura que mostra empatia pelo problema, sem mencioná-lo diretamente."),
+  sections: z.array(z.object({
+    verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
+    verse_text: z.string().describe("O texto do versículo."),
+    explanation: z.string().describe("Uma breve e simples explicação de como este versículo oferece esperança para uma situação difícil.")
+  })),
+  conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
+});
+export type SharedContent = z.infer<typeof SharedContentSchema>;
+
+export interface SharedContentDocument {
+    id: string;
+    creatorId: string;
+    createdAt: Timestamp;
+    problemDescription: string;
+    content: SharedContent;
+    status: 'ACTIVE' | 'DELETED';
+    viewCount: number;
+}
+
+export interface CongregationReport {
+  id: string;
+  congregationId: string;
+  reportedPostId: string;
+  reporterId: string;
+  reason?: string;
+  status: 'PENDING' | 'RESOLVED';
+  createdAt: Timestamp;
 }
 
 // --- Tipos da API da Bíblia ---
@@ -234,3 +294,13 @@ export const ChapterSummaryOutputSchema = z.object({
   summary: z.string().describe('The generated summary of the chapter.'),
 });
 export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;
+
+// From: shareable-content-generation.ts
+export const GenerateShareableContentInputSchema = z.object({
+  problemDescription: z.string().describe('The problem description provided by the user.'),
+});
+export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;
+
+// The output is the content object itself.
+export const GenerateShareableContentOutputSchema = SharedContentSchema;
+export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;

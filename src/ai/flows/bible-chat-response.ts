@@ -24,7 +24,11 @@ const bibleChatResponseFlow = ai.defineFlow(
   },
   async (prompt) => {
     const llmResponse = await ai.generate({
-      prompt: `Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Responda à pergunta do usuário de forma solidária, contextual e biblicamente sólida. Use os seguintes versículos bíblicos como referência principal em sua resposta. Incorpore os versículos de forma natural na conversa, explicando sua relevância para a pergunta do usuário.
+      prompt: `Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Responda à pergunta do usuário de forma solidária, contextual e biblicamente sólida. Use os seguintes versículos bíblicos como referência principal em sua resposta.
+      
+Use formatação Markdown para melhorar a legibilidade. Por exemplo, use **negrito** para enfatizar pontos importantes e quebre o texto em parágrafos.
+      
+Incorpore os versículos de forma natural na conversa, explicando sua relevância para a pergunta do usuário.
 
 Pergunta do usuário: "${prompt.user_question}"
 

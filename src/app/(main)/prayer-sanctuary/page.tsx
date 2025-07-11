@@ -146,7 +146,13 @@ export default function PrayerSanctuaryPage() {
   }, []);
 
   const visualizeAudio = useCallback((stream: MediaStream) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) {
+        console.error("AudioContext not supported");
+        toast({ variant: 'destructive', title: 'Erro de Áudio', description: 'Seu navegador não suporta a visualização de áudio.' });
+        return;
+    }
+    const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
@@ -173,7 +179,7 @@ export default function PrayerSanctuaryPage() {
       setAudioData(processedData);
     };
     draw();
-  }, []);
+  }, [toast]);
 
   const handleStart = async () => {
     if (isListening) return;

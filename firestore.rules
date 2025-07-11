@@ -2,118 +2,195 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+    
     // --- Funções Auxiliares ---
+    
+    // Verifica se o usuário está autenticado.
     function isUserAuthenticated() {
       return request.auth != null;
     }
 
+    // Verifica se o usuário é o dono do documento.
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
+
+    // Verifica se o usuário é membro (ou admin) de uma congregação.
     function isCongregationMember(congregationId) {
-        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      return isUserAuthenticated() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
     }
 
+    // Verifica se o usuário é administrador de uma congregação.
     function isAdminOfCongregation(congregationId) {
-      // Verifica se o documento de membro existe e se o status é ADMIN
-      let memberDoc = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
-      return memberDoc.data.status == 'ADMIN';
+      return isUserAuthenticated() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
     }
 
-    // --- Coleções ---
+    // --- Regras das Coleções Principais ---
+
+    // Coleção de Perfis de Usuários
     match /users/{userId} {
-      allow read: if isUserAuthenticated() && isOwner(userId);
+      // Um usuário pode criar seu próprio perfil.
       allow create: if isUserAuthenticated() && isOwner(userId);
-      // Permite atualização do próprio perfil OU se o solicitante for um admin da congregação alvo.
+      
+      // Um usuário pode ler seu próprio perfil.
+      allow get: if isUserAuthenticated() && isOwner(userId);
+      
+      // Um usuário pode atualizar seu próprio perfil.
+      // Um admin de congregação também pode atualizar o perfil de um membro (para mudar status).
       allow update: if isUserAuthenticated() && (
-        isOwner(userId) || (request.resource.data.congregationId != null && isAdminOfCongregation(request.resource.data.congregationId))
+        isOwner(userId) || 
+        (request.resource.data.congregationId != null && isAdminOfCongregation(request.resource.data.congregationId))
       );
+      
+      // Ninguém pode deletar perfis (soft delete pode ser implementado no código).
+      allow delete: if false;
+    }
+
+    // Coleção de Congregações
+    match /congregations/{congregationId} {
+      // Qualquer usuário autenticado pode criar uma congregação.
+      allow create: if isUserAuthenticated();
+      
+      // Apenas membros da congregação podem ler seus detalhes.
+      allow get: if isCongregationMember(congregationId);
+      
+      // Qualquer usuário autenticado pode buscar/listar congregações (essencial para entrar com código).
+      allow list: if isUserAuthenticated();
+      
+      // Apenas administradores podem atualizar os detalhes da congregação.
+      allow update: if isAdminOfCongregation(congregationId);
+      
+      // Apenas um admin pode deletar (lógica de último admin deve estar no backend).
+      allow delete: if isAdminOfCongregation(congregationId);
+
+      // Subcoleção de Membros
+      match /members/{userId} {
+        // Um admin pode aprovar/gerenciar membros.
+        // Um usuário pode criar seu próprio pedido de entrada (status PENDING).
+        allow create, update: if isAdminOfCongregation(congregationId) || (isUserAuthenticated() && isOwner(userId));
+        
+        // Apenas membros da congregação podem ver a lista de outros membros.
+        allow read: if isCongregationMember(congregationId);
+        
+        // Admins podem remover membros. O próprio usuário pode sair.
+        allow delete: if isAdminOfCongregation(congregationId) || (isUserAuthenticated() && isOwner(userId));
+      }
+
+      // Subcoleção de Posts
+      match /posts/{postId} {
+        // Membros podem ler posts.
+        allow read: if isCongregationMember(congregationId);
+        
+        // Membros podem criar posts.
+        allow create: if isCongregationMember(congregationId);
+        
+        // Apenas o autor ou um admin pode atualizar ou deletar um post.
+        allow update, delete: if isCongregationMember(congregationId) && (isOwner(resource.data.authorId) || isAdminOfCongregation(congregationId));
+
+        // Subcoleção de Comentários
+        match /comments/{commentId} {
+            // Membros podem ler comentários.
+            allow read: if isCongregationMember(congregationId);
+            // Membros podem criar comentários.
+            allow create: if isCongregationMember(congregationId);
+            // Apenas o autor ou um admin pode atualizar ou deletar.
+            allow update, delete: if isCongregationMember(congregationId) && (isOwner(resource.data.authorId) || isAdminOfCongregation(congregationId));
+        }
+
+        // Subcoleção de Likes
+        match /likes/{userId} {
+            // Membros podem ler likes (para contagem).
+            allow read: if isCongregationMember(congregationId);
+            // Membros podem criar/deletar seu próprio like.
+            allow create, delete: if isCongregationMember(congregationId) && isOwner(userId);
+        }
+      }
     }
     
-    match /journals/{journalId} {
+    // Coleção de Diários (Journal)
+    match /journals/{entryId} {
+      // Um usuário só pode acessar (ler, escrever, deletar) suas próprias entradas.
       allow read, write: if isUserAuthenticated() && isOwner(resource.data.userId);
     }
-
+    
+    // Coleção de Orações (Prayer Sanctuary)
+    match /prayers/{prayerId} {
+      // Um usuário só pode acessar suas próprias orações.
+      allow read, write: if isUserAuthenticated() && isOwner(resource.data.userId);
+    }
+    
+    // Coleção de Meditações
     match /meditations/{meditationId} {
+        // Um usuário só pode acessar suas próprias meditações.
         allow read, write: if isUserAuthenticated() && isOwner(resource.data.userId);
     }
 
-    match /plans/{planId} {
-      // This is inside a user's collection, so we need to use a wildcard
-      match /users/{userId}/plans/{planId} {
-        allow read, write: if isUserAuthenticated() && isOwner(userId);
-      }
-    }
-    
-    match /messages/{messageId} {
-       // This is inside a user's collection
-       match /users/{userId}/messages/{messageId} {
-         allow read, write: if isUserAuthenticated() && isOwner(userId);
-       }
-    }
-    
-    match /prayerCircles/{circleId} {
-        allow read: if isUserAuthenticated() && request.auth.uid in resource.data.members;
-        allow create: if isUserAuthenticated();
-        allow update: if isUserAuthenticated() && request.auth.uid in resource.data.members;
-    }
-
-    match /prayerRequests/{requestId} {
-        allow read, create: if isUserAuthenticated() && get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
-        allow update: if isUserAuthenticated() && get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
-    }
-    
-    match /sharedContent/{contentId} {
-        allow read;
-        allow create: if isUserAuthenticated();
-        allow update: if isUserAuthenticated() && isOwner(resource.data.creatorId);
-    }
-
-    match /congregations/{congregationId} {
-      // Qualquer usuário autenticado pode pesquisar por congregações (essencial para o 'join by code').
-      allow list: if isUserAuthenticated();
-      // Apenas membros podem ler os detalhes da congregação.
-      allow get: if isUserAuthenticated() && isCongregationMember(congregationId);
-      allow create: if isUserAuthenticated();
-      allow update: if isUserAuthenticated() && isAdminOfCongregation(congregationId);
-      
-      // Regras para subcoleções de congregação
-      
-      match /members/{userId} {
-        allow read: if isUserAuthenticated() && isCongregationMember(congregationId);
-        // Permite que um usuário crie seu próprio pedido de entrada (com status 'PENDING').
-        allow create: if isUserAuthenticated() && isOwner(userId) && request.resource.data.status == 'PENDING';
-        // Permite que admins atualizem/removam membros, e que membros se removam.
-        allow update, delete: if isUserAuthenticated() && (isAdminOfCongregation(congregationId) || isOwner(userId));
-      }
-
-      match /posts/{postId} {
-          allow read, create, update, delete: if isUserAuthenticated() && isCongregationMember(congregationId);
-          
-          match /comments/{commentId} {
-              allow read, create, update, delete: if isUserAuthenticated() && isCongregationMember(congregationId);
-          }
-          match /likes/{userId} {
-              allow read, create, delete: if isUserAuthenticated() && isCongregationMember(congregationId);
-          }
-      }
-    }
-
-    match /notifications/{notificationId} {
-      allow read, update: if isUserAuthenticated() && isOwner(resource.data.recipientId);
-    }
-
-    match /userPushTokens/{userId} {
+    // Coleção de Planos de Estudo (aninhada dentro de 'users')
+    match /users/{userId}/plans/{planId} {
+      // Um usuário só pode acessar seus próprios planos.
       allow read, write: if isUserAuthenticated() && isOwner(userId);
     }
+    
+    // Coleção de Mensagens do Chat (aninhada dentro de 'users')
+    match /users/{userId}/messages/{messageId} {
+      // Um usuário só pode acessar suas próprias mensagens.
+      allow read, write: if isUserAuthenticated() && isOwner(userId);
+    }
+    
+    // Coleção de Notificações
+    match /notifications/{notificationId} {
+        // Um usuário só pode ler e atualizar (marcar como lida) suas próprias notificações.
+        allow read, update: if isUserAuthenticated() && isOwner(resource.data.recipientId);
+        // Ninguém pode criar notificações diretamente pelo cliente; isso é feito pelo backend (Cloud Functions).
+        allow create, delete: if false;
+    }
 
+    // Coleção de Tokens para Push Notification
+    match /userPushTokens/{userId} {
+        // Um usuário pode criar/atualizar seu próprio token.
+        allow write: if isUserAuthenticated() && isOwner(userId);
+        // Ninguém pode ler tokens de outros usuários.
+        allow read: if false;
+    }
+    
+    // Coleção de Círculos de Oração
+    match /prayerCircles/{circleId} {
+        // Apenas membros podem ler os detalhes do círculo.
+        allow get: if isUserAuthenticated() && request.auth.uid in resource.data.members;
+        // Qualquer usuário autenticado pode listar/pesquisar círculos.
+        allow list: if isUserAuthenticated();
+        // Apenas o criador pode atualizar (ex: mudar o nome). Usuários podem entrar (modifica 'members').
+        allow update: if isUserAuthenticated() && (isOwner(resource.data.createdBy) || request.auth.uid in request.resource.data.members);
+        // Um usuário autenticado pode criar um círculo.
+        allow create: if isUserAuthenticated();
+        // Apenas o criador pode deletar.
+        allow delete: if isUserAuthenticated() && isOwner(resource.data.createdBy);
+    }
+
+    // Coleção de Pedidos de Oração
+    match /prayerRequests/{requestId} {
+        // Apenas membros do círculo correspondente podem ler/interagir com os pedidos.
+        allow read, write: if isUserAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members;
+    }
+    
+    // Coleção para a "Ponte da Esperança"
+    match /sharedContent/{contentId} {
+        // Qualquer pessoa (mesmo não autenticada) pode ler um conteúdo compartilhado.
+        allow get: if true;
+        // Apenas usuários autenticados podem criar.
+        allow create: if isUserAuthenticated();
+        // O criador pode atualizar (ex: contagem de views, status)
+        allow update: if isUserAuthenticated() && isOwner(resource.data.creatorId);
+        // Ninguém pode listar todos os conteúdos compartilhados.
+        allow list, delete: if false;
+    }
+
+    // Coleção para as "Pérolas de Sabedoria"
     match /wisdomPearls/{pearlId} {
-      // Permite que qualquer cliente (mesmo não autenticado) leia as pérolas, 
-      // mas apenas administradores (gerenciados via IAM/manualmente) podem escrever.
-      allow read: if true;
-      allow write: if false; // Gerenciado por administradores fora das regras do cliente
+        // Qualquer usuário autenticado pode ler as pérolas.
+        allow read: if isUserAuthenticated();
+        // Ninguém pode escrever/deletar pelo cliente.
+        allow write, delete: if false;
     }
   }
 }

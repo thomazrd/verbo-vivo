@@ -38,6 +38,7 @@ const navItems = [
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
 
   return (
     <div className="hidden border-r bg-background md:block">
@@ -85,7 +86,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </nav>
           </TooltipProvider>
         </div>
-        <div className="mt-auto p-4">
+        <div className="mt-auto p-4 space-y-2">
+           {appVersion && (
+            <div className={cn("text-center text-xs text-muted-foreground font-mono", isCollapsed && "hidden")}>
+                Versão: {appVersion}
+            </div>
+           )}
            <Button variant="outline" size="icon" className="w-full h-9" onClick={onToggle}>
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             <span className="sr-only">Retrair/Expandir menu</span>

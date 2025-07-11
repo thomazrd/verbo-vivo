@@ -12,15 +12,18 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Aguarda a conclusão do carregamento do estado de autenticação
     if (authLoading) {
-      return; // Wait for Firebase auth to initialize
+      return; 
     }
 
+    // Se o carregamento terminou e não há usuário, redireciona para o login
     if (!user) {
       router.push("/login");
       return;
     }
 
+    // Se há um usuário, verifica o status de onboarding
     const checkOnboardingStatus = async () => {
       try {
         const userDocRef = doc(db, "users", user.uid);
@@ -29,18 +32,19 @@ export default function Home() {
         if (userDocSnap.exists() && userDocSnap.data().onboardingCompleted) {
           router.push("/chat");
         } else {
-          // This handles both new signups (where doc exists with false)
-          // and cases where the doc might not have been created yet.
+          // Isso lida com novos cadastros (onde o doc existe com 'false')
+          // e casos onde o documento pode ainda não ter sido criado.
           router.push("/onboarding");
         }
       } catch (error) {
-        console.error("Error checking onboarding status, redirecting to chat:", error);
-        // Fallback to chat to avoid getting user stuck
+        console.error("Erro ao verificar o status de onboarding, redirecionando para o chat:", error);
+        // Fallback para o chat para evitar que o usuário fique preso
         router.push("/chat");
       }
     };
 
     checkOnboardingStatus();
+    
   }, [user, authLoading, router]);
 
   return (

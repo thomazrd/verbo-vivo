@@ -54,6 +54,7 @@ export default function ChatPage() {
       
       const aiResponseText = await bibleChatResponse({
         user_question: text,
+        // This is a placeholder for a real RAG implementation
         bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."]
       });
 
@@ -61,7 +62,7 @@ export default function ChatPage() {
         text: aiResponseText,
         sender: "ai",
         createdAt: Timestamp.now(),
-        hasPlanButton: true, // Enable by default for now
+        hasPlanButton: true,
         topic: text,
       };
       await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);

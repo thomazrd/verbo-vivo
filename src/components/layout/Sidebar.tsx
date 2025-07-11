@@ -14,7 +14,8 @@ import {
   BookMarked,
   Share2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +27,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { href: "/home", label: "Início", icon: Home },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/plans", label: "Planos", icon: BookOpen },
   { href: "/bible", label: "Bíblia", icon: BookMarked },
@@ -44,7 +46,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     <div className="hidden border-r bg-background md:block">
       <div className="flex h-full max-h-screen flex-col gap-2 relative">
         <div className="flex h-16 items-center border-b px-4 lg:px-6">
-          <Link href="/chat" className="flex items-center gap-2 font-semibold">
+          <Link href="/home" className="flex items-center gap-2 font-semibold">
             <BookHeart className="h-6 w-6 text-primary" />
             {!isCollapsed && <span className="">Verbo Vivo</span>}
           </Link>
@@ -60,7 +62,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         href={item.href}
                         className={cn(
                           "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary md:h-8 md:w-8",
-                          pathname.startsWith(item.href) && "bg-muted text-primary"
+                          pathname === item.href && "bg-muted text-primary"
                         )}
                       >
                         <item.icon className="h-5 w-5" />
@@ -75,7 +77,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     href={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                      pathname.startsWith(item.href) && "bg-muted text-primary"
+                      pathname === item.href && "bg-muted text-primary"
                     )}
                   >
                     <item.icon className="h-4 w-4" />

@@ -14,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     // Aguarda a conclusão do carregamento do estado de autenticação
     if (authLoading) {
-      return; 
+      return;
     }
 
     // Se o carregamento terminou e não há usuário, redireciona para o login
@@ -30,16 +30,16 @@ export default function Home() {
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists() && userDocSnap.data().onboardingCompleted) {
-          router.push("/chat");
+          router.push("/home");
         } else {
           // Isso lida com novos cadastros (onde o doc existe com 'false')
           // e casos onde o documento pode ainda não ter sido criado.
           router.push("/onboarding");
         }
       } catch (error) {
-        console.error("Erro ao verificar o status de onboarding, redirecionando para o chat:", error);
-        // Fallback para o chat para evitar que o usuário fique preso
-        router.push("/chat");
+        console.error("Erro ao verificar o status de onboarding, redirecionando para home:", error);
+        // Fallback para home para evitar que o usuário fique preso
+        router.push("/home");
       }
     };
 

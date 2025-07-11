@@ -20,6 +20,7 @@ import {
   Menu,
   BookMarked,
   Share2,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/sheet";
 
 const navItems = [
+  { href: "/home", label: "Início", icon: Home },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/plans", label: "Planos", icon: BookOpen },
   { href: "/bible", label: "Bíblia", icon: BookMarked },
@@ -75,7 +77,7 @@ export function Header() {
         <SheetContent side="left" className="flex flex-col">
           <nav className="grid gap-2 text-lg font-medium">
             <Link
-              href="/chat"
+              href="/home"
               className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
               <BookHeart className="h-6 w-6 text-primary" />

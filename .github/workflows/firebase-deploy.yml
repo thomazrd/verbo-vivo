@@ -21,8 +21,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Get short SHA
+        id: a-short-sha
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build application
         run: npm run build
+        env:
+          NEXT_PUBLIC_APP_VERSION: ${{ steps.a-short-sha.outputs.sha_short }}
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

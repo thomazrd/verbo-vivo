@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -32,6 +34,8 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
   const { toast } = useToast();
   const { i18n } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Reset states on chapter change
@@ -61,9 +65,12 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
     if (book && chapter) {
       fetchChapter();
+       // Update URL with query params
+      const newUrl = `${pathname}?book=${book.abbrev.pt}&chapter=${chapter}`;
+      router.replace(newUrl, { scroll: false });
       window.scrollTo(0, 0); // Scroll to top on chapter change
     }
-  }, [book, chapter, version, toast]);
+  }, [book, chapter, version, toast, pathname, router]);
 
   const handleGenerateSummary = async () => {
     if (!chapterData) return;

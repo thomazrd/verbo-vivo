@@ -1,16 +1,54 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import type { BibleBook, BibleVersion } from '@/lib/types';
+import { useSearchParams } from 'next/navigation';
+import axios from 'axios';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function BibleReaderPage() {
+function BibleReaderContent() {
+  const searchParams = useSearchParams();
+  const bookAbbrev = searchParams.get('book');
+  const chapterNum = searchParams.get('chapter');
+  
+  const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<BibleVersion>({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
+  const [loadingInitialState, setLoadingInitialState] = useState(true);
+
+  // Fetch all books once on mount
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await axios.get<BibleBook[]>('/api/bible/books');
+        setAllBooks(response.data);
+      } catch (err) {
+        console.error("Erro ao buscar livros:", err);
+      }
+    };
+    fetchBooks();
+  }, []);
+  
+  // Set initial state from URL params once books are loaded
+  useEffect(() => {
+    if (allBooks.length > 0) {
+      const bookFromUrl = allBooks.find(b => b.abbrev.pt === bookAbbrev);
+      if (bookFromUrl) {
+        setSelectedBook(bookFromUrl);
+        const chapter = parseInt(chapterNum || '', 10);
+        if (!isNaN(chapter) && chapter > 0 && chapter <= bookFromUrl.chapters) {
+          setSelectedChapter(chapter);
+        }
+      }
+      setLoadingInitialState(false);
+    }
+  }, [allBooks, bookAbbrev, chapterNum]);
 
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
@@ -42,6 +80,23 @@ export default function BibleReaderPage() {
     }
   };
 
+  if (loadingInitialState) {
+      return (
+        <div className="container mx-auto max-w-5xl py-8 px-4">
+            <Skeleton className="h-10 w-1/3 mb-2" />
+            <Skeleton className="h-5 w-1/2 mb-8" />
+            <div className="flex flex-col md:flex-row gap-8">
+              <aside className="w-full md:w-64 flex-shrink-0 space-y-6">
+                 <Skeleton className="h-10 w-full" />
+                 <Skeleton className="h-64 w-full" />
+              </aside>
+               <main className="flex-1">
+                 <Skeleton className="h-96 w-full" />
+              </main>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4">
@@ -59,6 +114,7 @@ export default function BibleReaderPage() {
             onVersionChange={setSelectedVersion} 
           />
           <BookSelector 
+            allBooks={allBooks}
             selectedBookAbbrev={selectedBook?.abbrev.pt}
             onBookSelect={handleBookSelect} 
           />
@@ -89,4 +145,12 @@ export default function BibleReaderPage() {
       </div>
     </div>
   );
+}
+
+export default function BibleReaderPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <BibleReaderContent />
+    </Suspense>
+  )
 }

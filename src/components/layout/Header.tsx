@@ -40,6 +40,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { NotificationBell } from "../notifications/NotificationBell";
+import { WisdomPearl } from "./WisdomPearl";
 
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
@@ -102,6 +103,9 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
+      
+      <WisdomPearl />
+
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <div className="ml-auto flex-1 sm:flex-initial">
           {/* A search bar could go here in the future */}

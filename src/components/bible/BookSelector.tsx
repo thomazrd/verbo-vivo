@@ -1,18 +1,16 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import type { BibleBook } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 
 interface BookSelectorProps {
+  allBooks: BibleBook[];
   onBookSelect: (book: BibleBook) => void;
   selectedBookAbbrev?: string;
 }
@@ -20,60 +18,18 @@ interface BookSelectorProps {
 const normalizeString = (str: string) => 
   str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export function BookSelector({ onBookSelect, selectedBookAbbrev }: BookSelectorProps) {
-  const [books, setBooks] = useState<BibleBook[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function BookSelector({ allBooks, onBookSelect, selectedBookAbbrev }: BookSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get<BibleBook[]>('/api/bible/books');
-        
-        const oldTestament = response.data.filter(book => book.testament === 'VT');
-        const newTestament = response.data.filter(book => book.testament === 'NT');
-
-        setBooks([...oldTestament, ...newTestament]);
-        setError(null);
-      } catch (err) {
-        console.error("Erro ao buscar livros:", err);
-        setError("Não foi possível carregar os livros. Verifique o token da API.");
-        toast({
-            variant: "destructive",
-            title: "Erro de API",
-            description: "Não foi possível carregar os livros. O token da API pode estar faltando ou ser inválido."
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBooks();
-  }, [toast]);
-
-  const filteredBooks = books.filter(book => 
+  const filteredBooks = allBooks.filter(book => 
     normalizeString(book.name).includes(normalizeString(searchTerm))
   );
   
   const oldTestamentBooks = filteredBooks.filter(book => book.testament === 'VT');
   const newTestamentBooks = filteredBooks.filter(book => book.testament === 'NT');
 
-  if (loading) {
-    return (
-        <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-        </div>
-    );
-  }
-
-  if (error) {
-    return <p className="text-destructive text-sm">{error}</p>;
+  if (allBooks.length === 0) {
+     return <p className="text-destructive text-sm">Não foi possível carregar os livros.</p>;
   }
 
   return (

@@ -41,6 +41,14 @@ export interface Verse {
   theme: string;
 }
 
+export interface WisdomPearl {
+  id: string;
+  text: string;
+  reference: string;
+  bookAbbrev: string;
+  chapter: number;
+}
+
 export interface Meditation {
   id: string;
   userId: string;

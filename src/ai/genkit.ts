@@ -12,12 +12,13 @@ export const ai = genkit({
 });
 
 /**
- * Obtém a referência do modelo Gemini a ser usado.
- * Usa o modelo passado como argumento.
- * Se não for definido, o padrão é 'gemini-1.5-flash'.
- * @returns {ModelReference<any>} A referência do modelo Genkit.
+ * Gets the string reference for the Gemini model to be used.
+ * Uses the model passed as an argument.
+ * Defaults to 'gemini-1.5-flash' if not defined.
+ * @returns {ModelReference<any>} The Genkit model reference.
  */
 export function getModel(modelName?: string | null): ModelReference<any> {
   const name = modelName || 'gemini-1.5-flash';
-  return googleAI.model(name);
+  // Correct syntax for referencing a model in Genkit
+  return `googleai/${name}` as ModelReference<any>;
 }

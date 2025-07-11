@@ -9,7 +9,7 @@
 
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
-import { ChapterSummaryInputSchema } from '@/lib/types';
+import { ChapterSummaryInputSchema, ChapterSummaryOutputSchema } from '@/lib/types';
 import type { ChapterSummaryInput, ChapterSummaryOutput } from '@/lib/types';
 
 export async function generateChapterSummary(input: ChapterSummaryInput): Promise<ChapterSummaryOutput> {

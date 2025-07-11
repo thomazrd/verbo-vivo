@@ -622,58 +622,66 @@ export default function CongregationFeedPage() {
   const isMember = userProfile?.congregationId === congregationId && (userProfile?.congregationStatus === 'MEMBER' || userProfile?.congregationStatus === 'ADMIN');
 
   useEffect(() => {
-    if (authLoading || !userProfile) {
-      setLoading(true);
+    if (authLoading) {
       return;
     };
+  
+    if (!userProfile && !authLoading) {
+      setLoading(false);
+      return;
+    }
 
-    if (!isMember) {
+    if (userProfile && !isMember) {
         setError("Você não é um membro desta congregação.");
         setCongregation(null);
         setLoading(false);
         return;
     }
     
-    const congregationRef = doc(db, 'congregations', congregationId);
-    
-    const unsubscribeCongregation = onSnapshot(congregationRef, async (congDoc) => {
-      if (congDoc.exists()) {
-          setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
-          setError(null);
+    if (isMember) {
+      const congregationRef = doc(db, 'congregations', congregationId);
+      
+      const unsubscribeCongregation = onSnapshot(congregationRef, async (congDoc) => {
+        if (congDoc.exists()) {
+            setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
+            setError(null);
 
-          const postsQuery = query(
-            collection(db, "congregations", congregationId, "posts"),
-            orderBy("createdAt", "desc")
-          );
-          
-          const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
-            const congregationPosts: Post[] = [];
-            snapshot.forEach((doc) => {
-              congregationPosts.push({ id: doc.id, ...doc.data() } as Post);
-            });
-            setPosts(congregationPosts);
-            setLoading(false);
-          }, (err) => {
-              console.error("Error fetching posts:", err);
-              setError("Falha ao carregar as publicações.");
+            const postsQuery = query(
+              collection(db, "congregations", congregationId, "posts"),
+              orderBy("createdAt", "desc")
+            );
+            
+            const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
+              const congregationPosts: Post[] = [];
+              snapshot.forEach((doc) => {
+                congregationPosts.push({ id: doc.id, ...doc.data() } as Post);
+              });
+              setPosts(congregationPosts);
               setLoading(false);
-          });
-          
-          return () => unsubscribePosts();
-      } else {
-        setError("Congregação não encontrada.");
-        setCongregation(null);
-        setLoading(false);
-      }
-    }, (err) => {
-        console.error("Error fetching congregation:", err);
-        setError("Falha ao carregar a congregação.");
-        setLoading(false);
-    });
+            }, (err) => {
+                console.error("Error fetching posts:", err);
+                setError("Falha ao carregar as publicações.");
+                setLoading(false);
+            });
+            
+            return () => unsubscribePosts();
+        } else {
+          setError("Congregação não encontrada.");
+          setCongregation(null);
+          setLoading(false);
+        }
+      }, (err) => {
+          console.error("Error fetching congregation:", err);
+          setError("Falha ao carregar a congregação.");
+          setLoading(false);
+      });
 
-    return () => {
-      unsubscribeCongregation();
-    };
+      return () => {
+        unsubscribeCongregation();
+      };
+    } else {
+        setLoading(false);
+    }
   }, [userProfile, authLoading, congregationId, isMember]);
   
   useEffect(() => {
@@ -687,12 +695,12 @@ export default function CongregationFeedPage() {
         if (hasLiked) {
             await updateDoc(postRef, {
                 likes: arrayRemove(user.uid),
-                likeCount: (posts.find(p => p.id === postId)?.likeCount || 1) - 1,
+                likeCount: increment(-1),
             });
         } else {
             await updateDoc(postRef, {
                 likes: arrayUnion(user.uid),
-                likeCount: (posts.find(p => p.id === postId)?.likeCount || 0) + 1,
+                likeCount: increment(1),
             });
         }
     } catch (error) {

@@ -17,7 +17,7 @@ const features = [
       title: "Santuário de Oração",
       description: "Grave suas orações com a voz e receba reflexões personalizadas.",
       linkTo: "/prayer-sanctuary",
-      imageUrl: "https://dynamic.tiggomark.com.br/images/santurario.jpg",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/santuario.jpg",
       imageHint: "serene prayer light",
     },
     {

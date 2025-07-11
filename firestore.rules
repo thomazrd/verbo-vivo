@@ -13,11 +13,19 @@ service cloud.firestore {
     }
     
     function isAdminOf(congregationId) {
+        // Check if the congregationId is null or empty before proceeding
+        if (congregationId == null || congregationId == "") {
+            return false;
+        }
         let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
         return userProfile.congregationId == congregationId && userProfile.congregationStatus == 'ADMIN';
     }
     
     function isMemberOf(congregationId) {
+        // Check if the congregationId is null or empty before proceeding
+        if (congregationId == null || congregationId == "") {
+            return false;
+        }
         let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
         return userProfile.congregationId == congregationId && (userProfile.congregationStatus == 'MEMBER' || userProfile.congregationStatus == 'ADMIN');
     }
@@ -27,13 +35,26 @@ service cloud.firestore {
     // Users
     match /users/{userId} {
       allow read: if isAuth();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId); // User creates their own profile
 
-      // Allow a user to update their own profile fields
-      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'preferredLanguage', 'onboardingCompleted']);
+      // Allow a user to update their own profile fields (e.g., displayName, photoURL)
+      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'preferredLanguage', 'onboardingCompleted', 'emailPreferences', 'notificationSettings']);
       
-      // Allow an admin to update a user's congregation status
-      allow update: if isAdminOf(request.resource.data.congregationId) && request.resource.data.keys().hasOnly(['congregationId', 'congregationStatus']);
+      // Allow an admin of a congregation to update a user's congregation-related fields
+      // This is used when approving, rejecting, promoting, or removing a member.
+      // The congregationId in request.resource.data should be the target congregation.
+      allow update: if
+        isAuth() &&
+        (
+          // Case 1: Setting/updating congregation details (admin of the target congregation)
+          (request.resource.data.keys().hasAny(['congregationId', 'congregationStatus']) && isAdminOf(request.resource.data.congregationId)) ||
+          // Case 2: Clearing congregation details (admin of the *current* congregation stored in the document if clearing)
+          // This typically happens on rejection or removal. The user being modified must have their current congregationId checked.
+          (request.resource.data.keys().hasAny(['congregationId', 'congregationStatus']) &&
+           request.resource.data.congregationId == null &&
+           isAdminOf(get(/databases/$(database)/documents/users/$(userId)).data.congregationId))
+        ) &&
+        request.resource.data.keys().hasOnly(['congregationId', 'congregationStatus']);
     }
 
     // Journals
@@ -52,39 +73,47 @@ service cloud.firestore {
     // Congregations
     match /congregations/{congregationId} {
       allow read: if isAuth() && isMemberOf(congregationId);
-      allow create: if isAuth();
+      allow create: if isAuth(); // Any authenticated user can create a congregation
       
+      // Allow admin of the congregation to update specific fields like name, description, or memberCount
+      allow update: if isAdminOf(congregationId)
+                      && request.resource.data.keys().hasAny(['name', 'description', 'memberCount', 'settings']); // Add other updatable fields as needed
+
       // Member Management Subcollection
       match /members/{memberId} {
         allow read: if isMemberOf(congregationId);
-        allow create: if isAuth(); // Anyone auth'd can request to join
+        allow create: if isAuth(); // Anyone auth'd can request to join (writes PENDING status)
         
-        // Admins can update a member's status (approve/promote)
-        allow update: if isAdminOf(congregationId) && request.resource.data.keys().hasOnly(['status', 'joinedAt']);
+        // Admins can update a member's status (approve/promote) or other member-specific fields
+        allow update: if isAdminOf(congregationId) && request.resource.data.keys().hasOnly(['status', 'joinedAt', 'roles']); // Added 'roles' as an example
         
-        // Admins can remove members
-        allow delete: if isAdminOf(congregationId);
+        // Admins can remove members (deletes the member document)
+        // Users can also remove themselves (leave congregation)
+        allow delete: if isAdminOf(congregationId) || request.auth.uid == memberId;
       }
       
       // Posts Subcollection
       match /posts/{postId} {
         allow read: if isMemberOf(congregationId);
         allow create: if isMemberOf(congregationId) && request.resource.data.authorId == request.auth.uid;
-        allow update: if isMemberOf(congregationId); // For likes/comments count
-        allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
+        // Allow updates for likes, comments count, or if user is author or admin (for content edit)
+        allow update: if isMemberOf(congregationId) &&
+                        (request.resource.data.keys().hasAny(['likeCount', 'commentCount']) ||
+                         resource.data.authorId == request.auth.uid ||
+                         isAdminOf(congregationId));
+        allow delete: if resource.data.authorId == request.auth.uid || isAdminOf(congregationId);
         
         // Comments Sub-Subcollection
         match /comments/{commentId} {
           allow read: if isMemberOf(congregationId);
-          allow create: if isMemberOf(congregationId);
+          allow create: if isMemberOf(congregationId) && request.resource.data.authorId == request.auth.uid;
           
-          // Allow author to edit their own comment text
-          allow update: if isOwner(resource.data.authorId) && request.resource.data.keys().hasOnly(['text']);
-          // Allow any member to update replyCount
-          allow update: if isMemberOf(congregationId) && request.resource.data.keys().hasOnly(['replyCount']);
+          // Allow author to edit their own comment text, or any member to update replyCount
+          allow update: if (isOwner(resource.data.authorId) && request.resource.data.keys().hasOnly(['text'])) ||
+                           (isMemberOf(congregationId) && request.resource.data.keys().hasOnly(['replyCount']));
 
           // Allow author or admin to delete
-          allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
+          allow delete: if resource.data.authorId == request.auth.uid || isAdminOf(congregationId);
         }
       }
     }

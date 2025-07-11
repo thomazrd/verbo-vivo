@@ -29,14 +29,17 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_APP_VERSION: ${{ steps.a-short-sha.outputs.sha_short }}
-
+      
+      - name: Create Google Credentials File
+        run: echo '${{ secrets.FIREBASE_API_TOKEN }}' > google-credentials.json
+      
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_API_TOKEN }}'
           channelId: live
           projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
         env:
           FIREBASE_CLI_PREVIEWS: hostingchannels
-          
+          GOOGLE_APPLICATION_CREDENTIALS: ./google-credentials.json
+

@@ -5,7 +5,8 @@ import type { Notification } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -15,7 +16,7 @@ interface NotificationItemProps {
 const getNotificationMessage = (notification: Notification): string => {
     switch (notification.type) {
         case 'NEW_POST':
-            return `publicou na comunidade.`;
+            return `publicou na sua comunidade.`;
         case 'POST_LIKE':
             return `curtiu sua publicação.`;
         case 'NEW_COMMENT':
@@ -42,6 +43,8 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
   }
 
   const message = getNotificationMessage(notification);
+  const timeAgo = notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : '';
+
 
   return (
     <div
@@ -60,11 +63,11 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
           <span className="font-semibold">{notification.actorName}</span> {message}
         </p>
         <p className="text-xs text-muted-foreground">
-          {new Date(notification.createdAt.seconds * 1000).toLocaleDateString()}
+          {timeAgo}
         </p>
       </div>
       {!notification.isRead && (
-          <div className="w-2.5 h-2.5 bg-primary rounded-full self-center" title="Não lida"></div>
+          <div className="w-2.5 h-2.5 bg-primary rounded-full self-center shrink-0" title="Não lida"></div>
       )}
     </div>
   );

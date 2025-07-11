@@ -96,16 +96,13 @@ export const useNotifications = () => {
             const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
             if (currentToken) {
               // Save the token to Firestore
-              const tokenRef = doc(db, 'userPushTokens', currentToken);
-              const tokenSnap = await getDoc(tokenRef);
-              if (!tokenSnap.exists()) {
-                await setDoc(tokenRef, {
-                  userId: user.uid,
-                  token: currentToken,
-                  platform: 'web',
-                  createdAt: serverTimestamp(),
-                });
-              }
+              const tokenRef = doc(db, 'userPushTokens', user.uid);
+              await setDoc(tokenRef, {
+                userId: user.uid,
+                token: currentToken,
+                platform: 'web',
+                createdAt: serverTimestamp(),
+              }, { merge: true });
             } else {
               console.log('No registration token available. Request permission to generate one.');
             }

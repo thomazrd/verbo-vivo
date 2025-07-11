@@ -7,16 +7,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationItem } from "./NotificationItem";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 
 export function NotificationBell() {
   const { notifications, unreadCount } = useNotifications();
 
   const handleMarkAsRead = async (notificationId: string) => {
     const notificationRef = doc(db, 'notifications', notificationId);
-    await updateDoc(notificationRef, { isRead: true });
+    await writeBatch(db).update(notificationRef, { isRead: true }).commit();
   }
 
   const handleMarkAllAsRead = async () => {
@@ -36,7 +35,7 @@ export function NotificationBell() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center border-2 border-background">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -70,11 +69,6 @@ export function NotificationBell() {
             </div>
           )}
         </ScrollArea>
-        <div className="p-2 border-t text-center">
-            <Button variant="ghost" size="sm" className="w-full">
-                Ver todas as notificações
-            </Button>
-        </div>
       </PopoverContent>
     </Popover>
   );

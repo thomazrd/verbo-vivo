@@ -216,7 +216,7 @@ export interface Notification {
   actorPhotoURL: string | null;
   type: NotificationType;
   entityId: string; // e.g., postId, commentId
-  entityPath: string; // e.g., /community/congregationId/post/postId
+  entityPath: string; // e.g., /community/congregationId
   isRead: boolean;
   createdAt: Timestamp;
 }

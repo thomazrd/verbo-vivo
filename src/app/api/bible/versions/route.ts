@@ -1,6 +1,8 @@
 // /api/bible/versions
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Força a rota a ser dinâmica
+
 // Define a consistent output structure for Bible versions
 interface NormalizedBibleVersion {
   id: string; // e.g., "nvi", "kjv", "cmn-union"
@@ -10,10 +12,7 @@ interface NormalizedBibleVersion {
 }
 
 const ABIBLIA_API_URL = 'https://www.abibliadigital.com.br/api';
-const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
-
 const API_BIBLE_URL = 'https://api.scripture.api.bible/v1';
-const API_BIBLE_KEY = process.env.API_BIBLE_KEY;
 
 // Normalization functions
 function normalizeAbibliaDigitalVersions(data: any[], lang: string): NormalizedBibleVersion[] {
@@ -43,6 +42,10 @@ function normalizeApiBibleVersions(data: any[]): NormalizedBibleVersion[] {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const lang = searchParams.get('lang')?.toLowerCase() || 'pt'; // Default to 'pt'
+  
+  const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
+  const API_BIBLE_KEY = process.env.API_BIBLE_KEY;
+
 
   try {
     let versions: NormalizedBibleVersion[] = [];

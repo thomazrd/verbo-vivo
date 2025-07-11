@@ -42,4 +42,3 @@ jobs:
         env:
           FIREBASE_CLI_PREVIEWS: hostingchannels
           GOOGLE_APPLICATION_CREDENTIALS: ./google-credentials.json
-

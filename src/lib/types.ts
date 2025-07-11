@@ -158,6 +158,28 @@ export interface Prayer {
   citedVerses: string[];
 }
 
+// --- Tipos dos Círculos de Oração ---
+
+export interface PrayerCircle {
+  id: string;
+  name: string;
+  members: string[];
+  inviteCode: string;
+  createdAt: Timestamp;
+  createdBy: string;
+}
+
+export interface PrayerRequest {
+  id: string;
+  circleId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  prayingUsers: string[];
+  createdAt: Timestamp;
+}
+
+
 // --- Tipos da Ponte da Esperança ---
 
 export const SharedContentSchema = z.object({

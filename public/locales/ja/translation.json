@@ -1,8 +1,8 @@
+
 {
-  "sanctuary_title": "Prayer Sanctuary",
-  "pray_now_button": "Pray Now",
-  "community_welcome": "Welcome to your community",
-  "word_of_peace_title": "A Word of Peace",
-  "pray_again_button": "Pray Again",
-  "prayer_history_title": "Prayer History"
+    "sanctuary_title": "祈りの聖域",
+    "pray_now_button": "今すぐ祈る",
+    "prayer_history_title": "祈りの歴史",
+    "word_of_peace_title": "平和の言葉",
+    "pray_again_button": "もう一度祈る"
 }

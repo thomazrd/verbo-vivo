@@ -1,8 +1,8 @@
+
 {
-  "sanctuary_title": "Prayer Sanctuary",
-  "pray_now_button": "Pray Now",
-  "community_welcome": "Welcome to your community",
-  "word_of_peace_title": "A Word of Peace",
-  "pray_again_button": "Pray Again",
-  "prayer_history_title": "Prayer History"
+    "sanctuary_title": "Santuario de Oración",
+    "pray_now_button": "Orar Ahora",
+    "prayer_history_title": "Historial de Oraciones",
+    "word_of_peace_title": "Una Palabra de Paz",
+    "pray_again_button": "Orar de Nuevo"
 }

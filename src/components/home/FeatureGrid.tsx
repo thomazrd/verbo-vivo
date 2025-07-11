@@ -55,9 +55,9 @@ const features = [
     {
       icon: BookUser,
       title: "Heróis da Fé",
-      description: "Explore a vida e as lições de personagens bíblicos importantes.",
+      description: "Explore a vida e as lições de figuras bíblicas importantes.",
       linkTo: "/characters",
-      imageUrl: "https://placehold.co/600x400/967bb6/FFFFFF.png", // Mantido como placeholder
+      imageUrl: "/features/personagens.jpg", 
       imageHint: "ancient crown map",
     },
     {

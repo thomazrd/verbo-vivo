@@ -24,14 +24,14 @@ export function FeatureCard({
   return (
     <Link href={linkTo} className="group block h-full">
       <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1">
-        <div className="aspect-video overflow-hidden">
+        <div className="aspect-video overflow-hidden relative">
           <Image
             src={imageUrl}
             alt={title}
-            width={600}
-            height={400}
+            fill
             className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
             data-ai-hint={imageHint}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </div>
         <CardHeader className="flex-row items-center gap-3 space-y-0 pb-2">

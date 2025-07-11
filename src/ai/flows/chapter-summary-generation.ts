@@ -7,11 +7,13 @@
  */
 
 import { ai } from '../genkit';
-import { ChapterSummaryInputSchema, ChapterSummaryOutputSchema } from '@/lib/types';
+import { z } from 'zod';
+import { ChapterSummaryInputSchema } from '@/lib/types';
 import type { ChapterSummaryInput, ChapterSummaryOutput } from '@/lib/types';
 
 export async function generateChapterSummary(input: ChapterSummaryInput): Promise<ChapterSummaryOutput> {
-  return generateChapterSummaryFlow(input);
+  const summaryText = await generateChapterSummaryFlow(input);
+  return { summary: summaryText };
 }
 
 const systemPrompts: Record<string, string> = {
@@ -26,7 +28,7 @@ const generateChapterSummaryFlow = ai.defineFlow(
   {
     name: 'generateChapterSummaryFlow',
     inputSchema: ChapterSummaryInputSchema,
-    outputSchema: ChapterSummaryOutputSchema,
+    outputSchema: z.string(),
   },
   async ({ chapterText, language }) => {
     
@@ -36,21 +38,17 @@ const generateChapterSummaryFlow = ai.defineFlow(
       system: systemPrompt,
       prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${chapterText}`,
       model: 'googleai/gemini-1.5-flash',
-      output: {
-        schema: ChapterSummaryOutputSchema,
-        format: 'json'
-      },
       config: {
         temperature: 0.3,
       },
     });
     
-    const output = llmResponse.output();
+    const output = llmResponse.text;
 
     if (!output) {
       throw new Error("A IA não conseguiu gerar uma explicação para o capítulo.");
     }
     
-    return { summary: output.summary };
+    return output;
   }
 );

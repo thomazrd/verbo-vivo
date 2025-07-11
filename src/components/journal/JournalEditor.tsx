@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -52,7 +53,7 @@ import {
 
 interface JournalEditorProps {
   isOpen: boolean;
-  onClose: () => void;
+  onOpenChange: (isOpen: boolean) => void;
   entry: JournalEntry | null;
 }
 
@@ -64,7 +65,7 @@ const formSchema = z.object({
   }),
 });
 
-export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
+export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -120,7 +121,7 @@ export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
         });
         toast({ title: "Entrada criada com sucesso!" });
       }
-      onClose();
+      onOpenChange(false);
     } catch (error) {
       console.error("Error saving journal entry:", error);
       toast({
@@ -139,7 +140,7 @@ export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
     try {
       await deleteDoc(doc(db, 'journals', entry.id));
       toast({ title: "Entrada excluída com sucesso." });
-      onClose();
+      onOpenChange(false);
     } catch (error) {
        console.error("Error deleting journal entry:", error);
        toast({
@@ -153,7 +154,7 @@ export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{entry ? 'Editar Entrada' : 'Nova Entrada no Diário'}</SheetTitle>
@@ -182,7 +183,7 @@ export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria" />
@@ -234,7 +235,7 @@ export function JournalEditor({ isOpen, onClose, entry }: JournalEditorProps) {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Continuar</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

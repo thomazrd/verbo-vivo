@@ -307,7 +307,7 @@ export default function ManageCongregationPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => user && handleMemberAction(user.uid, 'leave')} disabled={actionInProgress[user!.id]}>
+                                <AlertDialogAction onClick={() => user && handleMemberAction(user.uid, 'leave')} disabled={actionInProgress[user!.uid]}>
                                     {currentUserIsLastAdmin ? "Excluir e Sair" : "Sair"}
                                 </AlertDialogAction>
                             </AlertDialogFooter>

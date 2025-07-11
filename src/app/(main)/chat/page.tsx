@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -87,7 +88,9 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <MessageList messages={messages} isLoading={isLoading} />
+      <div className="flex-1 overflow-y-auto">
+        <MessageList messages={messages} isLoading={isLoading} />
+      </div>
       <ChatInput onSubmit={handleSendMessage} isSending={isLoading} />
     </div>
   );

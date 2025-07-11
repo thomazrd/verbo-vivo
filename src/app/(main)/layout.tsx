@@ -18,14 +18,14 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       <Sidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
       <div
         className={cn(
-          "flex flex-col transition-[margin-left] duration-300 ease-in-out",
+          "flex flex-col h-screen",
           isCollapsed
             ? "md:ml-[68px]"
             : "md:ml-[220px] lg:ml-[280px]"
         )}
       >
         <Header />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>

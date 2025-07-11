@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { Congregation, CongregationMember } from '@/lib/types';
 
 import { ArrowLeft, Check, ShieldCheck, UserX, X } from 'lucide-react';
@@ -30,19 +30,19 @@ export default function ManageCongregationPage() {
 
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     if (!user) {
         router.push('/login');
         return;
     }
-
-    const unsubProfile = onSnapshot(doc(db, 'users', user.uid), (userDoc) => {
-        if (!userDoc.exists() || userDoc.data().congregationStatus !== 'ADMIN' || userDoc.data().congregationId !== congregationId) {
-            router.push(`/community/${congregationId}`);
-            return;
+    
+    // Once auth is done, check the profile
+    if(userProfile) {
+        const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
+        if (!isAdmin) {
+             router.push(`/community/${congregationId}`);
+             return;
         }
 
         const congRef = doc(db, 'congregations', congregationId);
@@ -63,16 +63,22 @@ export default function ManageCongregationPage() {
           });
           setMembers(allMembers);
           setLoading(false);
+        }, () => {
+            // Error fetching members
+            setLoading(false);
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar os membros.'});
         });
 
         return () => {
             unsubCongregation();
             unsubMembers();
         };
-    });
+    } else if (!authLoading && !userProfile) {
+        // Auth is done, but profile doesn't exist, they can't be an admin.
+        router.push('/community');
+    }
 
-    return () => unsubProfile();
-  }, [congregationId, router, authLoading, user]);
+  }, [congregationId, router, authLoading, user, userProfile, toast]);
 
   const handleMemberAction = async (
     targetUserId: string, 
@@ -103,9 +109,15 @@ export default function ManageCongregationPage() {
             toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
             break;
         case 'remove':
-            const currentMember = members.find(m => m.id === targetUserId);
+            const currentMemberDoc = await getDoc(memberRef);
+            if (!currentMemberDoc.exists()) {
+                throw new Error("Member not found");
+            }
+            const currentMember = currentMemberDoc.data();
+
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
+            
             if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN' || currentMember.status === 'APPROVED')) {
               batch.update(congregationRef, { memberCount: increment(-1) });
             }
@@ -117,7 +129,7 @@ export default function ManageCongregationPage() {
 
     } catch (error) {
       console.error(`Error performing action ${action} on user ${targetUserId}:`, error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível completar a ação.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível completar a ação. Verifique as permissões.' });
     } finally {
       setActionInProgress(prev => ({ ...prev, [targetUserId]: false }));
     }

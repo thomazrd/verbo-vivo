@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -605,7 +604,7 @@ function InviteModal({ inviteCode }: { inviteCode: string }) {
 }
 
 export default function CongregationFeedPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const congregationId = params.congregationId as string;
@@ -621,22 +620,28 @@ export default function CongregationFeedPage() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
-
+  const isMember = userProfile?.congregationId === congregationId && (userProfile?.congregationStatus === 'MEMBER' || userProfile?.congregationStatus === 'ADMIN');
 
   useEffect(() => {
-    if (!user || !congregationId) return;
-    setLoading(true);
+    if (authLoading || !userProfile) {
+      setLoading(true);
+      return;
+    };
+
+    if (!isMember) {
+        setError("Você não é um membro desta congregação.");
+        setCongregation(null);
+        setLoading(false);
+        return;
+    }
     
     const congregationRef = doc(db, 'congregations', congregationId);
     
     const unsubscribeCongregation = onSnapshot(congregationRef, async (congDoc) => {
       if (congDoc.exists()) {
-        const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
-        const memberSnap = await getDoc(memberRef);
-
-        if (memberSnap.exists() && (memberSnap.data().status === 'MEMBER' || memberSnap.data().status === 'ADMIN')) {
           setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
-          
+          setError(null);
+
           const postsQuery = query(
             collection(db, "congregations", congregationId, "posts"),
             orderBy("createdAt", "desc")
@@ -648,7 +653,6 @@ export default function CongregationFeedPage() {
               congregationPosts.push({ id: doc.id, ...doc.data() } as Post);
             });
             setPosts(congregationPosts);
-            setError(null);
             setLoading(false);
           }, (err) => {
               console.error("Error fetching posts:", err);
@@ -657,11 +661,6 @@ export default function CongregationFeedPage() {
           });
           
           return () => unsubscribePosts();
-        } else {
-          setError("Você não é um membro desta congregação.");
-          setCongregation(null);
-          setLoading(false);
-        }
       } else {
         setError("Congregação não encontrada.");
         setCongregation(null);
@@ -676,7 +675,7 @@ export default function CongregationFeedPage() {
     return () => {
       unsubscribeCongregation();
     };
-  }, [user, congregationId]);
+  }, [userProfile, authLoading, congregationId, isMember]);
   
   useEffect(() => {
       listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -703,7 +702,7 @@ export default function CongregationFeedPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4 space-y-4">
         <Skeleton className="h-8 w-1/4" />

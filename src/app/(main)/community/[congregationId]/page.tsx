@@ -6,12 +6,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch, deleteDoc, getDocs } from 'firebase/firestore';
 import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil, CornerDownRight } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil, CornerDownRight, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,9 @@ import { CreatePostModal } from '@/components/community/CreatePostModal';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
     comment: Comment, 
@@ -39,6 +42,9 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     const [newReply, setNewReply] = useState('');
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
     const [timeAgo, setTimeAgo] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedText, setEditedText] = useState(comment.text);
+    const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
     const replies = allComments.filter(c => c.parentCommentId === comment.id);
 
@@ -61,8 +67,7 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
             const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
             const parentCommentRef = doc(db, 'congregations', congregationId, 'posts', postId, 'comments', comment.id);
 
-            // Add new reply document
-            const newReplyRef = doc(commentsCollectionRef); // Create a ref to get the ID
+            const newReplyRef = doc(commentsCollectionRef);
             batch.set(newReplyRef, {
                 authorId: user.uid,
                 authorName: user.displayName || user.email,
@@ -73,16 +78,14 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
                 replyCount: 0,
             });
 
-            // Increment post's total comment count
             batch.update(postRef, { commentCount: increment(1) });
-            // Increment parent comment's reply count
             batch.update(parentCommentRef, { replyCount: increment(1) });
             
             await batch.commit();
 
             setNewReply("");
             setIsReplying(false);
-            onCommentSubmit(); // Notify parent to maybe refetch or update state
+            onCommentSubmit();
 
         } catch (error) {
             console.error("Error adding reply:", error);
@@ -95,36 +98,145 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
             setIsSubmittingReply(false);
         }
     };
+    
+    const handleEditSubmit = async () => {
+        if (!editedText.trim() || editedText === comment.text) {
+            setIsEditing(false);
+            return;
+        }
+        setIsSubmittingEdit(true);
+        try {
+            const commentRef = doc(db, 'congregations', congregationId, 'posts', postId, 'comments', comment.id);
+            await updateDoc(commentRef, {
+                text: editedText,
+            });
+            setIsEditing(false);
+            onCommentSubmit();
+        } catch (error) {
+            console.error("Error editing comment:", error);
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a alteração.' });
+        } finally {
+            setIsSubmittingEdit(false);
+        }
+    };
+
+    const handleDeleteComment = async () => {
+        try {
+            const batch = writeBatch(db);
+            const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
+            const commentRef = doc(db, 'congregations', congregationId, 'posts', postId, 'comments', comment.id);
+            
+            // If it's a top-level comment, we need to delete all its replies as well
+            let totalToDelete = 1;
+            if (!comment.parentCommentId) {
+                const repliesQuery = query(collection(db, 'congregations', congregationId, 'posts', postId, 'comments'), where('parentCommentId', '==', comment.id));
+                const repliesSnapshot = await getDocs(repliesQuery);
+                repliesSnapshot.forEach(replyDoc => {
+                    batch.delete(replyDoc.ref);
+                    totalToDelete++;
+                });
+            } else {
+                 // If it's a reply, decrement the parent's replyCount
+                 const parentCommentRef = doc(db, 'congregations', congregationId, 'posts', postId, 'comments', comment.parentCommentId);
+                 batch.update(parentCommentRef, { replyCount: increment(-1) });
+            }
+
+            batch.delete(commentRef);
+            batch.update(postRef, { commentCount: increment(-totalToDelete) });
+            
+            await batch.commit();
+            onCommentSubmit();
+            toast({ title: "Comentário excluído." });
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir o comentário.' });
+        }
+    };
+
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 group">
               <Avatar className="h-8 w-8 border text-xs">
                 {comment.authorPhotoURL && <AvatarImage src={comment.authorPhotoURL} alt={comment.authorName} />}
                 <AvatarFallback className="bg-muted-foreground/10">{comment.authorName?.[0].toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
-                <div className="flex items-baseline justify-between">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-xs">{comment.authorName}</p>
-                      {comment.authorId === postAuthorId && (
-                        <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-sm">Autor</span>
-                      )}
+              <div className="flex-1">
+                {isEditing ? (
+                    <div className="space-y-2">
+                        <Textarea 
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            className="text-sm"
+                            disabled={isSubmittingEdit}
+                        />
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                            <Button size="sm" onClick={handleEditSubmit} disabled={isSubmittingEdit}>
+                                {isSubmittingEdit ? <Loader2 className="h-4 w-4 animate-spin"/> : "Salvar"}
+                            </Button>
+                        </div>
                     </div>
-                  {timeAgo && 
-                      <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
-                          {timeAgo}
-                      </p>
-                  }
-                </div>
-                <p className="text-sm text-card-foreground">{comment.text}</p>
-                <button 
-                    className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1"
-                    onClick={() => setIsReplying(!isReplying)}
-                >
-                    Responder
-                </button>
+                ) : (
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                        <div className="flex items-baseline justify-between">
+                            <div className="flex items-center gap-2">
+                            <p className="font-semibold text-xs">{comment.authorName}</p>
+                            {comment.authorId === postAuthorId && (
+                                <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-sm">Autor</span>
+                            )}
+                            </div>
+                        {timeAgo && 
+                            <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
+                                {timeAgo}
+                            </p>
+                        }
+                        </div>
+                        <p className="text-sm text-card-foreground">{comment.text}</p>
+                        <button 
+                            className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1"
+                            onClick={() => setIsReplying(!isReplying)}
+                        >
+                            Responder
+                        </button>
+                    </div>
+                )}
               </div>
+              {user.uid === comment.authorId && !isEditing && (
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                              <Pencil className="mr-2 h-4 w-4"/>
+                              Editar
+                          </DropdownMenuItem>
+                           <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                        <Trash2 className="mr-2 h-4 w-4 text-destructive"/>
+                                        <span className="text-destructive">Excluir</span>
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Excluir Comentário?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação não pode ser desfeita. Isso excluirá permanentemente o seu comentário e todas as suas respostas.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteComment} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+              )}
             </div>
 
             {isReplying && (
@@ -152,16 +264,15 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
             {replies.length > 0 && (
                 <div className="pl-6 border-l-2 border-muted-foreground/20 ml-4 space-y-2">
                     {replies.map(reply => (
-                         <div key={reply.id} className="flex items-start gap-3 pt-2">
-                            <Avatar className="h-8 w-8 border text-xs">
-                                {reply.authorPhotoURL && <AvatarImage src={reply.authorPhotoURL} alt={reply.authorName} />}
-                                <AvatarFallback className="bg-muted-foreground/10">{reply.authorName?.[0].toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
-                                <p className="font-semibold text-xs">{reply.authorName}</p>
-                                <p className="text-sm text-card-foreground">{reply.text}</p>
-                            </div>
-                        </div>
+                         <CommentWithReplies 
+                            key={reply.id}
+                            comment={reply}
+                            allComments={allComments}
+                            congregationId={congregationId}
+                            postId={postId}
+                            postAuthorId={postAuthorId}
+                            onCommentSubmit={onCommentSubmit}
+                        />
                     ))}
                 </div>
             )}
@@ -259,7 +370,6 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
 
   const renderContent = () => {
-    // Add a guard clause to handle old posts without a content object
     if (!post.content) {
       return null;
     }
@@ -290,7 +400,6 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         );
       case 'BACKGROUND_TEXT':
         const bgTextContent = post.content as BackgroundTextContent;
-        // Mapeia o estilo do background para classes do Tailwind
         const bgStyleClass = bgTextContent.backgroundStyle === 'gradient_blue'
           ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white'
           : bgTextContent.backgroundStyle === 'gradient_green'
@@ -512,7 +621,7 @@ export default function CongregationFeedPage() {
   
   useEffect(() => {
       listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [posts.length > 0 ? posts[0].id : null]); // Scroll to top only on new post
+  }, [posts.length > 0 ? posts[0].id : null]);
 
   const handleLike = async (postId: string, hasLiked: boolean) => {
     if (!user) return;

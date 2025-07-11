@@ -2,109 +2,89 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper Functions
-    function isSameUser(userId) {
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
       return request.auth.uid == userId;
     }
     
-    function isMemberOf(congregationId) {
-        let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-        return userDoc.data.congregationId == congregationId && (userDoc.data.congregationStatus == 'MEMBER' || userDoc.data.congregationStatus == 'ADMIN');
-    }
-    
     function isAdminOf(congregationId) {
-        let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-        return userDoc.data.congregationId == congregationId && userDoc.data.congregationStatus == 'ADMIN';
+        let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        return userProfile.congregationId == congregationId && userProfile.congregationStatus == 'ADMIN';
     }
-
-    // Collection Rules
     
+    function isMemberOf(congregationId) {
+        let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        return userProfile.congregationId == congregationId && (userProfile.congregationStatus == 'MEMBER' || userProfile.congregationStatus == 'ADMIN');
+    }
+    
+    // --- Collection Rules ---
+
+    // Users
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if isSameUser(userId);
-      allow update: if isSameUser(userId) && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'onboardingCompleted', 'preferredLanguage']);
+      allow read: if isAuth();
+      allow create: if isOwner(userId);
 
-      function allowUserStatusUpdate(congregationId) {
-        let isAdmin = isAdminOf(congregationId);
-        let isLeaving = request.resource.data.congregationStatus == 'NONE' && request.resource.data.congregationId == null;
-        let isJoining = request.resource.data.congregationStatus == 'PENDING';
-        
-        return (isSameUser(userId) && (isLeaving || isJoining)) || (isAdmin);
-      }
+      // Allow a user to update their own profile fields
+      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'preferredLanguage', 'onboardingCompleted']);
       
-      allow update: if allowUserStatusUpdate(request.resource.data.congregationId);
-      
-      match /plans/{planId} {
-        allow read, write: if isSameUser(userId);
-      }
-      
-      match /messages/{messageId} {
-        allow read, write: if isSameUser(userId);
-      }
+      // Allow an admin to update a user's congregation status
+      allow update: if isAdminOf(request.resource.data.congregationId) && request.resource.data.keys().hasOnly(['congregationId', 'congregationStatus']);
     }
-    
+
+    // Journals
     match /journals/{journalId} {
-        allow create: if isSameUser(request.resource.data.userId);
-        allow read, update, delete: if isSameUser(resource.data.userId);
-    }
-    
-    match /prayers/{prayerId} {
-      allow read, write: if isSameUser(request.auth.uid);
-    }
-    
-    match /prayerCircles/{circleId} {
-      allow read, update: if request.auth.uid in resource.data.members;
-      allow create: if request.auth.uid == request.resource.data.createdBy;
-    }
-    
-    match /prayerRequests/{requestId} {
-      allow read, create: if get(/databases/$(database)/documents/prayerCircles/$(request.resource.data.circleId)).data.members.hasAny([request.auth.uid]);
-      allow update: if get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
+        allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+        allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
-    match /meditations/{meditationId} {
-      allow read, write: if isSameUser(request.auth.uid);
-    }
-    
+    // Shared Content
     match /sharedContent/{contentId} {
-        allow read: if true;
-        allow create: if request.auth.uid == request.resource.data.creatorId;
-        allow update: if request.resource.data.keys().hasOnly(['viewCount']);
+      allow read: if true;
+      allow create: if isAuth() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if resource.data.creatorId == request.auth.uid || isAuth(); // Allow owner or any auth user to increment viewCount
     }
-    
+
+    // Congregations
     match /congregations/{congregationId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.createdBy;
-      allow update: if isAdminOf(congregationId); // Admins can update congregation details
+      allow read: if isAuth() && isMemberOf(congregationId);
+      allow create: if isAuth();
       
-      // Members of a congregation
+      // Member Management Subcollection
       match /members/{memberId} {
         allow read: if isMemberOf(congregationId);
-        allow create, delete: if isAdminOf(congregationId) || isSameUser(memberId);
-        allow update: if isAdminOf(congregationId) && (
-            (request.resource.data.status == 'APPROVED' && resource.data.status == 'PENDING') ||
-            (request.resource.data.status == 'ADMIN' && resource.data.status == 'MEMBER')
-        );
+        allow create: if isAuth(); // Anyone auth'd can request to join
+        
+        // Admins can update a member's status (approve/promote)
+        allow update: if isAdminOf(congregationId) && request.resource.data.keys().hasOnly(['status', 'joinedAt']);
+        
+        // Admins can remove members
+        allow delete: if isAdminOf(congregationId);
       }
       
-      // Posts and related data
+      // Posts Subcollection
       match /posts/{postId} {
         allow read: if isMemberOf(congregationId);
-        allow create: if isMemberOf(congregationId) && request.auth.uid == request.resource.data.authorId;
-        allow update: if isMemberOf(congregationId) && (
-          (request.auth.uid == resource.data.authorId) || 
-          (request.resource.data.keys().hasOnly(['likeCount', 'likes', 'commentCount'])) // Any member can update likes/comments
-        );
-
-        // Comments on a post
+        allow create: if isMemberOf(congregationId) && request.resource.data.authorId == request.auth.uid;
+        allow update: if isMemberOf(congregationId); // For likes/comments count
+        allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
+        
+        // Comments Sub-Subcollection
         match /comments/{commentId} {
-            allow read: if isMemberOf(congregationId);
-            allow create: if isMemberOf(congregationId);
-            allow update: if isMemberOf(congregationId) && (
-                (request.auth.uid == resource.data.authorId) || // Author can edit their own comment
-                (request.resource.data.keys().hasOnly(['replyCount']) && request.resource.data.replyCount == resource.data.replyCount + 1) // Any member can increment reply count
-            );
+          allow read: if isMemberOf(congregationId);
+          allow create: if isMemberOf(congregationId);
+          
+          // Allow author to edit their own comment text
+          allow update: if isOwner(resource.data.authorId) && request.resource.data.keys().hasOnly(['text']);
+          // Allow any member to update replyCount
+          allow update: if isMemberOf(congregationId) && request.resource.data.keys().hasOnly(['replyCount']);
+
+          // Allow author or admin to delete
+          allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
         }
       }
     }

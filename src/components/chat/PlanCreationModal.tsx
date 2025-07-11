@@ -16,7 +16,8 @@ import { db } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { Loader2, Sparkles, CheckCircle, BookCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { generateStudyPlan, type StudyPlanOutput } from "@/ai/flows/study-plan-generation";
+import { generateStudyPlan } from "@/ai/flows/study-plan-generation";
+import type { StudyPlanOutput } from "@/lib/types";
 
 interface PlanCreationModalProps {
   isOpen: boolean;

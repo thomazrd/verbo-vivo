@@ -1,14 +1,16 @@
 // /api/bible/verses/[version]/[abbrev]/[chapter]
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Força a rota a ser dinâmica
+
 const ABIBLIA_API_URL = 'https://www.abibliadigital.com.br/api';
-const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
 
 export async function GET(
   request: Request,
   { params }: { params: { version: string; abbrev: string; chapter: string } }
 ) {
   const { version, abbrev, chapter } = params;
+  const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
 
   if (!ABIBLIA_API_TOKEN || ABIBLIA_API_TOKEN === "COLE_SEU_TOKEN_AQUI") {
     return NextResponse.json({ message: 'Token da API não configurado no servidor.' }, { status: 500 });

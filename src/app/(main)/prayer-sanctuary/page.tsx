@@ -16,9 +16,14 @@ import { Mic, Square, Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { PrayerResponseCard } from '@/components/prayer/PrayerResponseCard';
 import { PlanCreationModal } from '@/components/chat/PlanCreationModal';
+import dynamic from 'next/dynamic';
+
+const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-24" />,
+});
 
 
 type SanctuaryState = 'idle' | 'recording' | 'processing' | 'response';
@@ -146,7 +151,13 @@ export default function PrayerSanctuaryPage() {
   }, []);
 
   const visualizeAudio = useCallback((stream: MediaStream) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) {
+        console.error("AudioContext not supported");
+        toast({ variant: 'destructive', title: 'Erro de Áudio', description: 'Seu navegador não suporta a visualização de áudio.' });
+        return;
+    }
+    const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
@@ -173,7 +184,7 @@ export default function PrayerSanctuaryPage() {
       setAudioData(processedData);
     };
     draw();
-  }, []);
+  }, [toast]);
 
   const handleStart = async () => {
     if (isListening) return;
@@ -259,12 +270,7 @@ export default function PrayerSanctuaryPage() {
             return (
                 <div className="flex flex-col items-center gap-6 w-full max-w-md">
                     <div className="w-full h-24">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={audioData} barGap={2} margin={{top:10, right: 10, bottom: 10, left: 10}}>
-                                <YAxis domain={[0, 256]} hide />
-                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={4} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <AudioChart data={audioData} />
                     </div>
                     <p className="text-xl text-muted-foreground">Ouvindo...</p>
                     <Button onClick={handleStop} size="lg" variant="destructive">

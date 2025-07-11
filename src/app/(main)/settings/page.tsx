@@ -93,7 +93,7 @@ export default function SettingsPage() {
             URL.revokeObjectURL(avatarPreview);
         }
     }
-  }, [newAvatarFile]);
+  }, [newAvatarFile, avatarPreview]);
 
 
   const handleLanguageChange = async (newLang: string) => {
@@ -137,7 +137,7 @@ export default function SettingsPage() {
 
       const hasDisplayNameChanged = data.displayName !== userProfile?.displayName;
       
-      const updateData: { displayName?: string, photoURL?: string } = {};
+      const updateData: { displayName?: string, photoURL?: string | null } = {};
       if(hasDisplayNameChanged) updateData.displayName = data.displayName;
       if(newPhotoURL !== userProfile?.photoURL) updateData.photoURL = newPhotoURL;
 

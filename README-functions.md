@@ -24,13 +24,13 @@ Siga as instruções:
 2.  Escolha **TypeScript** como a linguagem.
 3.  Concorde em usar o ESLint e instalar as dependências com `npm`.
 
-Este processo criará a pasta `functions` na raiz do projeto.
+Este processo criará a pasta `functions` na raiz do projeto com a estrutura correta, incluindo o `package.json` em `functions/package.json`.
 
 ### Passo 2: Adicionar o Código da Função
 
 Navegue até a pasta recém-criada (`functions/src`) e substitua o conteúdo do arquivo `index.ts` pelo código de gatilhos de notificação.
 
-> **Nota:** O código completo para o arquivo `index.ts` foi fornecido na especificação técnica detalhada. Ele contém toda a lógica para observar os eventos do Firestore (novos likes, comentários, etc.) e criar as notificações correspondentes.
+> **Nota:** O código completo para o arquivo `index.ts` foi fornecido na especificação técnica detalhada e já está presente no projeto em `src/z-backend-example/functions-code.ts` para sua conveniência. Você pode copiar e colar o conteúdo deste arquivo.
 
 ### Passo 3: Implantar as Funções
 

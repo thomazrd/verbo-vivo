@@ -10,55 +10,18 @@ import type { Prayer } from '@/lib/types';
 import { useSpeechToText } from '@/hooks/use-speech-to-text';
 import { processPrayer } from '@/ai/flows/prayer-reflection';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, Square, Loader2, HeartHandshake, History } from 'lucide-react';
+import { Mic, Square, Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
+import { PrayerResponseCard } from '@/components/prayer/PrayerResponseCard';
+import { PlanCreationModal } from '@/components/chat/PlanCreationModal';
 
 
 type SanctuaryState = 'idle' | 'recording' | 'processing' | 'response';
-
-// PrayerResponseCard Component (Internal)
-function PrayerResponseCard({ responseText, citedVerses, onReset }: { responseText: string, citedVerses: string[], onReset: () => void }) {
-  const { t } = useTranslation();
-  const highlightedText = responseText.replace(
-    /([A-Za-z]+\s\d+:\d+(-\d+)?)/g,
-    '<strong class="font-semibold text-primary">$1</strong>'
-  );
-  
-  return (
-    <Card className="w-full max-w-2xl animate-in fade-in-0 zoom-in-95">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <HeartHandshake className="h-6 w-6 text-primary" />
-          {t('word_of_peace_title')}
-        </CardTitle>
-        <CardDescription>
-          Uma reflexão baseada em sua oração e nas Escrituras.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlightedText }} />
-        {citedVerses.length > 0 && (
-          <div className="pt-4 border-t">
-            <h4 className="font-semibold mb-2">Versículos Citados:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground font-mono">
-              {citedVerses.map(v => <li key={v}>{v}</li>)}
-            </ul>
-          </div>
-        )}
-        <div className="text-center pt-4">
-            <Button onClick={onReset}>{t('pray_again_button')}</Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // PrayerHistoryList Component (Internal)
 function PrayerHistoryList({ userId }: { userId: string }) {
@@ -146,6 +109,7 @@ export default function PrayerSanctuaryPage() {
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
   const [processingText, setProcessingText] = useState("");
   const [isClient, setIsClient] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -325,7 +289,13 @@ export default function PrayerSanctuaryPage() {
             )
         case 'response':
             if (latestResponse) {
-                return <PrayerResponseCard {...latestResponse} onReset={handleReset} />
+                return <PrayerResponseCard 
+                    responseText={latestResponse.responseText} 
+                    citedVerses={latestResponse.citedVerses}
+                    prayerTopic={processingText}
+                    onReset={handleReset} 
+                    onCreatePlan={() => setIsPlanModalOpen(true)}
+                />
             }
             return null; // Should not happen
         case 'idle':
@@ -344,9 +314,16 @@ export default function PrayerSanctuaryPage() {
   }
 
   return (
+    <>
     <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
       {renderMainContent()}
       {user && sanctuaryState === 'idle' && isClient && <PrayerHistoryList userId={user.uid} />}
     </div>
+    <PlanCreationModal 
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        topic={processingText}
+    />
+    </>
   );
 }

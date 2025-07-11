@@ -138,7 +138,10 @@ export interface Comment {
     authorPhotoURL: string | null;
     text: string;
     createdAt: Timestamp;
+    parentCommentId?: string | null; // ID of the parent comment if this is a reply
+    replyCount: number;
 }
+
 
 export interface Like {
   // The document ID will be the userId

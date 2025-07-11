@@ -6,12 +6,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch } from 'firebase/firestore';
 import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +25,151 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
+    comment: Comment, 
+    allComments: Comment[], 
+    congregationId: string, 
+    postId: string,
+    postAuthorId: string,
+    onCommentSubmit: () => void,
+}) {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [isReplying, setIsReplying] = useState(false);
+    const [newReply, setNewReply] = useState('');
+    const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+    const [timeAgo, setTimeAgo] = useState('');
+
+    const replies = allComments.filter(c => c.parentCommentId === comment.id);
+
+    useEffect(() => {
+        if (comment.createdAt) {
+          setTimeAgo(formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true, locale: ptBR }));
+        }
+    }, [comment.createdAt]);
+    
+    if (!user) return null;
+    const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
+
+    const handleReplySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newReply.trim()) return;
+        setIsSubmittingReply(true);
+        try {
+            const batch = writeBatch(db);
+            const commentsCollectionRef = collection(db, 'congregations', congregationId, 'posts', postId, 'comments');
+            const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
+            const parentCommentRef = doc(db, 'congregations', congregationId, 'posts', postId, 'comments', comment.id);
+
+            // Add new reply document
+            const newReplyRef = doc(commentsCollectionRef); // Create a ref to get the ID
+            batch.set(newReplyRef, {
+                authorId: user.uid,
+                authorName: user.displayName || user.email,
+                authorPhotoURL: user.photoURL,
+                text: newReply,
+                parentCommentId: comment.id,
+                createdAt: serverTimestamp(),
+                replyCount: 0,
+            });
+
+            // Increment post's total comment count
+            batch.update(postRef, { commentCount: increment(1) });
+            // Increment parent comment's reply count
+            batch.update(parentCommentRef, { replyCount: increment(1) });
+            
+            await batch.commit();
+
+            setNewReply("");
+            setIsReplying(false);
+            onCommentSubmit(); // Notify parent to maybe refetch or update state
+
+        } catch (error) {
+            console.error("Error adding reply:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro",
+                description: "Não foi possível adicionar a sua resposta.",
+            });
+        } finally {
+            setIsSubmittingReply(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-8 w-8 border text-xs">
+                {comment.authorPhotoURL && <AvatarImage src={comment.authorPhotoURL} alt={comment.authorName} />}
+                <AvatarFallback className="bg-muted-foreground/10">{comment.authorName?.[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
+                <div className="flex items-baseline justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-xs">{comment.authorName}</p>
+                      {comment.authorId === postAuthorId && (
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-sm">Autor</span>
+                      )}
+                    </div>
+                  {timeAgo && 
+                      <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
+                          {timeAgo}
+                      </p>
+                  }
+                </div>
+                <p className="text-sm text-card-foreground">{comment.text}</p>
+                <button 
+                    className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1"
+                    onClick={() => setIsReplying(!isReplying)}
+                >
+                    Responder
+                </button>
+              </div>
+            </div>
+
+            {isReplying && (
+                <form onSubmit={handleReplySubmit} className="flex items-start gap-3 pl-11 pt-2">
+                    <Avatar className="h-8 w-8 border">
+                        {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ""} />}
+                        <AvatarFallback className="bg-muted-foreground/10">{currentUserInitial}</AvatarFallback>
+                    </Avatar>
+                    <div className="relative flex-1">
+                        <Textarea
+                          placeholder={`Respondendo a ${comment.authorName}...`}
+                          value={newReply}
+                          onChange={(e) => setNewReply(e.target.value)}
+                          className="min-h-[40px] resize-none pr-10 text-sm"
+                          rows={1}
+                          disabled={isSubmittingReply}
+                        />
+                        <Button type="submit" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" disabled={!newReply.trim() || isSubmittingReply}>
+                            {isSubmittingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                        </Button>
+                    </div>
+                </form>
+            )}
+
+            {replies.length > 0 && (
+                <div className="pl-6 border-l-2 border-muted-foreground/20 ml-4 space-y-2">
+                    {replies.map(reply => (
+                         <div key={reply.id} className="flex items-start gap-3 pt-2">
+                            <Avatar className="h-8 w-8 border text-xs">
+                                {reply.authorPhotoURL && <AvatarImage src={reply.authorPhotoURL} alt={reply.authorName} />}
+                                <AvatarFallback className="bg-muted-foreground/10">{reply.authorName?.[0].toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
+                                <p className="font-semibold text-xs">{reply.authorName}</p>
+                                <p className="text-sm text-card-foreground">{reply.text}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+
 function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,7 +179,8 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [timeAgo, setTimeAgo] = useState('');
-  const [commentTimes, setCommentTimes] = useState<Record<string, string>>({});
+
+  const topLevelComments = comments.filter(c => !c.parentCommentId);
 
   useEffect(() => {
     if (post.createdAt) {
@@ -42,21 +188,8 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     }
   }, [post.createdAt]);
 
-  useEffect(() => {
-    if (comments.length > 0) {
-      const newTimes: Record<string, string> = {};
-      comments.forEach(comment => {
-        if (comment.createdAt) {
-          newTimes[comment.id] = formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true, locale: ptBR });
-        }
-      });
-      setCommentTimes(newTimes);
-    }
-  }, [comments]);
 
-  useEffect(() => {
-    if (!showComments) return;
-
+  const fetchComments = () => {
     setLoadingComments(true);
     const commentsQuery = query(
       collection(db, "congregations", congregationId, "posts", post.id, "comments"),
@@ -74,7 +207,12 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar os comentários.' });
         setLoadingComments(false);
     });
+    return unsubscribe;
+  }
 
+  useEffect(() => {
+    if (!showComments) return;
+    const unsubscribe = fetchComments();
     return () => unsubscribe();
   }, [post.id, showComments, toast, congregationId]);
   
@@ -84,19 +222,23 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       setIsSubmittingComment(true);
       try {
           const commentCollectionRef = collection(db, 'congregations', congregationId, 'posts', post.id, 'comments');
-          await addDoc(commentCollectionRef, {
+          const postRef = doc(db, 'congregations', congregationId, 'posts', post.id);
+          
+          const batch = writeBatch(db);
+          const newCommentRef = doc(commentCollectionRef);
+
+          batch.set(newCommentRef, {
               authorId: user.uid,
               authorName: user.displayName || user.email,
               authorPhotoURL: user.photoURL,
               text: newComment,
-              createdAt: serverTimestamp()
+              createdAt: serverTimestamp(),
+              replyCount: 0,
           });
 
-          const postRef = doc(db, 'congregations', congregationId, 'posts', post.id);
-          await updateDoc(postRef, {
-              commentCount: post.commentCount + 1
-          });
-
+          batch.update(postRef, { commentCount: increment(1) });
+          
+          await batch.commit();
           setNewComment("");
       } catch (error) {
           console.error("Error adding comment:", error);
@@ -216,25 +358,19 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
        {showComments && (
         <div className="pt-4 border-t border-muted/50 ml-14 space-y-4">
           {loadingComments && <Skeleton className="h-10 w-full" />}
-          {!loadingComments && comments.map(comment => (
-            <div key={comment.id} className="flex items-start gap-3">
-              <Avatar className="h-8 w-8 border text-xs">
-                {comment.authorPhotoURL && <AvatarImage src={comment.authorPhotoURL} alt={comment.authorName} />}
-                <AvatarFallback className="bg-muted-foreground/10">{comment.authorName?.[0].toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2">
-                <div className="flex items-baseline gap-2">
-                  <p className="font-semibold text-xs">{comment.authorName}</p>
-                  {commentTimes[comment.id] && 
-                      <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
-                          {commentTimes[comment.id]}
-                      </p>
-                  }
-                </div>
-                <p className="text-sm text-card-foreground">{comment.text}</p>
-              </div>
-            </div>
+          
+          {!loadingComments && topLevelComments.map(comment => (
+            <CommentWithReplies 
+                key={comment.id}
+                comment={comment}
+                allComments={comments}
+                congregationId={congregationId}
+                postId={post.id}
+                postAuthorId={post.authorId}
+                onCommentSubmit={fetchComments}
+            />
           ))}
+
           {!loadingComments && comments.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-2">Seja o primeiro a comentar.</p>
           )}

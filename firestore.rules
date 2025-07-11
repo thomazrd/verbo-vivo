@@ -1,123 +1,134 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // =================================
-    // Users Collection
-    // =================================
+
+    // --- Helper Functions ---
+    // Checks if the user's request UID matches their document UID
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Checks if a user is a member of a specific congregation
+    function isCongregationMember(congregationId) {
+      let memberStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
+      return memberStatus == 'MEMBER' || memberStatus == 'ADMIN';
+    }
+
+    // Checks if a user is an admin of a specific congregation
+    function isCongregationAdmin(congregationId) {
+        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
+    }
+
+
+    // --- User Profiles ---
     match /users/{userId} {
-      // Anyone authenticated can read a user's public profile
-      allow read: if request.auth != null;
+      // Users can read their own profile.
+      // Admins can read profiles of their members (for management).
+      allow get: if isOwner(userId) || isCongregationAdmin(resource.data.congregationId);
       
-      // A user can create their own profile document
-      allow create: if request.auth.uid == userId;
+      // Users can create their own profile document.
+      allow create: if isOwner(userId);
       
-      // A user can update their own profile data.
-      // An admin of the user's congregation can also update their status.
-      allow update: if request.auth.uid == userId || 
-                      (get(/databases/$(database)/documents/congregations/$(request.resource.data.congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN');
+      // Users can update their own profile.
+      allow update: if isOwner(userId);
     }
 
-    // =================================
-    // Congregations Collection
-    // =================================
+
+    // --- Congregations ---
     match /congregations/{congregationId} {
-      // Any authenticated user can read congregation info (to search/join)
-      allow read: if request.auth != null;
-      
-      // Allow authenticated users to create a new congregation
-      allow create: if request.auth != null;
-      
-      // Only admins of that congregation can update it
-      allow update: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
-      
-      // --- Members Subcollection ---
+      // Any authenticated user can list congregations to find one by invite code.
+      allow list: if request.auth != null;
+      // Only members can read the full details of a congregation.
+      allow get: if isCongregationMember(congregationId);
+      // Only authenticated users without a congregation can create one.
+      allow create: if request.auth != null && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == null;
+
+      // --- Congregation Members ---
       match /members/{userId} {
-        // Any authenticated user can read the member list
-        allow read: if request.auth != null;
-        
-        // A user can request to join (create their own member doc with 'PENDING' status)
-        allow create: if request.auth.uid == userId && request.resource.data.status == 'PENDING';
-        
-        // Only admins can update a member's status (approve, promote)
-        // A user can also leave (which is a delete operation)
-        allow update: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
-        
-        // Admins can remove members. A user can remove themselves (leave).
-        allow delete: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN' || request.auth.uid == userId;
+        // Admins can manage members (approve, reject, remove).
+        allow write, delete: if isCongregationAdmin(congregationId);
+        // Any authenticated user can request to join (create their own PENDING doc).
+        allow create: if isOwner(userId);
+        // Members can view the member list.
+        allow read: if isCongregationMember(congregationId);
       }
       
-      // --- Posts Subcollection ---
+      // --- Congregation Posts ---
       match /posts/{postId} {
-        // Any member of the congregation can read posts
-        allow read: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-        
-        // Any member can create a post
-        allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-        
-        // Only the post author or an admin can update/delete a post
-        allow update, delete: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN' || resource.data.authorId == request.auth.uid;
-        
-        // --- Likes and Comments Subcollections ---
-        match /likes/{userId} {
-           allow read: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-           // A member can like/unlike (create/delete their own like doc)
-           allow create, delete: if request.auth.uid == userId && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-        }
-        
+        // Members can read, create, update, and delete their own posts.
+        allow read, write: if isCongregationMember(congregationId);
+        // Admins can delete any post.
+        allow delete: if isCongregationAdmin(congregationId);
+
+        // --- Post Comments ---
         match /comments/{commentId} {
-            allow read: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-            // A member can create a comment
-            allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-            // Only the comment author or an admin can update/delete it
-            allow update, delete: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN' || resource.data.authorId == request.auth.uid;
+            // Members can read, create, update, and delete their own comments.
+            allow read, write: if isCongregationMember(congregationId);
+            // Admins can delete any comment.
+            allow delete: if isCongregationAdmin(congregationId);
+
+            // Likes on comments
+            match /likes/{userId} {
+                allow read, write: if isCongregationMember(congregationId);
+            }
+        }
+
+        // --- Post Likes ---
+        match /likes/{userId} {
+            // Members can like/unlike posts (create/delete their own like doc).
+            allow read, write: if isCongregationMember(congregationId) && isOwner(userId);
         }
       }
-    }
-    
-    // =================================
-    // Journals, Plans, Meditations (User-specific)
-    // =================================
-    match /journals/{entryId} {
-        allow read, write: if request.auth.uid == resource.data.userId;
-    }
-    
-    match /users/{userId}/plans/{planId} {
-        allow read, write: if request.auth.uid == userId;
-    }
-    
-    match /meditations/{meditationId} {
-       allow read, write: if request.auth.uid == resource.data.userId;
-    }
-    
-    match /users/{userId}/messages/{messageId} {
-       allow read, write: if request.auth.uid == userId;
     }
 
-    // =================================
-    // Shared Content (Ponte da Esperança)
-    // =================================
-    match /sharedContent/{contentId} {
-        // Anyone can read shared content (it's public)
-        allow read;
-        // Only authenticated users can create it
-        allow create: if request.auth != null;
-        // Only the creator can update it (not really used in app, but good practice)
-        allow update: if request.auth.uid == resource.data.creatorId;
+
+    // --- Personal Journal Entries ---
+    match /journals/{entryId} {
+      // Users can only read and write their own journal entries.
+      allow read, write, delete: if request.auth.uid == resource.data.userId;
     }
     
-    // =================================
-    // Notifications and Push Tokens
-    // =================================
+    // --- Personal Study Plans ---
+    match /users/{userId}/plans/{planId} {
+        // Users can only manage their own study plans.
+        allow read, write, delete: if isOwner(userId);
+    }
+    
+    // --- Prayer Circles ---
+    match /prayerCircles/{circleId} {
+        // Allow read only if user is in the members array.
+        allow get, list: if request.auth.uid in resource.data.members;
+        // Allow updates (like joining) if authenticated.
+        allow update: if request.auth != null;
+        // Allow creation if authenticated.
+        allow create: if request.auth != null;
+    }
+
+    // --- Prayer Requests within Circles ---
+    match /prayerRequests/{requestId} {
+        // Allow read/write if user is member of the associated circle.
+        allow read, write: if get(/databases/$(database)/documents/prayerCircles/$(resource.data.circleId)).data.members.hasAny([request.auth.uid]);
+    }
+    
+    // --- Shareable Content (Hope Bridge) ---
+    match /sharedContent/{contentId} {
+        // Anyone can read it.
+        allow get: if true;
+        // Only the creator can create/update it.
+        allow create, update: if request.auth.uid == request.resource.data.creatorId;
+    }
+    
+    // --- Notifications ---
     match /notifications/{notificationId} {
-        // A user can only read or update (mark as read) their own notifications
-        allow read, update: if request.auth.uid == resource.data.recipientId;
+      // Users can only read notifications intended for them.
+      allow read, update: if request.auth.uid == resource.data.recipientId;
     }
     
     match /userPushTokens/{userId} {
-      // A user can only manage their own push token
-      allow read, write: if request.auth.uid == userId;
+      // Users can only manage their own push tokens.
+      allow read, write: if isOwner(userId);
     }
   }
 }

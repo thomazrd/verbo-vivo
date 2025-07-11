@@ -1,69 +1,135 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // =================================
+    // Helper Functions
+    // =================================
     function isUserAuthenticated() {
       return request.auth != null;
     }
-
+    
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
+    
+    // Checks if the requesting user is a member or admin of a specific congregation
     function isCongregationMember(congregationId) {
-      return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+      let memberDoc = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+      return memberDoc.exists && memberDoc.data.status in ['MEMBER', 'ADMIN'];
     }
     
-    // User profiles: Users can read their own profile and update it.
-    match /users/{userId} {
-      allow read, update: if isOwner(userId);
+    // Checks if the requesting user is an admin of a specific congregation
+    function isCongregationAdmin(congregationId) {
+      let memberDoc = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+      return memberDoc.exists && memberDoc.data.status == 'ADMIN';
+    }
+    
+    // Checks if the requesting user is an admin of the congregation associated with the resource (user) being accessed
+    function isAdminOfResourceCongregation() {
+        let congregationId = request.resource.data.congregationId;
+        return congregationId != null && isCongregationAdmin(congregationId);
     }
 
-    // Congregations: Allow authenticated users to search/list.
-    // Allow members to read details.
-    match /congregations/{congregationId} {
-      allow list: if isUserAuthenticated();
-      allow get: if isCongregationMember(congregationId);
+    // =================================
+    // Collection Rules
+    // =================================
 
-      // Members can read/write posts and comments.
-      match /posts/{postId} {
-        allow read, write: if isCongregationMember(congregationId);
-        
-        match /comments/{commentId} {
-          allow read, write: if isCongregationMember(congregationId);
-        }
+    // --- USERS ---
+    match /users/{userId} {
+      // Any authenticated user can create their own profile document.
+      allow create: if isUserAuthenticated() && isOwner(userId);
+      // A user can read their own profile.
+      allow read: if isUserAuthenticated() && isOwner(userId);
+      // A user can update their own profile, OR an admin of the user's congregation can update their status.
+      allow update: if isUserAuthenticated() && (isOwner(userId) || isAdminOfResourceCongregation());
+      // Deleting user documents is disabled for safety.
+      allow delete: if false;
+
+      // Plans subcollection under users
+      match /plans/{planId} {
+          allow read, write: if isUserAuthenticated() && isOwner(userId);
       }
       
-      // Allow users to request joining.
-      // Allow members/admins to read member list.
+      // Messages subcollection under users
+      match /messages/{messageId} {
+          allow read, write: if isUserAuthenticated() && isOwner(userId);
+      }
+    }
+
+    // --- CONGREGATIONS ---
+    match /congregations/{congregationId} {
+      // Any authenticated user can create a congregation or query the collection.
+      allow create, list: if isUserAuthenticated();
+      // Only members of the congregation can read its details.
+      allow read: if isUserAuthenticated() && isCongregationMember(congregationId);
+      // Only admins of the congregation can update it.
+      allow update: if isUserAuthenticated() && isCongregationAdmin(congregationId);
+      // Deleting congregations is disabled for safety.
+      allow delete: if false;
+
+      // MEMBERS subcollection
       match /members/{memberId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create: if isOwner(memberId);
-        // Admins can update/delete members (handled by Cloud Functions).
+        // A user can request to join (create their own member doc).
+        allow create: if isUserAuthenticated() && isOwner(memberId);
+        // Members of the congregation can read the member list.
+        allow read: if isUserAuthenticated() && isCongregationMember(congregationId);
+        // Admins can update/delete any member, or a user can leave (delete their own doc).
+        allow update, delete: if isUserAuthenticated() && (isCongregationAdmin(congregationId) || isOwner(memberId));
+      }
+
+      // POSTS subcollection
+      match /posts/{postId} {
+        // Members can read all posts in their congregation.
+        allow get, list: if isUserAuthenticated() && isCongregationMember(congregationId);
+        // Members can create posts. Owners or admins can update/delete.
+        allow create: if isUserAuthenticated() && isCongregationMember(congregationId);
+        allow update, delete: if isUserAuthenticated() && (isCongregationAdmin(congregationId) || request.resource.data.authorId == request.auth.uid);
+        
+        // COMMENTS subcollection
+        match /comments/{commentId} {
+            allow get, list: if isUserAuthenticated() && isCongregationMember(congregationId);
+            allow create: if isUserAuthenticated() && isCongregationMember(congregationId);
+            allow update, delete: if isUserAuthenticated() && (isCongregationAdmin(congregationId) || request.resource.data.authorId == request.auth.uid);
+        }
+        
+        // LIKES subcollection
+        match /likes/{userId} {
+          allow read: if isUserAuthenticated() && isCongregationMember(congregationId);
+          // A user can only like/unlike for themselves.
+          allow create, delete: if isUserAuthenticated() && isOwner(userId) && isCongregationMember(congregationId);
+          allow update: if false;
+        }
       }
     }
     
-    // Journal, Plans, Meditations, Prayers: Only accessible by the owner.
-    match /{collection}/{docId} {
-      allow read, write, delete: if collection in ['journals', 'plans', 'meditations', 'prayers'] &&
-                                     request.auth.uid == resource.data.userId;
+    // --- Other Top-Level Collections ---
+    match /journals/{journalId} {
+      allow read, write: if isUserAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+        
+    match /meditations/{meditationId} {
+        allow read, write: if isUserAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
     
-    // Shared Content (Ponte da Esperança): Anyone can read. Only creator can create.
     match /sharedContent/{contentId} {
-      allow get;
-      allow create: if isUserAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if request.resource.data.creatorId == request.auth.uid;
+        // Anyone can read a shared link.
+        allow read;
+        // Only authenticated users can create content.
+        allow create: if isUserAuthenticated();
+        // Only the creator can update the content.
+        allow update: if isUserAuthenticated() && request.resource.data.creatorId == request.auth.uid;
     }
-
-    // Notifications and push tokens are handled by backend Cloud Functions
+    
+    // --- NOTIFICATIONS ---
     match /notifications/{notificationId} {
-        allow read, write: if false; // Managed by Cloud Functions
+        allow read, update: if isUserAuthenticated() && request.resource.data.recipientId == request.auth.uid;
     }
-
-    match /userPushTokens/{tokenId} {
-        allow read, write: if false; // Managed by Cloud Functions
+    
+    match /userPushTokens/{userId} {
+        allow write: if isUserAuthenticated() && isOwner(userId);
     }
   }
 }

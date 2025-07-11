@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WisdomPearl as WisdomPearlType } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { BookHeart } from 'lucide-react';
 
 // Static data to simulate API response, ensuring the component always has data to display.
 const predefinedPearls: WisdomPearlType[] = [
@@ -21,9 +22,7 @@ export function WisdomPearl() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Select a random pearl from the predefined list
     const randomPearl = predefinedPearls[Math.floor(Math.random() * predefinedPearls.length)];
-    // Simulate a short loading time
     setTimeout(() => {
         setPearl(randomPearl);
         setIsLoading(false);
@@ -31,18 +30,18 @@ export function WisdomPearl() {
   }, []);
 
   if (isLoading) {
-    return <div className="hidden lg:flex items-center justify-start flex-1 ml-4"><Skeleton className="h-4 w-72" /></div>;
+    return <Skeleton className="h-4 w-72" />;
   }
   
   if (!pearl) {
-    return null; // Don't render if there's no pearl for some reason
+    return null;
   }
 
   const bibleLink = `/bible?book=${pearl.bookAbbrev}&chapter=${pearl.chapter}`;
 
   return (
     <div className={cn(
-        "hidden lg:flex items-center justify-start flex-1 ml-4 transition-opacity duration-500",
+        "hidden lg:flex items-center justify-center transition-opacity duration-500",
         !isLoading ? "opacity-100" : "opacity-0"
     )}>
       <TooltipProvider delayDuration={200}>
@@ -50,9 +49,10 @@ export function WisdomPearl() {
           <TooltipTrigger asChild>
             <Link 
               href={bibleLink} 
-              className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-300"
             >
-              "{pearl.text}"
+              <BookHeart className="h-4 w-4 text-primary/70" />
+              <span className="italic">"{pearl.text}"</span>
             </Link>
           </TooltipTrigger>
           <TooltipContent>

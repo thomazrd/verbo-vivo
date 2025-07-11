@@ -103,13 +103,12 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      
-      <WisdomPearl />
 
-      <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-        <div className="ml-auto flex-1 sm:flex-initial">
-          {/* A search bar could go here in the future */}
-        </div>
+      <div className="flex-1 items-center justify-center hidden md:flex">
+         <WisdomPearl />
+      </div>
+
+      <div className="flex items-center gap-4">
         {user && (
           <div className="flex items-center gap-4">
             <NotificationBell />

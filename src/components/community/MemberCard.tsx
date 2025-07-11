@@ -32,7 +32,7 @@ export function MemberCard({ member, actions, actionInProgress }: MemberCardProp
         case 'MEMBER':
             return <Badge variant="outline">Membro</Badge>;
         case 'PENDING':
-            return <Badge variant="destructive" className="bg-yellow-500/20 text-yellow-700">Pendente</Badge>;
+            return <Badge variant="default" className="bg-amber-500/20 text-amber-700 border-amber-500/30 hover:bg-amber-500/30">Pendente</Badge>;
         default:
             return null;
     }

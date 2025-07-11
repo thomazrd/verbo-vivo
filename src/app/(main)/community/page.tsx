@@ -15,15 +15,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Plus, LogIn, ChevronRight, Loader2, Church } from 'lucide-react';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 export default function CommunityPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -47,8 +47,7 @@ export default function CommunityPage() {
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const profile = { ...docSnap.data() } as UserProfile;
-        setUserProfile(profile);
-        if (profile.congregationId && (profile.congregationStatus === 'MEMBER' || profile.congregationStatus === 'ADMIN')) {
+        if (profile.congregationId && (profile.congregationStatus === 'MEMBER' || profile.congregationStatus === 'ADMIN' || profile.congregationStatus === 'PENDING')) {
             const congRef = doc(db, 'congregations', profile.congregationId);
             const unsubscribeCong = onSnapshot(congRef, (congDoc) => {
                 if (congDoc.exists()) {
@@ -65,7 +64,6 @@ export default function CommunityPage() {
         }
       } else {
         setIsLoading(false);
-        setUserProfile(null);
       }
     });
 
@@ -73,7 +71,7 @@ export default function CommunityPage() {
   }, [user]);
 
   const handleCreateCongregation = async () => {
-    if (!user || !newCongregationName.trim()) return;
+    if (!user || !newCongregationName.trim() || userProfile?.congregationId) return;
     setIsCreating(true);
     try {
       const newCongregationData = {
@@ -94,7 +92,7 @@ export default function CommunityPage() {
         displayName: user.displayName || user.email,
         photoURL: user.photoURL,
         joinedAt: serverTimestamp(),
-        status: 'APPROVED',
+        status: 'ADMIN',
       });
 
       const userRef = doc(db, 'users', user.uid);
@@ -117,7 +115,7 @@ export default function CommunityPage() {
   };
   
   const handleJoinCongregation = async () => {
-      if (!user || !inviteCode.trim()) return;
+      if (!user || !inviteCode.trim() || userProfile?.congregationId) return;
       setIsJoining(true);
       try {
           const q = query(collection(db, "congregations"), where("inviteCode", "==", inviteCode.trim().toUpperCase()));
@@ -128,12 +126,12 @@ export default function CommunityPage() {
           } else {
               const congregationDoc = querySnapshot.docs[0];
               const congregationId = congregationDoc.id;
-
+              
               const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
               const memberSnap = await getDoc(memberRef);
-
-              if (memberSnap.exists() || userProfile?.congregationId === congregationId) {
-                  toast({ title: "Aviso", description: `Você já solicitou ou é membro de "${congregationDoc.data().name}".` });
+              
+              if(memberSnap.exists()) {
+                   toast({ title: "Aviso", description: `Você já solicitou ou é membro de "${congregationDoc.data().name}".` });
               } else {
                   await setDoc(memberRef, {
                       displayName: user.displayName || user.email,
@@ -161,6 +159,8 @@ export default function CommunityPage() {
       }
   }
 
+  const userHasCongregation = !!userProfile?.congregationId;
+
   if (isLoading) {
     return (
       <div className="container mx-auto max-w-4xl py-8 px-4 space-y-4">
@@ -180,60 +180,79 @@ export default function CommunityPage() {
             Conecte-se com os membros da sua igreja local.
           </p>
         </div>
-        <div className="flex gap-2">
-            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="outline"><LogIn className="mr-2 h-4 w-4" /> Entrar</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Entrar em uma Congregação</DialogTitle>
-                        <DialogDescription>Insira o código de convite para solicitar a entrada.</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <Label htmlFor="invite-code">Código de Convite</Label>
-                        <Input id="invite-code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} className="font-mono tracking-widest" placeholder="ABCXYZ" />
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleJoinCongregation} disabled={isJoining || !inviteCode.trim()}>
-                        {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Solicitar Entrada
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button><Plus className="mr-2 h-4 w-4" /> Criar</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Criar Nova Congregação</DialogTitle>
-                        <DialogDescription>Preencha os detalhes da sua igreja.</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="cong-name">Nome da Igreja</Label>
-                            <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder="Ex: Primeira Igreja Batista" />
+        <TooltipProvider>
+            <div className="flex gap-2">
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div tabIndex={0}>
+                            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" disabled={userHasCongregation}>
+                                        <LogIn className="mr-2 h-4 w-4" /> Entrar
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Entrar em uma Congregação</DialogTitle>
+                                        <DialogDescription>Insira o código de convite para solicitar a entrada.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <Label htmlFor="invite-code">Código de Convite</Label>
+                                        <Input id="invite-code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} className="font-mono tracking-widest" placeholder="ABCXYZ" />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleJoinCongregation} disabled={isJoining || !inviteCode.trim()}>
+                                        {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Solicitar Entrada
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cong-city">Cidade</Label>
-                            <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder="Ex: São Paulo, SP" />
+                    </TooltipTrigger>
+                    {userHasCongregation && <TooltipContent><p>Saia da sua congregação atual para entrar em uma nova.</p></TooltipContent>}
+                 </Tooltip>
+                
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div tabIndex={0}>
+                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button disabled={userHasCongregation}><Plus className="mr-2 h-4 w-4" /> Criar</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Criar Nova Congregação</DialogTitle>
+                                        <DialogDescription>Preencha os detalhes da sua igreja.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cong-name">Nome da Igreja</Label>
+                                            <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder="Ex: Primeira Igreja Batista" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cong-city">Cidade</Label>
+                                            <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder="Ex: São Paulo, SP" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cong-pastor">Pastor Responsável</Label>
+                                            <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder="Ex: Pr. João da Silva" />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleCreateCongregation} disabled={isCreating || !newCongregationName.trim()}>
+                                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Criar Congregação
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cong-pastor">Pastor Responsável</Label>
-                            <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder="Ex: Pr. João da Silva" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleCreateCongregation} disabled={isCreating || !newCongregationName.trim()}>
-                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Criar Congregação
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+                    </TooltipTrigger>
+                     {userHasCongregation && <TooltipContent><p>Saia da sua congregação atual para criar uma nova.</p></TooltipContent>}
+                </Tooltip>
+            </div>
+        </TooltipProvider>
       </div>
 
       <div className="mt-8 space-y-4">
@@ -247,18 +266,18 @@ export default function CommunityPage() {
           </div>
         )}
         
-        {userProfile?.congregationStatus === 'PENDING' && (
+        {userProfile?.congregationStatus === 'PENDING' && congregation && (
              <Card>
                 <CardHeader className="text-center">
                     <CardTitle>Solicitação Pendente</CardTitle>
                     <CardDescription>
-                        Sua solicitação para entrar em uma congregação está aguardando aprovação de um administrador.
+                        Sua solicitação para entrar na congregação "{congregation.name}" está aguardando aprovação de um administrador.
                     </CardDescription>
                 </CardHeader>
              </Card>
         )}
 
-        {congregation && (
+        {congregation && userProfile?.congregationStatus !== 'PENDING' && (
             <Link href={`/community/${congregation.id}`} className="block">
                 <Card className="transition-all hover:shadow-md hover:border-primary/50">
                     <div className="flex items-center justify-between p-4 sm:p-6">

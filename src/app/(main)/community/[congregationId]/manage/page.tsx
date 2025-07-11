@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc, where, query, getDocs } from 'firebase/firestore';
 import type { Congregation, CongregationMember } from '@/lib/types';
 
 import { ArrowLeft, Check, ShieldCheck, UserX, X } from 'lucide-react';
@@ -15,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberCard } from '@/components/community/MemberCard';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 export default function ManageCongregationPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -82,7 +85,7 @@ export default function ManageCongregationPage() {
 
   const handleMemberAction = async (
     targetUserId: string, 
-    action: 'approve' | 'reject' | 'promote' | 'remove'
+    action: 'approve' | 'reject' | 'promote' | 'remove' | 'leave'
   ) => {
     setActionInProgress(prev => ({ ...prev, [targetUserId]: true }));
     try {
@@ -93,7 +96,7 @@ export default function ManageCongregationPage() {
 
       switch (action) {
         case 'approve':
-          batch.update(memberRef, { status: 'APPROVED', joinedAt: serverTimestamp() });
+          batch.update(memberRef, { status: 'MEMBER', joinedAt: serverTimestamp() });
           batch.update(userRef, { congregationStatus: 'MEMBER' });
           batch.update(congregationRef, { memberCount: increment(1) });
           toast({ title: "Membro Aprovado!", description: "O usuário agora faz parte da congregação." });
@@ -118,10 +121,20 @@ export default function ManageCongregationPage() {
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
             
-            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN' || currentMember.status === 'APPROVED')) {
+            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
               batch.update(congregationRef, { memberCount: increment(-1) });
             }
             toast({ title: "Membro Removido." });
+            break;
+        case 'leave':
+             const memberLeaveDoc = await getDoc(memberRef);
+            if (!memberLeaveDoc.exists()) throw new Error("Member not found");
+
+            batch.delete(memberRef);
+            batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
+            batch.update(congregationRef, { memberCount: increment(-1) });
+            toast({ title: "Você saiu da congregação." });
+            router.push('/community');
             break;
       }
       
@@ -137,7 +150,8 @@ export default function ManageCongregationPage() {
 
 
   const pendingMembers = members.filter((m) => m.status === 'PENDING');
-  const approvedMembers = members.filter((m) => m.status === 'MEMBER' || m.status === 'ADMIN' || m.status === 'APPROVED');
+  const approvedMembers = members.filter((m) => m.status === 'MEMBER' || m.status === 'ADMIN');
+  const currentUserIsLastAdmin = approvedMembers.filter(m => m.status === 'ADMIN').length === 1 && userProfile?.congregationStatus === 'ADMIN';
 
   if (loading || authLoading) {
     return (
@@ -170,24 +184,14 @@ export default function ManageCongregationPage() {
       </div>
 
       <Tabs defaultValue="pending">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" disabled>Início</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="pending">
             Pendentes {pendingMembers.length > 0 && `(${pendingMembers.length})`}
           </TabsTrigger>
           <TabsTrigger value="members">Membros</TabsTrigger>
-          <TabsTrigger value="reports" disabled>Denúncias</TabsTrigger>
+          <TabsTrigger value="settings">Configurações</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="mt-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle>Em breve</CardTitle>
-                    <CardDescription>Painel com estatísticas da comunidade.</CardDescription>
-                </CardHeader>
-            </Card>
-        </TabsContent>
-
         <TabsContent value="pending" className="mt-6">
           <Card>
             <CardHeader>
@@ -279,12 +283,37 @@ export default function ManageCongregationPage() {
             </Card>
         </TabsContent>
         
-        <TabsContent value="reports" className="mt-6">
-            <Card>
+        <TabsContent value="settings" className="mt-6">
+            <Card className="border-destructive">
                 <CardHeader>
-                    <CardTitle>Em breve</CardTitle>
-                    <CardDescription>Moderação de conteúdo denunciado pela comunidade.</CardDescription>
+                    <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
+                    <CardDescription>Ações nesta seção são permanentes e não podem ser desfeitas.</CardDescription>
                 </CardHeader>
+                <CardContent>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                Sair da Congregação
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {currentUserIsLastAdmin
+                                        ? "Você é o último administrador. Se sair, a congregação será permanentemente excluída. Esta ação não pode ser desfeita."
+                                        : "Esta ação removerá você da congregação. Você precisará de um novo convite para entrar novamente."}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => user && handleMemberAction(user.uid, 'leave')} disabled={actionInProgress[user!.id]}>
+                                    {currentUserIsLastAdmin ? "Excluir e Sair" : "Sair"}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
             </Card>
         </TabsContent>
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -32,6 +33,8 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<StudyPlanOutput | null>(null);
+
+  const summarizedTopic = topic.length > 100 ? `${topic.substring(0, 100)}...` : topic;
 
   const handleGeneratePlan = async () => {
     setIsLoading(true);
@@ -88,7 +91,8 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
-      setGeneratedPlan(null);
+      // Delay resetting the plan to avoid UI flicker on close
+      setTimeout(() => setGeneratedPlan(null), 300);
     }
   };
 
@@ -100,9 +104,11 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
             <Sparkles className="h-5 w-5 text-primary" />
             Novo Plano de Estudo
           </DialogTitle>
-          <DialogDescription>
-            Vamos criar um plano de estudo de 7 dias sobre "{topic}".
-          </DialogDescription>
+          {!generatedPlan && (
+            <DialogDescription>
+              Criar um plano de estudo sobre: "{summarizedTopic}"?
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         {!generatedPlan && !isLoading && (
@@ -120,7 +126,7 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
 
         {generatedPlan && !isLoading && (
           <div className="my-4 max-h-[50vh] overflow-y-auto pr-2">
-            <h3 className="mb-3 text-lg font-semibold text-foreground">{generatedPlan.title}</h3>
+            <h3 className="mb-4 text-lg font-semibold text-foreground">{generatedPlan.title}</h3>
             <ul className="space-y-3">
               {generatedPlan.tasks.map((task) => (
                 <li key={task.day} className="flex items-start gap-3">

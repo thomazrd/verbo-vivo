@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CreatePostModal } from '@/components/community/CreatePostModal';
+import { CreatePostForm } from '@/components/community/CreatePostForm';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -611,7 +611,6 @@ export default function CongregationFeedPage() {
   
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -759,24 +758,13 @@ export default function CongregationFeedPage() {
 
         <div className="flex-1 overflow-y-auto" ref={listRef}>
             <div className="container mx-auto max-w-3xl py-6 px-4">
-                <div className="p-4 rounded-lg bg-card border mb-6">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-10 w-10 border">
-                            {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''}/>}
-                            <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <Button 
-                            variant="outline"
-                            className="w-full justify-start text-muted-foreground"
-                            onClick={() => setIsPostModalOpen(true)}
-                        >
-                            Compartilhe algo com a congregação...
-                        </Button>
-                        <Button size="icon" onClick={() => setIsPostModalOpen(true)}>
-                            <Pencil className="h-5 w-5"/>
-                        </Button>
-                    </div>
-                </div>
+                {user && congregationId && (
+                    <CreatePostForm
+                        user={user}
+                        congregationId={congregationId}
+                        className="mb-6"
+                    />
+                )}
 
                 {posts.length === 0 ? (
                     <div className="text-center py-12">
@@ -793,14 +781,6 @@ export default function CongregationFeedPage() {
             </div>
         </div>
     </div>
-    {user && congregation && (
-        <CreatePostModal 
-            isOpen={isPostModalOpen}
-            onClose={() => setIsPostModalOpen(false)}
-            user={user}
-            congregationId={congregation.id}
-        />
-    )}
     </>
   );
 }

@@ -1,17 +1,18 @@
 
 
+
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch, deleteDoc, getDocs } from 'firebase/firestore';
-import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent } from '@/lib/types';
+import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch, deleteDoc, getDocs, where } from 'firebase/firestore';
+import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent, VideoContent } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil, CornerDownRight, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Heart, Loader2, Send, MessageCircle, UserPlus, Copy, Check, Settings, Pencil, CornerDownRight, MoreHorizontal, Trash2, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -290,6 +291,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [timeAgo, setTimeAgo] = useState('');
+  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
   const topLevelComments = comments.filter(c => !c.parentCommentId);
 
@@ -298,7 +300,6 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       setTimeAgo(formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: ptBR }));
     }
   }, [post.createdAt]);
-
 
   const fetchComments = () => {
     setLoadingComments(true);
@@ -363,6 +364,22 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       }
   }
 
+  const PostText = ({ text }: { text: string }) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return (
+        <p className="mt-1 text-card-foreground whitespace-pre-wrap">
+            {parts.map((part, index) => {
+                if (part.match(urlRegex)) {
+                    return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{part}</a>;
+                }
+                return part;
+            })}
+        </p>
+    );
+  };
+
   if (!user) return null;
 
   const hasLiked = post.likes?.includes(user.uid);
@@ -380,23 +397,65 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         if (!imageContent.imageUrl) {
             return (
                 <div className="mt-2 text-sm text-muted-foreground italic">
-                    {imageContent.text && <p className="mb-2 whitespace-pre-wrap">{imageContent.text}</p>}
+                    {imageContent.text && <PostText text={imageContent.text} />}
                     Processando imagem...
                 </div>
             );
         }
         return (
-          <div className="mt-2 -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
-            {imageContent.text && <p className="mb-2 px-4 sm:px-0 text-card-foreground whitespace-pre-wrap">{imageContent.text}</p>}
-            <Image
-              src={imageContent.imageUrl}
-              alt={imageContent.text || `Post by ${post.authorName}`}
-              width={600}
-              height={600}
-              className="w-full h-auto bg-muted object-cover"
-              data-ai-hint="community post"
-            />
+          <div className="mt-2 space-y-2">
+            {imageContent.text && <PostText text={imageContent.text} />}
+            <div className="-mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+                <Image
+                src={imageContent.imageUrl}
+                alt={imageContent.text || `Post by ${post.authorName}`}
+                width={600}
+                height={600}
+                className="w-full h-auto bg-muted object-cover"
+                data-ai-hint="community post"
+                />
+            </div>
           </div>
+        );
+      case 'VIDEO':
+        const videoContent = post.content as VideoContent;
+        if (isPlayingVideo) {
+            return (
+                <div className="mt-2 space-y-2">
+                    {videoContent.text && <PostText text={videoContent.text} />}
+                    <div className="aspect-video -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+                        <iframe
+                            className="w-full h-full"
+                            src={`https://www.youtube.com/embed/${videoContent.videoId}?autoplay=1&rel=0`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <div className="mt-2 space-y-2">
+                {videoContent.text && <PostText text={videoContent.text} />}
+                <div 
+                    className="relative -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden cursor-pointer group"
+                    onClick={() => setIsPlayingVideo(true)}
+                >
+                    <Image
+                        src={videoContent.thumbnailUrl || ''}
+                        alt="Video thumbnail"
+                        width={480}
+                        height={270}
+                        className="w-full h-auto bg-muted object-cover"
+                        unoptimized
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                        <PlayCircle className="h-16 w-16 text-white/80" />
+                    </div>
+                </div>
+            </div>
         );
       case 'BACKGROUND_TEXT':
         const bgTextContent = post.content as BackgroundTextContent;
@@ -420,7 +479,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       case 'TEXT':
       default:
         const textContent = post.content as TextContent;
-        return <p className="mt-1 text-card-foreground whitespace-pre-wrap">{textContent.text}</p>;
+        return <PostText text={textContent.text} />;
     }
   };
 
@@ -575,7 +634,7 @@ export default function CongregationFeedPage() {
         const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
         const memberSnap = await getDoc(memberRef);
 
-        if (memberSnap.exists() && (memberSnap.data().status === 'APPROVED' || memberSnap.data().status === 'ADMIN')) {
+        if (memberSnap.exists() && (memberSnap.data().status === 'MEMBER' || memberSnap.data().status === 'ADMIN')) {
           setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
           
           const postsQuery = query(

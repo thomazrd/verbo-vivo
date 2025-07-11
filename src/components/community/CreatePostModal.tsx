@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from 'next/image';
 import type { User } from "firebase/auth";
 import { db, storage } from "@/lib/firebase";
@@ -15,13 +15,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image as ImageIcon, Palette, X } from "lucide-react";
+import { Loader2, Image as ImageIcon, Palette, X, Youtube } from "lucide-react";
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
   congregationId: string;
+}
+
+interface YoutubeVideoInfo {
+  id: string;
+  url: string;
+  thumbnail: string;
 }
 
 const backgroundStyles = [
@@ -31,16 +37,54 @@ const backgroundStyles = [
   { id: 'gradient_pink', class: 'bg-gradient-to-br from-pink-500 to-purple-600' },
 ];
 
+function getYoutubeVideoId(url: string): string | null {
+  const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
 export function CreatePostModal({ isOpen, onClose, user, congregationId }: CreatePostModalProps) {
   const { toast } = useToast();
   const [postType, setPostType] = useState<PostType>('TEXT');
   const [text, setText] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [youtubeVideo, setYoutubeVideo] = useState<YoutubeVideoInfo | null>(null);
+  const [useYoutubeThumbnail, setUseYoutubeThumbnail] = useState(true);
   const [backgroundStyle, setBackgroundStyle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const clearMedia = useCallback(() => {
+    setMediaFile(null);
+    if(mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaPreview(null);
+    if(fileInputRef.current) fileInputRef.current.value = "";
+  }, [mediaPreview]);
+
+  const clearYoutube = useCallback(() => {
+    setYoutubeVideo(null);
+    setUseYoutubeThumbnail(true);
+  }, []);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+    
+    // Don't detect youtube link if we are already showing one
+    if (youtubeVideo || postType !== 'TEXT') return;
+
+    const videoId = getYoutubeVideoId(newText);
+    if (videoId) {
+        setYoutubeVideo({
+            id: videoId,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+        });
+        setPostType('VIDEO');
+    }
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -49,6 +93,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
         toast({ variant: 'destructive', title: 'Arquivo inválido', description: 'Por favor, selecione um arquivo de imagem.' });
         return;
       }
+      clearYoutube();
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setPostType('IMAGE');
@@ -57,6 +102,7 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
   };
   
   const handleSelectBg = (styleId: string) => {
+    clearYoutube();
     setBackgroundStyle(styleId);
     setPostType('BACKGROUND_TEXT');
     clearMedia();
@@ -66,44 +112,57 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
     setPostType('TEXT');
     setBackgroundStyle('');
     clearMedia();
+    clearYoutube();
   }
 
-  const clearMedia = () => {
-    setMediaFile(null);
-    if(mediaPreview) URL.revokeObjectURL(mediaPreview);
-    setMediaPreview(null);
-    if(fileInputRef.current) fileInputRef.current.value = "";
-  }
-  
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setText('');
-    clearMedia();
-    setBackgroundStyle('');
-    setPostType('TEXT');
+    handleSelectText();
     setIsUploading(false);
-  }
+  }, [handleSelectText]);
 
   const handleClose = () => {
     resetForm();
     onClose();
   }
 
+  useEffect(() => {
+      if (!isOpen) {
+          resetForm();
+      }
+  }, [isOpen, resetForm]);
+
   const handleSubmit = async () => {
-    if (!text.trim() && !mediaFile) {
+    if (!text.trim() && !mediaFile && !youtubeVideo) {
         toast({ variant: 'destructive', title: 'Publicação vazia', description: 'Escreva algo ou adicione uma mídia.' });
         return;
     }
     setIsUploading(true);
 
+    let finalPostType = postType;
+    if (youtubeVideo && !useYoutubeThumbnail) {
+        finalPostType = 'TEXT'; // If not using thumbnail, just post as text
+    }
+
     try {
+        let content: any = { text: text || '' };
+
+        if (finalPostType === 'VIDEO' && youtubeVideo) {
+            content.videoId = youtubeVideo.id;
+            content.videoUrl = youtubeVideo.url;
+            content.thumbnailUrl = youtubeVideo.thumbnail;
+        } else if (finalPostType === 'BACKGROUND_TEXT') {
+            content.backgroundStyle = backgroundStyle || null;
+        }
+
         // 1. Create post document in Firestore
         const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
         const postDoc = await addDoc(postCollectionRef, {
             authorId: user.uid,
             authorName: user.displayName || user.email,
             authorPhotoURL: user.photoURL,
-            postType,
-            content: { text: text || '', backgroundStyle: backgroundStyle || null }, // Initial content
+            postType: finalPostType,
+            content,
             likeCount: 0,
             commentCount: 0,
             likes: [],
@@ -112,17 +171,16 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
         const postId = postDoc.id;
 
         // 2. Upload media if it exists
-        if (postType === 'IMAGE' && mediaFile) {
+        if (finalPostType === 'IMAGE' && mediaFile) {
             const storagePath = `media/${congregationId}/${user.uid}/${postId}/${mediaFile.name}`;
             const storageRef = ref(storage, storagePath);
             await uploadBytes(storageRef, mediaFile);
             const downloadURL = await getDownloadURL(storageRef);
 
             // 3. Update post document with media URL
-            // A Cloud Function seria ideal para gerar thumbnails
             await updateDoc(postDoc, {
                 'content.imageUrl': downloadURL,
-                'content.thumbnailUrl': downloadURL // Usando a mesma URL por simplicidade
+                'content.thumbnailUrl': downloadURL
             });
         }
         
@@ -162,21 +220,21 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
             <Textarea
               placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleTextChange}
               className={cn(
                   "min-h-[100px] resize-none text-base border-none focus-visible:ring-0 !p-0 shadow-none",
                   postType === 'BACKGROUND_TEXT' && `min-h-[180px] text-center text-2xl font-bold flex items-center justify-center p-4 rounded-lg text-white ${currentBgClass}`
               )}
             />
 
-            {mediaPreview && (
+            {(mediaPreview || (youtubeVideo && useYoutubeThumbnail)) && (
                 <div className="relative rounded-lg overflow-hidden border">
                     <Image
-                      src={mediaPreview}
+                      src={mediaPreview || youtubeVideo!.thumbnail}
                       alt="Pré-visualização da mídia"
-                      width={500}
-                      height={300}
-                      className="w-full h-auto object-cover"
+                      width={480}
+                      height={270}
+                      className="w-full h-auto object-cover bg-muted"
                       data-ai-hint="user uploaded image"
                     />
                     <Button 
@@ -185,6 +243,17 @@ export function CreatePostModal({ isOpen, onClose, user, congregationId }: Creat
                         onClick={handleSelectText}>
                         <X className="h-4 w-4"/>
                     </Button>
+                     {youtubeVideo && (
+                         <div className="absolute bottom-2 left-2 right-2 bg-black/50 p-2 rounded-md flex items-center justify-between gap-2">
+                             <div className="flex items-center gap-2">
+                                <Youtube className="h-5 w-5 text-red-500" />
+                                <p className="text-white text-xs font-semibold">Anexar vídeo do YouTube</p>
+                             </div>
+                            <Button size="sm" variant={useYoutubeThumbnail ? 'secondary' : 'outline'} onClick={() => setUseYoutubeThumbnail(v => !v)}>
+                                {useYoutubeThumbnail ? "Anexado" : "Anexar"}
+                            </Button>
+                         </div>
+                     )}
                 </div>
             )}
         </div>

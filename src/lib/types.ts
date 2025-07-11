@@ -110,7 +110,8 @@ export interface ImageContent {
 export interface VideoContent {
   text: string;
   videoUrl: string;
-  thumbnailUrl?: string; // Opcional, gerado por uma função
+  videoId: string;
+  thumbnailUrl?: string;
 }
 
 export interface BackgroundTextContent {

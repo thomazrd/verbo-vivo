@@ -5,38 +5,27 @@ Este documento serve como um guia para o desenvolvedor responsável por finaliza
 ## Status Atual
 
 - **Frontend:** 100% pronto. A interface do usuário para notificações (sino, lista, itens) e a lógica para receber os dados do Firestore já estão implementadas no código Next.js (dentro da pasta `src`).
-- **Backend:** **Pendente.** O código do backend, que é responsável por *gerar* as notificações, precisa ser criado e implantado.
+- **Backend (Estrutura):** A estrutura da pasta `functions` (com `package.json`, `tsconfig.json` e o código-fonte em `src/index.ts`) já está criada e configurada no `firebase.json`.
 
 ## O Que Precisa Ser Feito
 
-A pasta `functions`, que conterá o código do backend, **ainda não existe** neste projeto. Ela deve ser criada usando as ferramentas do Firebase.
+A tarefa restante é instalar as dependências do backend e implantar as funções no Firebase.
 
-### Passo 1: Inicializar o Firebase Functions
+### Passo 1: Instalar Dependências das Funções
 
-Na raiz deste projeto, execute o seguinte comando:
+Navegue até a pasta `functions` e instale as dependências npm:
 
 ```bash
-firebase init functions
+cd functions
+npm install
 ```
 
-Siga as instruções:
-1.  Selecione "Use an existing project" e escolha o projeto Firebase correspondente.
-2.  Escolha **TypeScript** como a linguagem.
-3.  Concorde em usar o ESLint e instalar as dependências com `npm`.
+### Passo 2: Implantar as Funções
 
-Este processo criará a pasta `functions` na raiz do projeto com a estrutura correta, incluindo o `package.json` em `functions/package.json`.
-
-### Passo 2: Adicionar o Código da Função
-
-Navegue até a pasta recém-criada (`functions/src`) e substitua o conteúdo do arquivo `index.ts` pelo código de gatilhos de notificação.
-
-> **Nota:** O código completo para o arquivo `index.ts` foi fornecido na especificação técnica detalhada e já está presente no projeto em `src/z-backend-example/functions-code.ts` para sua conveniência. Você pode copiar e colar o conteúdo deste arquivo.
-
-### Passo 3: Implantar as Funções
-
-Após adicionar o código e instalar as dependências (rodando `npm install` dentro da pasta `functions`), implante o backend no Firebase com o comando:
+Após a instalação das dependências, retorne para a pasta raiz do projeto e execute o comando de deploy:
 
 ```bash
+cd ..
 firebase deploy --only functions
 ```
 

@@ -204,6 +204,31 @@ export interface SharedContentDocument {
     viewCount: number;
 }
 
+// --- Tipos de Notificações ---
+
+export type NotificationType = 'NEW_POST' | 'COMMENT_LIKE' | 'POST_LIKE' | 'REPLY' | 'NEW_COMMENT' | 'CONGREGATION_APPROVAL';
+
+export interface Notification {
+  id: string;
+  recipientId: string;
+  actorId: string;
+  actorName: string;
+  actorPhotoURL: string | null;
+  type: NotificationType;
+  entityId: string; // e.g., postId, commentId
+  entityPath: string; // e.g., /community/congregationId/post/postId
+  isRead: boolean;
+  createdAt: Timestamp;
+}
+
+export interface UserPushToken {
+    id: string; // Document ID (can be the token itself for simplicity)
+    userId: string;
+    token: string;
+    platform: 'web' | 'ios' | 'android';
+    createdAt: Timestamp;
+}
+
 export interface CongregationReport {
   id: string;
   congregationId: string;

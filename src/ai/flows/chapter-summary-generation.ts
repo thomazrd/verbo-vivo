@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Generates a summary for a given chapter of the Bible.
+ * @fileOverview Generates an explanation for a given chapter of the Bible.
  *
- * - generateChapterSummary - A function that generates the summary.
+ * - generateChapterSummary - A function that generates the explanation.
  */
 
 import { ai } from '../genkit';
@@ -14,53 +14,43 @@ export async function generateChapterSummary(input: ChapterSummaryInput): Promis
   return generateChapterSummaryFlow(input);
 }
 
+const systemPrompts: Record<string, string> = {
+    pt: "Você é um professor de Bíblia com o dom de explicar textos complexos de forma simples e clara. Sua tarefa é fornecer uma explicação didática do capítulo bíblico fornecido em português. A explicação deve capturar os principais eventos, temas e ensinamentos do capítulo, em um tom informativo e acessível para um leitor leigo. Evite jargões teológicos complexos.",
+    en: "You are a Bible teacher gifted in explaining complex texts simply and clearly. Your task is to provide a didactic explanation of the provided Bible chapter in English. The explanation should capture the main events, themes, and teachings of the chapter in an informative and accessible tone for a lay reader. Avoid complex theological jargon.",
+    es: "Eres un profesor de Biblia con el don de explicar textos complejos de forma simple y clara. Tu tarea es proporcionar una explicación didáctica del capítulo bíblico proporcionado en español. La explicación debe capturar los principales eventos, temas y enseñanzas del capítulo, en un tono informativo y accesible para un lector laico. Evita la jerga teológica compleja.",
+    zh: "你是一位圣经教师，善于用简单明了的方式解释复杂的经文。你的任务是用中文对所提供的圣经章节进行教学性解释。解释应抓住章节的主要事件、主题和教导，以一种信息丰富、易于非专业读者理解的语气呈现。避免使用复杂的术语。",
+    ja: "あなたは複雑なテキストを単純明快に説明する才能に恵まれた聖書教師です。あなたの仕事は、提供された聖書の章について、日本語で教訓的な説明を提供することです。説明は、一般の読者にとって有益で分かりやすいトーンで、章の主要な出来事、テーマ、教えを捉える必要があります。複雑な神学用語は避けてください。"
+};
+
 const generateChapterSummaryFlow = ai.defineFlow(
   {
     name: 'generateChapterSummaryFlow',
     inputSchema: ChapterSummaryInputSchema,
     outputSchema: ChapterSummaryOutputSchema,
   },
-  async (promptInput) => { // Renamed prompt to promptInput to avoid conflict with prompt variable for AI
-    // TODO (Risco 3 Mitigação): Realizar testes de qualidade extensivos para os resumos gerados em cada idioma.
-    // Pode ser necessário ajustar e refinar os prompts de sistema (basePrompts e requestLines)
-    // para cada língua individualmente para garantir a precisão teológica e a clareza,
-    // especialmente para 'zh' (Chinês) e 'ja' (Japonês).
-    const getSystemPrompt = (language: string, chapterText: string): string => {
-      const basePrompts: Record<string, string> = {
-        pt: "Você é um teólogo e professor de Bíblia. Sua tarefa é fornecer um resumo conciso e claro do capítulo bíblico a seguir em português. O resumo deve capturar os principais eventos, personagens, temas e ensinamentos do capítulo, idealmente entre 3 e 5 frases. O tom deve ser informativo e acessível para um leitor leigo.",
-        en: "You are a theologian and Bible teacher. Your task is to provide a concise and clear summary of the following Bible chapter in English. The summary should capture the main events, characters, themes, and teachings of the chapter, ideally in 3 to 5 sentences. The tone should be informative and accessible to a lay reader.",
-        es: "Eres un teólogo y profesor de Biblia, con el don de explicar conceptos complejos de forma simple y clara. Tu tarea es leer el texto completo de un capítulo bíblico y generar un resumen conciso en español. El resumen debe tener entre 3 y 5 frases. Debe destacar los personajes principales, los eventos más importantes y el tema teológico central del capítulo.",
-        zh: "你是一位神学家和圣经教师。你的任务是用中文对以下圣经章节提供一个简洁明了的总结。总结应抓住章节的主要事件、人物、主题和教导，最好在3到5句话之间。语气应具有信息性，易于非专业读者理解。",
-        ja: "あなたは神学者であり聖書教師です。あなたの仕事は、以下の聖書の章について、簡潔かつ明確な要約を日本語で提供することです。要約は、章の主要な出来事、登場人物、テーマ、教えを捉え、理想的には3〜5文にまとめてください。トーンは情報提供型で、一般の読者にもわかりやすいものにしてください。"
-      };
-
-      const requestLines: Record<string, string> = {
-        pt: "Por favor, gere o resumo do capítulo.",
-        en: "Please generate the chapter summary.",
-        es: "Por favor, genera el resumen del capítulo.",
-        zh: "请生成章节摘要。",
-        ja: "章の要約を生成してください。"
-      };
-
-      const selectedBasePrompt = basePrompts[language] || basePrompts.pt; // Fallback to Portuguese
-      const selectedRequestLine = requestLines[language] || requestLines.pt; // Fallback to Portuguese
-
-      return `${selectedBasePrompt}\n\nTexto do Capítulo:\n---\n${chapterText}\n---\n${selectedRequestLine}`;
-    };
-
-    const fullPrompt = getSystemPrompt(promptInput.language, promptInput.chapterText);
+  async ({ chapterText, language }) => {
+    
+    const systemPrompt = systemPrompts[language] || systemPrompts.pt;
 
     const llmResponse = await ai.generate({
-      prompt: fullPrompt,
+      system: systemPrompt,
+      prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${chapterText}`,
       model: 'googleai/gemini-1.5-flash',
       output: {
         schema: ChapterSummaryOutputSchema,
+        format: 'json'
       },
       config: {
         temperature: 0.3,
       },
     });
+    
+    const output = llmResponse.output();
 
-    return llmResponse.output!;
+    if (!output) {
+      throw new Error("A IA não conseguiu gerar uma explicação para o capítulo.");
+    }
+    
+    return { summary: output.summary };
   }
 );

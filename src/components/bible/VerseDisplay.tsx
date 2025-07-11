@@ -90,11 +90,11 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
         setSummary(result.summary);
     } catch (error: any) {
         console.error("Error generating summary:", error);
-        setSummaryError("Não foi possível gerar o resumo.");
+        setSummaryError("Não foi possível gerar a explicação.");
         toast({
             variant: "destructive",
             title: "Erro de IA",
-            description: error.message || "Não foi possível gerar o resumo neste momento. Tente novamente."
+            description: error.message || "Não foi possível gerar a explicação neste momento. Tente novamente."
         });
     } finally {
         setIsSummaryLoading(false);
@@ -154,7 +154,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
                         ) : (
                             <Sparkles className="mr-2 h-4 w-4" />
                         )}
-                        Resumir
+                        Explicar...
                     </Button>
                 )}
               </div>

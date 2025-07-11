@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   typescript: {
     // !! ATENÇÃO !!
     // Permite que builds de produção sejam concluídas com sucesso mesmo que

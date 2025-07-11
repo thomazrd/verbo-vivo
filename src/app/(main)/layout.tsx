@@ -25,7 +25,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         )}
       >
         <Header />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -6,7 +6,7 @@
  * - bibleChatResponse - A function that handles the chat response process.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import { z } from 'zod';
 import type { BibleChatResponseInput, BibleChatResponseOutput } from '@/lib/types';
 import { BibleChatResponseInputSchema } from '@/lib/types';
@@ -36,7 +36,7 @@ Versículos de referência:
 ${prompt.bible_verses.join('\n')}
 
 Sua resposta deve ser útil, encorajadora e apontar para a sabedoria encontrada nas Escrituras.`,
-      model: 'googleai/gemini-1.5-flash',
+      model: getModel(),
       config: {
         temperature: 0.7,
       },

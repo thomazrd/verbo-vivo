@@ -6,7 +6,7 @@
  * - generateStudyPlan - A function that generates the study plan.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import type { StudyPlanInput, StudyPlanOutput } from '@/lib/types';
 import { StudyPlanInputSchema, StudyPlanOutputSchema } from '@/lib/types';
 
@@ -27,7 +27,7 @@ const generateStudyPlanFlow = ai.defineFlow(
       prompt: `Crie um plano de estudo bíblico de 7 dias sobre o tópico: "${prompt.topic}".
       Para cada dia, forneça uma referência de versículo e uma breve descrição ou tarefa de reflexão (cerca de 1-2 frases).
       O título do plano deve ser "Plano de Estudo sobre '${prompt.topic}'".`,
-      model: 'googleai/gemini-1.5-flash',
+      model: getModel(),
       output: {
         schema: StudyPlanOutputSchema,
       },

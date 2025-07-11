@@ -7,7 +7,7 @@
  * - generateShareableContent - A function that handles the content generation process.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import { z } from 'zod';
 import { GenerateShareableContentInputSchema, GenerateShareableContentOutputSchema } from '@/lib/types';
 import type { GenerateShareableContentInput, GenerateShareableContentOutput } from '@/lib/types';
@@ -24,7 +24,7 @@ const prompt = ai.definePrompt({
     prompt: `Use a seguinte situação como base para a sua mensagem. Não inclua a descrição do problema no texto que você gerar.
 
 Situação: "{{problemDescription}}"`,
-    model: 'googleai/gemini-1.5-flash',
+    model: getModel(),
     config: {
         temperature: 0.7,
     },

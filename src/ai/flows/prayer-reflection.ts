@@ -6,7 +6,7 @@
  * - processPrayer - A function that finds relevant verses and generates a reflection.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import type { ProcessPrayerInput, ProcessPrayerOutput } from '@/lib/types';
 import { ProcessPrayerInputSchema, ProcessPrayerOutputSchema } from '@/lib/types';
 
@@ -40,7 +40,7 @@ const processPrayerFlow = ai.defineFlow(
       Versículos para usar como base:
       ${bible_verses.join('\n')}
       `,
-      model: 'googleai/gemini-1.5-flash',
+      model: getModel(),
       config: {
         temperature: 0.6,
       },

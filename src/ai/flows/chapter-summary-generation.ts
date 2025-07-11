@@ -6,7 +6,7 @@
  * - generateChapterSummary - A function that generates the explanation.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import { z } from 'zod';
 import { ChapterSummaryInputSchema } from '@/lib/types';
 import type { ChapterSummaryInput, ChapterSummaryOutput } from '@/lib/types';
@@ -37,7 +37,7 @@ const generateChapterSummaryFlow = ai.defineFlow(
     const llmResponse = await ai.generate({
       system: systemPrompt,
       prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${chapterText}`,
-      model: 'googleai/gemini-1.5-flash',
+      model: getModel(),
       config: {
         temperature: 0.3,
       },

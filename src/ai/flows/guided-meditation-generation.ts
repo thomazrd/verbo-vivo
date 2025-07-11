@@ -6,7 +6,7 @@
  * - generateMeditationQuestions - A function that generates the questions.
  */
 
-import { ai } from '../genkit';
+import { ai, getModel } from '../genkit';
 import type { MeditationQuestionsInput, MeditationQuestionsOutput } from '@/lib/types';
 import { MeditationQuestionsInputSchema, MeditationQuestionsOutputSchema } from '@/lib/types';
 
@@ -26,7 +26,7 @@ const generateMeditationQuestionsFlow = ai.defineFlow(
       prompt: `Você é um conselheiro espiritual gentil e sábio. Seu objetivo é ajudar o usuário a meditar na Palavra de Deus. Crie 3 perguntas abertas e reflexivas baseadas no versículo fornecido, para ajudar o usuário a aplicar esta verdade em sua vida hoje.
 
 Versículo: "${prompt.bible_verse}"`,
-      model: 'googleai/gemini-1.5-flash',
+      model: getModel(),
       output: {
         schema: MeditationQuestionsOutputSchema,
       },

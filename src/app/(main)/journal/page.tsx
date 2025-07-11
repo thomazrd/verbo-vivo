@@ -27,10 +27,10 @@ export default function JournalPage() {
       return;
     };
     setIsLoading(true);
+    // Query without server-side ordering to avoid needing a composite index
     const q = query(
       collection(db, "journals"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -38,7 +38,15 @@ export default function JournalPage() {
       snapshot.forEach((doc) => {
         userEntries.push({ id: doc.id, ...doc.data() } as JournalEntry);
       });
-      setEntries(userEntries);
+      
+      // Sort entries on the client-side
+      const sortedEntries = userEntries.sort((a, b) => {
+        const dateA = a.createdAt?.toDate() || new Date(0);
+        const dateB = b.createdAt?.toDate() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setEntries(sortedEntries);
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching journal entries:", error);

@@ -29,6 +29,7 @@ export function FeatureCard({
             src={imageUrl}
             alt={title}
             fill
+            unoptimized={true}
             className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
             data-ai-hint={imageHint}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

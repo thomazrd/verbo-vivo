@@ -448,7 +448,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                         width={480}
                         height={270}
                         className="w-full h-auto bg-muted object-cover"
-                        unoptimized
+                        unoptimized={true}
                     />
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
                         <PlayCircle className="h-16 w-16 text-white/80" />

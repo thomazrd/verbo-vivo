@@ -22,19 +22,19 @@ const onboardingSteps = [
   {
     title: "Bem-vindo(a) ao Verbo Vivo!",
     description: "Sua nova jornada de discipulado digital começa agora. Estamos felizes por ter você conosco.",
-    imageSrc: "https://placehold.co/600x350.png",
+    imageSrc: "https://dynamic.tiggomark.com.br/images/welcome.jpg",
     imageHint: "welcome celebration",
   },
   {
     title: "Converse com a IA",
     description: "Faça perguntas, explore tópicos e receba respostas e conselhos baseados inteiramente nas Escrituras.",
-    imageSrc: "https://placehold.co/600x350.png",
+    imageSrc: "https://dynamic.tiggomark.com.br/images/chat-onboarding.jpg",
     imageHint: "chat application",
   },
   {
     title: "Crie Planos de Estudo",
     description: "Transforme qualquer conversa em um plano de estudo de 7 dias para aprofundar seu conhecimento e fortalecer sua fé.",
-    imageSrc: "https://placehold.co/600x350.png",
+    imageSrc: "https://dynamic.tiggomark.com.br/images/plan-onboarding.jpg",
     imageHint: "study plan",
   },
 ];
@@ -75,6 +75,7 @@ export function OnboardingClient() {
                   alt={step.title}
                   width={600}
                   height={350}
+                  unoptimized={true}
                   className="w-full object-cover aspect-video bg-muted"
                   data-ai-hint={step.imageHint}
                 />

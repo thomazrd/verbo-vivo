@@ -259,6 +259,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                   alt="Pré-visualização da mídia"
                   width={480}
                   height={270}
+                  unoptimized={true}
                   className="w-full h-auto object-cover bg-muted"
                   data-ai-hint="user uploaded image"
                 />
@@ -306,4 +307,5 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     </div>
   );
 }
+
 

@@ -1,0 +1,113 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Funções Auxiliares ---
+    function isUserAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isCongregationAdmin(congregationId) {
+      return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
+    }
+
+    function isCongregationMember(congregationId) {
+      let memberStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
+      return memberStatus == 'MEMBER' || memberStatus == 'ADMIN';
+    }
+
+    // --- Regras por Coleção ---
+
+    // Coleção de Usuários
+    match /users/{userId} {
+      allow get: if isUserAuthenticated() && isOwner(userId);
+      allow create: if isUserAuthenticated() && isOwner(userId);
+      // Permite atualização se for o dono OU se for um admin da congregação do usuário
+      allow update: if isUserAuthenticated() && (isOwner(userId) || (request.resource.data.congregationId != null && isCongregationAdmin(request.resource.data.congregationId)));
+    }
+    
+    // Coleção de Congregações
+    match /congregations/{congregationId} {
+      // Qualquer usuário autenticado pode pesquisar congregações (essencial para 'entrar com código')
+      allow list: if isUserAuthenticated();
+      // Apenas membros podem ler os detalhes de uma congregação
+      allow get: if isUserAuthenticated() && isCongregationMember(congregationId);
+      allow create: if isUserAuthenticated();
+      allow update: if isUserAuthenticated() && isCongregationAdmin(congregationId);
+      
+      // Subcoleção de Membros da Congregação
+      match /members/{userId} {
+        allow read, write: if isUserAuthenticated() && isCongregationAdmin(congregationId);
+        // Permite que um usuário crie seu próprio pedido de entrada (status PENDING)
+        allow create: if isUserAuthenticated() && isOwner(userId) && request.resource.data.status == 'PENDING';
+        // Permite que um membro saia (exclua seu próprio documento)
+        allow delete: if isUserAuthenticated() && isOwner(userId);
+      }
+      
+      // Subcoleção de Posts
+      match /posts/{postId} {
+        allow read, write: if isUserAuthenticated() && isCongregationMember(congregationId);
+        
+        // Subcoleção de Comentários
+        match /comments/{commentId} {
+           allow read, write: if isUserAuthenticated() && isCongregationMember(congregationId);
+        }
+        
+        // Subcoleção de Likes
+        match /likes/{userId} {
+           allow read, write: if isUserAuthenticated() && isOwner(userId) && isCongregationMember(congregationId);
+        }
+      }
+    }
+    
+    // Coleção de Diários (Journal)
+    match /journals/{journalId} {
+      allow read, write: if isUserAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Coleção de Planos de Estudo
+    match /users/{userId}/plans/{planId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Coleção de Mensagens do Chat
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Coleção de Notificações
+    match /notifications/{notificationId} {
+      allow read, update: if isUserAuthenticated() && request.auth.uid == resource.data.recipientId;
+    }
+
+    // Coleção de Tokens para Push Notifications
+    match /userPushTokens/{userId} {
+        allow read, write: if isOwner(userId);
+    }
+    
+    // Coleção de Orações (Santuário)
+    match /prayers/{prayerId} {
+        allow read, create: if isUserAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    // Coleção de Meditações
+    match /meditations/{meditationId} {
+        allow read, create: if isUserAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Coleção de Conteúdo Compartilhado (Ponte da Esperança)
+    match /sharedContent/{contentId} {
+        // Qualquer pessoa pode ler o conteúdo compartilhado
+        allow get: if true;
+        // Apenas o criador autenticado pode criar
+        allow create: if isUserAuthenticated() && request.auth.uid == request.resource.data.creatorId;
+        // Apenas o criador pode atualizar (ex: para contar visualizações)
+        allow update: if isUserAuthenticated() && request.auth.uid == resource.data.creatorId;
+    }
+  }
+}

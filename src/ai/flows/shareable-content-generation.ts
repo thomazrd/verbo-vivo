@@ -24,7 +24,6 @@ const prompt = ai.definePrompt({
     prompt: `Use a seguinte situação como base para a sua mensagem. Não inclua a descrição do problema no texto que você gerar.
 
 Situação: "{{problemDescription}}"`,
-    model: getModel(),
     config: {
         temperature: 0.7,
     },
@@ -38,9 +37,11 @@ const generateShareableContentFlow = ai.defineFlow(
   },
   async (input) => {
 
+    const model = getModel(input.model);
+    
     // For now, we'll let the model find the verses based on the system prompt.
     // In a future version, this could be a separate step involving a vector search.
-    const { output } = await prompt(input);
+    const { output } = await prompt({model, ...input});
 
     if (!output) {
       throw new Error('A IA não conseguiu gerar o conteúdo. Tente novamente com uma descrição diferente.');

@@ -79,7 +79,8 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
-  preferredLanguage?: string | null; // User's preferred language code (e.g., "pt", "en", "es"). null by default.
+  preferredLanguage?: string | null;
+  preferredModel?: string | null; // e.g., "gemini-1.5-flash"
 }
 
 export interface Congregation {
@@ -287,9 +288,12 @@ export interface BibleChapter {
 
 
 // === AI Flow Schemas and Types ===
+const BaseAiInputSchema = z.object({
+    model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
+});
 
 // From: bible-chat-response.ts
-export const BibleChatResponseInputSchema = z.object({
+export const BibleChatResponseInputSchema = BaseAiInputSchema.extend({
   user_question: z.string().describe("The user's question or message."),
   bible_verses: z.array(z.string()).describe('Relevant Bible verses to consider in the response.'),
 });
@@ -298,7 +302,7 @@ export type BibleChatResponseInput = z.infer<typeof BibleChatResponseInputSchema
 export type BibleChatResponseOutput = string;
 
 // From: guided-meditation-generation.ts
-export const MeditationQuestionsInputSchema = z.object({
+export const MeditationQuestionsInputSchema = BaseAiInputSchema.extend({
   bible_verse: z.string().describe('The Bible verse for meditation.'),
 });
 export type MeditationQuestionsInput = z.infer<typeof MeditationQuestionsInputSchema>;
@@ -309,7 +313,7 @@ export const MeditationQuestionsOutputSchema = z.object({
 export type MeditationQuestionsOutput = z.infer<typeof MeditationQuestionsOutputSchema>;
 
 // From: prayer-reflection.ts
-export const ProcessPrayerInputSchema = z.object({
+export const ProcessPrayerInputSchema = BaseAiInputSchema.extend({
   prayerText: z.string().describe('The transcribed text of the user\'s prayer.'),
 });
 export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
@@ -321,7 +325,7 @@ export const ProcessPrayerOutputSchema = z.object({
 export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
 
 // From: study-plan-generation.ts
-export const StudyPlanInputSchema = z.object({
+export const StudyPlanInputSchema = BaseAiInputSchema.extend({
   topic: z.string().describe('The topic for the Bible study plan.'),
 });
 export type StudyPlanInput = z.infer<typeof StudyPlanInputSchema>;
@@ -339,7 +343,7 @@ export const StudyPlanOutputSchema = z.object({
 export type StudyPlanOutput = z.infer<typeof StudyPlanOutputSchema>;
 
 // From: chapter-summary-generation.ts
-export const ChapterSummaryInputSchema = z.object({
+export const ChapterSummaryInputSchema = BaseAiInputSchema.extend({
   chapterText: z.string().describe('The full text of the Bible chapter.'),
   language: z.string().describe('The language code for the summary (e.g., "pt", "en").'),
 });
@@ -351,7 +355,7 @@ export const ChapterSummaryOutputSchema = z.object({
 export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;
 
 // From: shareable-content-generation.ts
-export const GenerateShareableContentInputSchema = z.object({
+export const GenerateShareableContentInputSchema = BaseAiInputSchema.extend({
   problemDescription: z.string().describe('The problem description provided by the user.'),
 });
 export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;

@@ -108,7 +108,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
 
 export default function PrayerSanctuaryPage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
@@ -219,7 +219,7 @@ export default function PrayerSanctuaryPage() {
     if(!user) return;
 
     try {
-        const result = await processPrayer({ prayerText });
+        const result = await processPrayer({ model: userProfile?.preferredModel, prayerText });
         await addDoc(collection(db, "prayers"), {
             userId: user.uid,
             prayerText,

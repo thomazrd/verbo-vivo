@@ -38,7 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, BrainCircuit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -49,6 +49,11 @@ const languages = [
     { code: 'es', name: 'Español' },
     { code: 'zh', name: '中文 (Chinês)' },
     { code: 'ja', name: '日本語 (Japonês)' },
+];
+
+const aiModels = [
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Rápido)' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Avançado)' },
 ];
 
 const profileFormSchema = z.object({
@@ -64,9 +69,12 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const { i18n } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
-  const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
+  const [selectedModel, setSelectedModel] = React.useState(userProfile?.preferredModel || 'gemini-1.5-flash');
   
+  const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
+  const [isSavingModel, setIsSavingModel] = React.useState(false);
   const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+
   const [newAvatarFile, setNewAvatarFile] = React.useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -81,6 +89,7 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (userProfile) {
       form.setValue("displayName", userProfile.displayName || "");
+      setSelectedModel(userProfile.preferredModel || 'gemini-1.5-flash');
     }
   }, [userProfile, form]);
   
@@ -117,6 +126,29 @@ export default function SettingsPage() {
         });
     } finally {
         setIsSavingLanguage(false);
+    }
+  };
+  
+  const handleModelChange = async (newModel: string) => {
+    if (!user) return;
+    setIsSavingModel(true);
+    setSelectedModel(newModel);
+    try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { preferredModel: newModel });
+        toast({
+            title: "Modelo de IA atualizado!",
+            description: `O modelo foi alterado para ${aiModels.find(m => m.id === newModel)?.name}.`,
+        });
+    } catch (error) {
+        console.error("Error changing AI model:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Não foi possível alterar o modelo de IA.",
+        });
+    } finally {
+        setIsSavingModel(false);
     }
   };
 
@@ -258,15 +290,15 @@ export default function SettingsPage() {
             </form>
             </Form>
         </Card>
-
+        
         <Card>
           <CardHeader>
-            <CardTitle>Idioma</CardTitle>
+            <CardTitle>Preferências</CardTitle>
             <CardDescription>
-              Escolha o idioma de sua preferência para a interface.
+              Personalize sua experiência no aplicativo.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
                 <Label htmlFor="language-select">Idioma</Label>
                 <div className="flex items-center gap-2">
@@ -283,6 +315,31 @@ export default function SettingsPage() {
                             {languages.map((lang) => (
                                 <SelectItem key={lang.code} value={lang.code}>
                                     {lang.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+             <div className="flex items-center justify-between">
+                <Label htmlFor="model-select" className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    Modelo de IA
+                </Label>
+                <div className="flex items-center gap-2">
+                    {isSavingModel && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Select
+                        value={selectedModel}
+                        onValueChange={handleModelChange}
+                        disabled={isSavingModel}
+                    >
+                        <SelectTrigger id="model-select" className="w-[240px]">
+                            <SelectValue placeholder="Selecione o modelo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {aiModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                    {model.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>

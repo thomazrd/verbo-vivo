@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -34,6 +35,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
   const { toast } = useToast();
   const { i18n } = useTranslation();
+  const { userProfile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -84,6 +86,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
         // Use the app's current language for the summary
         const langCode = i18n.language.split('-')[0];
         const result = await generateChapterSummary({ 
+            model: userProfile?.preferredModel,
             chapterText,
             language: langCode,
         });

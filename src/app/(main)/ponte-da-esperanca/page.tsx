@@ -26,7 +26,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function PonteDaEsperancaPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<SharedContent | null>(null);
@@ -52,7 +52,10 @@ export default function PonteDaEsperancaPage() {
 
     try {
       // 1. Generate content with Genkit
-      const content = await generateShareableContent({ problemDescription: data.problemDescription });
+      const content = await generateShareableContent({ 
+        model: userProfile?.preferredModel,
+        problemDescription: data.problemDescription,
+      });
 
       // 2. Save to Firestore
       const docRef = await addDoc(collection(db, 'sharedContent'), {

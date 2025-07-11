@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -21,12 +22,12 @@ const generateMeditationQuestionsFlow = ai.defineFlow(
     inputSchema: MeditationQuestionsInputSchema,
     outputSchema: MeditationQuestionsOutputSchema,
   },
-  async (prompt) => {
+  async ({ model, bible_verse }) => {
     const llmResponse = await ai.generate({
       prompt: `Você é um conselheiro espiritual gentil e sábio. Seu objetivo é ajudar o usuário a meditar na Palavra de Deus. Crie 3 perguntas abertas e reflexivas baseadas no versículo fornecido, para ajudar o usuário a aplicar esta verdade em sua vida hoje.
 
-Versículo: "${prompt.bible_verse}"`,
-      model: getModel(),
+Versículo: "${bible_verse}"`,
+      model: getModel(model),
       output: {
         schema: MeditationQuestionsOutputSchema,
       },

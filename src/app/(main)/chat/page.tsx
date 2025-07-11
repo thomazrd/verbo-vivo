@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +54,7 @@ export default function ChatPage() {
       await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
       const aiResponseText = await bibleChatResponse({
+        model: userProfile?.preferredModel,
         user_question: text,
         // This is a placeholder for a real RAG implementation
         bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."]

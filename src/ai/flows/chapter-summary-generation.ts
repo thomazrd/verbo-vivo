@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -30,14 +31,14 @@ const generateChapterSummaryFlow = ai.defineFlow(
     inputSchema: ChapterSummaryInputSchema,
     outputSchema: z.string(),
   },
-  async ({ chapterText, language }) => {
+  async ({ chapterText, language, model }) => {
     
     const systemPrompt = systemPrompts[language] || systemPrompts.pt;
 
     const llmResponse = await ai.generate({
       system: systemPrompt,
       prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${chapterText}`,
-      model: getModel(),
+      model: getModel(model),
       config: {
         temperature: 0.3,
       },

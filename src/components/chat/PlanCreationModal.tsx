@@ -27,7 +27,7 @@ interface PlanCreationModalProps {
 }
 
 export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +40,7 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
     setIsLoading(true);
     setGeneratedPlan(null);
     try {
-      const plan = await generateStudyPlan({ topic });
+      const plan = await generateStudyPlan({ model: userProfile?.preferredModel, topic });
       setGeneratedPlan(plan);
     } catch (error) {
       console.error("Error generating plan:", error);

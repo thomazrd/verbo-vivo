@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,7 +20,7 @@ interface GuidedMeditationModalProps {
 }
 
 export function GuidedMeditationModal({ isOpen, onClose, verse }: GuidedMeditationModalProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,7 +43,10 @@ export function GuidedMeditationModal({ isOpen, onClose, verse }: GuidedMeditati
     if (!verse) return;
     setIsLoading(true);
     try {
-      const result = await generateMeditationQuestions({ bible_verse: verse.text });
+      const result = await generateMeditationQuestions({ 
+          model: userProfile?.preferredModel,
+          bible_verse: verse.text 
+      });
       setQuestions(result.questions);
     } catch (error) {
       console.error("Error generating meditation questions:", error);

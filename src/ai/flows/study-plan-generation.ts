@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -22,12 +23,12 @@ const generateStudyPlanFlow = ai.defineFlow(
     inputSchema: StudyPlanInputSchema,
     outputSchema: StudyPlanOutputSchema,
   },
-  async (prompt) => {
+  async ({ model, topic }) => {
     const llmResponse = await ai.generate({
-      prompt: `Crie um plano de estudo bíblico de 7 dias sobre o tópico: "${prompt.topic}".
+      prompt: `Crie um plano de estudo bíblico de 7 dias sobre o tópico: "${topic}".
       Para cada dia, forneça uma referência de versículo e uma breve descrição ou tarefa de reflexão (cerca de 1-2 frases).
-      O título do plano deve ser "Plano de Estudo sobre '${prompt.topic}'".`,
-      model: getModel(),
+      O título do plano deve ser "Plano de Estudo sobre '${topic}'".`,
+      model: getModel(model),
       output: {
         schema: StudyPlanOutputSchema,
       },

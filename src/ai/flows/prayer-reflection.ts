@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -20,7 +21,7 @@ const processPrayerFlow = ai.defineFlow(
     inputSchema: ProcessPrayerInputSchema,
     outputSchema: ProcessPrayerOutputSchema,
   },
-  async (prompt) => {
+  async ({ model, prayerText }) => {
     // In a real application, this would involve a semantic search
     // to find relevant verses. For now, we use a static set.
     const bible_verses = [
@@ -35,12 +36,12 @@ const processPrayerFlow = ai.defineFlow(
       Use os versículos fornecidos para construir sua reflexão.
       Termine com uma bênção curta (ex: 'Que o Senhor te abençoe e te guarde.').
 
-      Oração do usuário: "${prompt.prayerText}"
+      Oração do usuário: "${prayerText}"
 
       Versículos para usar como base:
       ${bible_verses.join('\n')}
       `,
-      model: getModel(),
+      model: getModel(model),
       config: {
         temperature: 0.6,
       },

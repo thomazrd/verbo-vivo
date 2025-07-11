@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -172,16 +173,70 @@ export default function CommunityPage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-            <div>
-            <h1 className="text-3xl font-bold tracking-tight">Comunidade</h1>
-            <p className="mt-1 text-muted-foreground">
-                Conecte-se com os membros da sua igreja local.
-            </p>
-            </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Comunidade</h1>
+          <p className="mt-1 text-muted-foreground">
+            Conecte-se com os membros da sua igreja local.
+          </p>
         </div>
+        <div className="flex gap-2">
+            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><LogIn className="mr-2 h-4 w-4" /> Entrar</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Entrar em uma Congregação</DialogTitle>
+                        <DialogDescription>Insira o código de convite para solicitar a entrada.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <Label htmlFor="invite-code">Código de Convite</Label>
+                        <Input id="invite-code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} className="font-mono tracking-widest" placeholder="ABCXYZ" />
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleJoinCongregation} disabled={isJoining || !inviteCode.trim()}>
+                        {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Solicitar Entrada
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button><Plus className="mr-2 h-4 w-4" /> Criar</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Criar Nova Congregação</DialogTitle>
+                        <DialogDescription>Preencha os detalhes da sua igreja.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cong-name">Nome da Igreja</Label>
+                            <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder="Ex: Primeira Igreja Batista" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="cong-city">Cidade</Label>
+                            <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder="Ex: São Paulo, SP" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="cong-pastor">Pastor Responsável</Label>
+                            <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder="Ex: Pr. João da Silva" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleCreateCongregation} disabled={isCreating || !newCongregationName.trim()}>
+                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Criar Congregação
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+      </div>
 
-        <div className="mt-8 space-y-4">
+      <div className="mt-8 space-y-4">
         {!congregation && userProfile?.congregationStatus !== 'PENDING' && (
           <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground" />
@@ -189,60 +244,6 @@ export default function CommunityPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Crie uma nova congregação para sua igreja ou entre em uma existente com um código de convite.
             </p>
-            <div className="mt-6 flex gap-4">
-                <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline"><LogIn className="mr-2 h-4 w-4" /> Entrar</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Entrar em uma Congregação</DialogTitle>
-                            <DialogDescription>Insira o código de convite para solicitar a entrada.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <Label htmlFor="invite-code">Código de Convite</Label>
-                            <Input id="invite-code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} className="font-mono tracking-widest" placeholder="ABCXYZ" />
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={handleJoinCongregation} disabled={isJoining || !inviteCode.trim()}>
-                            {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Solicitar Entrada
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button><Plus className="mr-2 h-4 w-4" /> Criar</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Criar Nova Congregação</DialogTitle>
-                            <DialogDescription>Preencha os detalhes da sua igreja.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="cong-name">Nome da Igreja</Label>
-                                <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder="Ex: Primeira Igreja Batista" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="cong-city">Cidade</Label>
-                                <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder="Ex: São Paulo, SP" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="cong-pastor">Pastor Responsável</Label>
-                                <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder="Ex: Pr. João da Silva" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={handleCreateCongregation} disabled={isCreating || !newCongregationName.trim()}>
-                            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Criar Congregação
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
           </div>
         )}
         

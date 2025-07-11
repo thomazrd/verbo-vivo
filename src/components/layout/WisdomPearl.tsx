@@ -3,43 +3,39 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { WisdomPearl as WisdomPearlType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-// SWR fetcher function
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+// Static data to simulate API response, ensuring the component always has data to display.
+const predefinedPearls: WisdomPearlType[] = [
+    { id: '1', text: 'O coração alegre aformoseia o rosto.', reference: 'Provérbios 15:13', bookAbbrev: 'pv', chapter: 15 },
+    { id: '2', text: 'Aquietai-vos e sabei que eu sou Deus.', reference: 'Salmos 46:10', bookAbbrev: 'sl', chapter: 46 },
+    { id: '3', text: 'O Senhor é a minha força e o meu escudo.', reference: 'Salmos 28:7', bookAbbrev: 'sl', chapter: 28 },
+    { id: '4', text: 'Tudo tem o seu tempo determinado.', reference: 'Eclesiastes 3:1', bookAbbrev: 'ec', chapter: 3 },
+];
 
 export function WisdomPearl() {
-  // Use SWR for fetching, caching, and revalidation logic.
-  // This will fetch the data once per session and reuse it on navigation.
-  const { data: pearl, error, isLoading } = useSWR<WisdomPearlType>(
-    '/api/wisdom-pearl/random',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      shouldRetryOnError: false, // Don't retry on error to avoid breaking layout
-    }
-  );
+  const [pearl, setPearl] = useState<WisdomPearlType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Use a state to control fade-in animation to avoid flash of old content if SWR revalidates
-  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    if (pearl) {
-      setIsMounted(true);
-    }
-  }, [pearl]);
-
+    // Select a random pearl from the predefined list
+    const randomPearl = predefinedPearls[Math.floor(Math.random() * predefinedPearls.length)];
+    // Simulate a short loading time
+    setTimeout(() => {
+        setPearl(randomPearl);
+        setIsLoading(false);
+    }, 500);
+  }, []);
 
   if (isLoading) {
     return <div className="hidden lg:flex items-center justify-start flex-1 ml-4"><Skeleton className="h-4 w-72" /></div>;
   }
   
-  if (error || !pearl) {
-    return null; // Don't render anything on error, as per TDD.
+  if (!pearl) {
+    return null; // Don't render if there's no pearl for some reason
   }
 
   const bibleLink = `/bible?book=${pearl.bookAbbrev}&chapter=${pearl.chapter}`;
@@ -47,7 +43,7 @@ export function WisdomPearl() {
   return (
     <div className={cn(
         "hidden lg:flex items-center justify-start flex-1 ml-4 transition-opacity duration-500",
-        isMounted ? "opacity-100" : "opacity-0"
+        !isLoading ? "opacity-100" : "opacity-0"
     )}>
       <TooltipProvider delayDuration={200}>
         <Tooltip>

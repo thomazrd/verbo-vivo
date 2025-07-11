@@ -1,106 +1,87 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Helper Functions ---
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function isAdminOf(congregationId) {
-      return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
-    }
-    
-    function isMemberOf(congregationId) {
-      let memberStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
-      return memberStatus == 'MEMBER' || memberStatus == 'ADMIN' || memberStatus == 'APPROVED';
-    }
-    
-    // --- Users Collection ---
+  
+    // =================================
+    // Regras da Coleção de Usuários
+    // =================================
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId)
-                    || (
-                         isAdminOf(request.resource.data.congregationId) && 
-                         request.resource.data.keys().hasOnly(['congregationStatus', 'congregationId'])
-                       );
+      // Qualquer usuário autenticado pode criar seu próprio perfil.
+      allow create: if request.auth.uid == userId;
+      // Os usuários só podem ler e atualizar seus próprios perfis.
+      allow read, update: if request.auth.uid == userId;
     }
     
-    // --- Journals Collection ---
-    match /journals/{journalId} {
-        allow read, update, delete: if isOwner(resource.data.userId);
-        allow create: if isOwner(request.resource.data.userId);
-    }
-
-    // --- Study Plans (Subcollection of Users) ---
-    match /users/{userId}/plans/{planId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // --- Messages (Subcollection of Users) ---
-    match /users/{userId}/messages/{messageId} {
-      allow read, write: if isOwner(userId);
-    }
-    
-    // --- Prayers Collection ---
-    match /prayers/{prayerId} {
-      allow read, create: if request.auth != null && isOwner(request.resource.data.userId);
-    }
-    
-    // --- Meditations Collection ---
-    match /meditations/{meditationId} {
-      allow read, create: if request.auth != null && isOwner(request.resource.data.userId);
-    }
-    
-    // --- Prayer Circles ---
-    match /prayerCircles/{circleId} {
-      allow read: if request.auth.uid in resource.data.members;
-      allow create: if request.auth.uid == request.resource.data.createdBy && request.auth.uid in request.resource.data.members;
-      allow update: if request.auth.uid in resource.data.members; // Allows joining
-    }
-    
-    match /prayerRequests/{requestId} {
-      allow read, create: if isMemberOf(resource.data.circleId);
-      allow update: if isMemberOf(resource.data.circleId) && request.resource.data.keys().hasOnly(['prayingUsers']);
-    }
-
-    // --- Shared Content (Ponte da Esperança) ---
-    match /sharedContent/{contentId} {
-        allow read: if resource.data.status == 'ACTIVE';
-        allow create: if request.auth != null && isOwner(request.resource.data.creatorId);
-        allow update: if request.auth != null && isOwner(resource.data.creatorId);
-    }
-
-    // --- Congregations ---
+    // =================================
+    // Regras da Coleção de Congregações
+    // =================================
     match /congregations/{congregationId} {
-      allow read: if isMemberOf(congregationId);
-      allow create: if request.auth.uid == request.resource.data.createdBy;
-      allow update: if isAdminOf(congregationId);
+      // Qualquer usuário autenticado pode ler a lista de congregações (para encontrar pelo código).
+      allow read: if request.auth.uid != null;
+      // Usuários autenticados podem criar novas congregações.
+      allow create: if request.auth.uid != null;
+    }
 
-      // --- Members Subcollection ---
-      match /members/{userId} {
-        allow read: if isMemberOf(congregationId);
-        allow create: if request.auth.uid == userId; // Allows joining or creating own member doc
-        allow update: if isAdminOf(congregationId) 
-                    || (isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'photoURL']));
-        allow delete: if isAdminOf(congregationId) || isOwner(userId);
-      }
-      
-      // --- Posts Subcollection ---
-      match /posts/{postId} {
-        allow read, create: if isMemberOf(congregationId);
-        allow update: if isOwner(resource.data.authorId) || isMemberOf(congregationId); // Members can 'like'
-        allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
-        
-        // --- Comments Subcollection ---
-        match /comments/{commentId} {
-            allow read, create: if isMemberOf(congregationId);
-            allow update: if isOwner(resource.data.authorId)
-                           || (isMemberOf(congregationId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']));
-            allow delete: if isOwner(resource.data.authorId) || isAdminOf(congregationId);
-        }
-      }
+    // --- Subcoleções da Congregação ---
+    match /congregations/{congregationId}/posts/{postId} {
+      // Qualquer membro da congregação pode ler e criar posts.
+      allow read, create: if isMember(congregationId);
+      // Apenas o autor pode atualizar ou excluir um post.
+      allow update, delete: if isAuthor(resource.data.authorId);
+    }
+    
+    match /congregations/{congregationId}/posts/{postId}/{subcollection}/{docId} {
+       // Qualquer membro pode ler likes e comentários.
+       allow read: if isMember(congregationId);
+       // Qualquer membro pode criar likes e comentários.
+       allow create: if isMember(congregationId);
+       // Apenas o autor pode atualizar ou excluir seu próprio like ou comentário.
+       allow update, delete: if isAuthor(resource.data.authorId);
+    }
+
+    match /congregations/{congregationId}/members/{memberId} {
+      // O usuário pode criar sua própria solicitação de entrada (com status PENDING).
+      allow create: if request.auth.uid == memberId && request.resource.data.status == 'PENDING';
+      // Membros da congregação podem ler a lista de outros membros.
+      allow read: if isMember(congregationId);
+      // Admins podem atualizar (aprovar/promover) ou excluir (rejeitar/remover) membros.
+      allow update, delete: if isAdmin(congregationId);
+    }
+    
+    // =================================
+    // Regras de outras coleções
+    // =================================
+    match /journals/{entryId} {
+        allow read, update, delete: if isAuthor(resource.data.userId);
+        allow create: if isAuthor(request.resource.data.userId);
+    }
+    
+    match /sharedContent/{contentId} {
+        allow read, create, update: if request.auth.uid != null;
+    }
+    
+    match /notifications/{notificationId} {
+      allow read, update: if request.auth.uid == resource.data.recipientId;
+    }
+    
+    match /userPushTokens/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    
+    // =================================
+    // Funções de Helper
+    // =================================
+    function isAuthor(authorId) {
+      return request.auth.uid == authorId;
+    }
+    
+    function isMember(congregationId) {
+      return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+    }
+    
+    function isAdmin(congregationId) {
+       return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
     }
   }
 }

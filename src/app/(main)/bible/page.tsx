@@ -112,7 +112,7 @@ function BibleReaderContent() {
 
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 h-full">
-      <div className="space-y-2 mb-8">
+      <div className="hidden md:block space-y-2 mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Leitura da Bíblia</h1>
         <p className="mt-1 text-muted-foreground">
           Navegue, leia e explore as Escrituras Sagradas.

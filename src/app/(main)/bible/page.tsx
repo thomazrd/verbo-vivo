@@ -112,7 +112,7 @@ function BibleReaderContent() {
   const mobileShowVerse = isMobile && selectedBook && selectedChapter;
 
   return (
-    <div className="container mx-auto max-w-7xl py-8 px-4 h-full">
+    <div className="container mx-auto max-w-7xl py-8 px-4 h-full flex flex-col">
       <div className="hidden md:block space-y-2 mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Leitura da Bíblia</h1>
         <p className="mt-1 text-muted-foreground">
@@ -120,7 +120,7 @@ function BibleReaderContent() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 h-[calc(100%-120px)] relative overflow-hidden">
+      <div className="grid md:grid-cols-3 gap-8 flex-1 relative overflow-hidden">
         
         {/* Painel de Livros */}
         <aside className={cn(
@@ -139,46 +139,58 @@ function BibleReaderContent() {
           />
         </aside>
 
-        {/* Painel de Capítulos */}
-        <div className={cn(
-          "md:col-span-1 h-full",
-          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedBook ? 'block' : 'hidden'),
-          mobileShowChapters ? 'translate-x-0' : 'translate-x-full'
-        )}>
-          {selectedBook && (
-            <ChapterGrid 
-              book={selectedBook} 
-              onChapterSelect={handleChapterSelect} 
-              onBack={handleBackToBooks}
-              selectedChapter={selectedChapter}
-            />
+        {/* Capítulos e Versículos Container */}
+        <div
+          className={cn(
+            'md:col-span-2',
+            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedBook ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'hidden'),
+            mobileShowChapters || mobileShowVerse ? 'translate-x-0' : 'translate-x-full'
           )}
+        >
+            {/* Painel de Capítulos */}
+            <div className={cn(
+                'md:col-span-1 h-full',
+                isMobile ? (mobileShowChapters ? 'block' : 'hidden') : (selectedBook ? 'block' : 'hidden'),
+                selectedChapter && !isMobile && 'md:col-span-1'
+            )}>
+              {selectedBook && (
+                <ChapterGrid 
+                  book={selectedBook} 
+                  onChapterSelect={handleChapterSelect} 
+                  onBack={handleBackToBooks}
+                  selectedChapter={selectedChapter}
+                />
+              )}
+            </div>
+
+            {/* Painel de Versículos */}
+            <main className={cn(
+                "h-full overflow-y-auto",
+                isMobile ? (mobileShowVerse ? 'block' : 'hidden') : 'md:col-span-1 block',
+                !selectedChapter && !isMobile && 'hidden' // Hide on desktop if no chapter
+            )}>
+              {selectedChapter && selectedBook ? (
+                <VerseDisplay 
+                  version={selectedVersion}
+                  book={selectedBook} 
+                  chapter={chapter} 
+                  onBack={handleBackToChapters}
+                  onNextChapter={handleNextChapter}
+                  onPrevChapter={handlePrevChapter}
+                />
+              ) : null}
+            </main>
         </div>
 
-        {/* Painel de Versículos */}
-        <main className={cn(
-            "md:col-span-2 h-full overflow-y-auto",
-            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedChapter ? 'block' : 'hidden'),
-            mobileShowVerse ? 'translate-x-0' : 'translate-x-full'
-        )}>
-          {selectedChapter && selectedBook ? (
-            <VerseDisplay 
-              version={selectedVersion}
-              book={selectedBook} 
-              chapter={selectedChapter} 
-              onBack={handleBackToChapters}
-              onNextChapter={handleNextChapter}
-              onPrevChapter={handlePrevChapter}
-            />
-          ) : !isMobile && !selectedChapter && (
-            <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center md:col-span-2">
+
+        {!selectedBook && !isMobile && (
+             <div className="md:col-span-2 flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
                 <div className="flex flex-col items-center gap-4">
                   <BookMarked className="h-12 w-12 text-muted-foreground" />
-                  <p className="text-muted-foreground">Selecione um livro e capítulo para começar.</p>
+                  <p className="text-muted-foreground">Selecione um livro para começar.</p>
                 </div>
             </div>
-          )}
-        </main>
+        )}
       </div>
     </div>
   );

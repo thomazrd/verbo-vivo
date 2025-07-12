@@ -19,7 +19,7 @@ export function ChapterGrid({ book, onChapterSelect, onBack, selectedChapter }: 
   const chapters = Array.from({ length: book.chapters }, (_, i) => i + 1);
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
         <CardHeader>
             <div className="flex items-center gap-4">
                 <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={onBack}>

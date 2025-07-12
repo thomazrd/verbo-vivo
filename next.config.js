@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Forçando a reconstrução para limpar o cache
 const nextConfig = {
-  productionBrowserSourceMaps: true,
   reactStrictMode: true,
   typescript: {
     // !! ATENÇÃO !!

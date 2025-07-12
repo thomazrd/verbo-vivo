@@ -82,7 +82,7 @@ function BibleReaderContent() {
 
   const handlePrevChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter > 1) {
-      setSelectedChapter(selectedChapter + 1);
+      setSelectedChapter(selectedChapter - 1);
     }
   };
 
@@ -106,9 +106,10 @@ function BibleReaderContent() {
       );
   }
 
+  // --- Display Logic ---
   const showBooksPanel = !isMobile || (!selectedBook && !selectedChapter);
-  const showChaptersPanel = (!isMobile && selectedBook) || (isMobile && selectedBook && !selectedChapter);
-  const showVersePanel = selectedChapter;
+  const showChaptersPanel = isMobile ? (selectedBook && !selectedChapter) : !!selectedBook;
+  const showVersePanel = !!selectedChapter;
 
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 h-full">

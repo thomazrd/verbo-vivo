@@ -14,14 +14,22 @@ interface VerseViewerProps {
   isOpen: boolean;
 }
 
-// Função simples para extrair informações da referência. Ex: "Gn 1:1-5" ou "Sl 23"
+// Função para extrair informações da referência. Ex: "Gn 1:1-5" ou "1 Crônicas 23"
 function parseVerseReference(ref: string) {
-  const match = ref.match(/^([a-zA-Z0-9]+)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
+  const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
   if (!match) return null;
 
-  const [, bookAbbrev, chapter, startVerse, endVerse] = match;
+  const [, bookName, chapter, startVerse, endVerse] = match;
   
-  const book = bibleBooksByAbbrev[bookAbbrev.toLowerCase()];
+  // Normaliza o nome do livro para encontrar a abreviação (ex: "1 Crônicas" -> "1cr")
+  const bookAbbrev = Object.keys(bibleBooksByAbbrev).find(abbrev => {
+      const bookData = bibleBooksByAbbrev[abbrev];
+      const normalizedBookName = bookData.name.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
+      const normalizedRefBookName = bookName.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
+      return abbrev === bookName.toLowerCase() || normalizedBookName === normalizedRefBookName || bookData.name.toLowerCase() === bookName.toLowerCase();
+  });
+  
+  const book = bookAbbrev ? bibleBooksByAbbrev[bookAbbrev] : null;
   if (!book) return null;
 
   return {
@@ -31,6 +39,7 @@ function parseVerseReference(ref: string) {
     endVerse: endVerse ? parseInt(endVerse) : (startVerse ? parseInt(startVerse) : book.chapters)
   };
 }
+
 
 export function VerseViewer({ verseReference, isOpen }: VerseViewerProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);

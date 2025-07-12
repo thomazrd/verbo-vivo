@@ -106,10 +106,10 @@ function BibleReaderContent() {
       );
   }
 
-  // --- Display Logic ---
-  const mobileShowBooks = isMobile && !selectedBook;
-  const mobileShowChapters = isMobile && selectedBook && !selectedChapter;
-  const mobileShowVerse = isMobile && selectedBook && selectedChapter;
+  // --- Display Logic States ---
+  const showBooks = !selectedBook;
+  const showChapters = selectedBook && !selectedChapter;
+  const showVerse = selectedBook && selectedChapter;
 
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 h-full flex flex-col">
@@ -120,13 +120,11 @@ function BibleReaderContent() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 flex-1 relative overflow-hidden">
-        
-        {/* Painel de Livros */}
+      <div className="grid md:grid-cols-3 gap-8 flex-1">
+        {/* Painel de Livros (Coluna 1) - Sempre visível no desktop */}
         <aside className={cn(
           "h-full flex-col gap-6",
-          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'flex',
-          mobileShowBooks || !isMobile ? 'translate-x-0' : '-translate-x-full',
+          isMobile ? (showBooks ? 'flex' : 'hidden') : 'flex'
         )}>
           <VersionSelector 
             selectedVersion={selectedVersion} 
@@ -139,50 +137,39 @@ function BibleReaderContent() {
           />
         </aside>
 
-        {/* Capítulos e Versículos Container */}
-        <div
-          className={cn(
-            'md:col-span-2',
-            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedBook ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'hidden'),
-            mobileShowChapters || mobileShowVerse ? 'translate-x-0' : 'translate-x-full'
+        {/* Painel de Capítulos (Coluna 2) */}
+        <div className={cn(
+          "h-full",
+          isMobile ? (showChapters ? 'block' : 'hidden') : (selectedBook ? 'block' : 'hidden')
+        )}>
+          {selectedBook && (
+            <ChapterGrid 
+              book={selectedBook} 
+              onChapterSelect={handleChapterSelect} 
+              onBack={handleBackToBooks}
+              selectedChapter={selectedChapter}
+            />
           )}
-        >
-            {/* Painel de Capítulos */}
-            <div className={cn(
-                'md:col-span-1 h-full',
-                isMobile ? (mobileShowChapters ? 'block' : 'hidden') : (selectedBook ? 'block' : 'hidden'),
-                selectedChapter && !isMobile && 'md:col-span-1'
-            )}>
-              {selectedBook && (
-                <ChapterGrid 
-                  book={selectedBook} 
-                  onChapterSelect={handleChapterSelect} 
-                  onBack={handleBackToBooks}
-                  selectedChapter={selectedChapter}
-                />
-              )}
-            </div>
-
-            {/* Painel de Versículos */}
-            <main className={cn(
-                "h-full overflow-y-auto",
-                isMobile ? (mobileShowVerse ? 'block' : 'hidden') : 'md:col-span-1 block',
-                !selectedChapter && !isMobile && 'hidden' // Hide on desktop if no chapter
-            )}>
-              {selectedChapter && selectedBook ? (
-                <VerseDisplay 
-                  version={selectedVersion}
-                  book={selectedBook} 
-                  chapter={selectedChapter} 
-                  onBack={handleBackToChapters}
-                  onNextChapter={handleNextChapter}
-                  onPrevChapter={handlePrevChapter}
-                />
-              ) : null}
-            </main>
         </div>
 
+        {/* Painel de Versículos (Coluna 3) */}
+        <main className={cn(
+          "h-full overflow-y-auto",
+          isMobile ? (showVerse ? 'block' : 'hidden') : (showVerse ? 'block' : 'hidden')
+        )}>
+          {selectedChapter && selectedBook ? (
+            <VerseDisplay 
+              version={selectedVersion}
+              book={selectedBook} 
+              chapter={selectedChapter} 
+              onBack={handleBackToChapters}
+              onNextChapter={handleNextChapter}
+              onPrevChapter={handlePrevChapter}
+            />
+          ) : null}
+        </main>
 
+        {/* Placeholder do Desktop */}
         {!selectedBook && !isMobile && (
              <div className="md:col-span-2 flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
                 <div className="flex flex-col items-center gap-4">

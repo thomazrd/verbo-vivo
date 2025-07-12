@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -300,7 +300,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     }
   }, [post.createdAt]);
 
-  const fetchComments = () => {
+  const fetchComments = useCallback(() => {
     setLoadingComments(true);
     const commentsQuery = query(
       collection(db, "congregations", congregationId, "posts", post.id, "comments"),
@@ -319,13 +319,13 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         setLoadingComments(false);
     });
     return unsubscribe;
-  };
+  }, [congregationId, post.id, toast]);
 
   useEffect(() => {
     if (!showComments) return;
     const unsubscribe = fetchComments();
     return () => unsubscribe();
-  }, [post.id, showComments, fetchComments]);
+  }, [showComments, fetchComments]);
   
   const handleAddComment = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -397,11 +397,11 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         return (
           <>
             {hasText && (
-                <div className="px-4 pt-3">
+                <div className="px-4 pt-3 pb-2">
                     <PostText text={imageContent.text} />
                 </div>
             )}
-            <div className={cn("w-full bg-black", !hasText && "mt-2")}>
+            <div className="w-full bg-black">
                 <Image
                 src={imageContent.imageUrl}
                 alt={imageContent.text || `Post by ${post.authorName}`}
@@ -421,11 +421,11 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
             return (
                 <>
                     {hasVideoText && (
-                        <div className="px-4 pt-3">
+                        <div className="px-4 pt-3 pb-2">
                             <PostText text={videoContent.text} />
                         </div>
                     )}
-                    <div className={cn("aspect-video w-full", !hasVideoText && "mt-2")}>
+                    <div className="aspect-video w-full">
                         <iframe
                             className="w-full h-full"
                             src={`https://www.youtube.com/embed/${videoContent.videoId}?autoplay=1&rel=0`}
@@ -441,15 +441,12 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         return (
             <>
                 {hasVideoText && (
-                    <div className="px-4 pt-3">
+                    <div className="px-4 pt-3 pb-2">
                         <PostText text={videoContent.text} />
                     </div>
                 )}
                 <div 
-                    className={cn(
-                        "relative w-full bg-black cursor-pointer group",
-                        !hasVideoText && "mt-2"
-                    )}
+                    className="relative w-full bg-black cursor-pointer group"
                     onClick={() => setIsPlayingVideo(true)}
                 >
                     <Image
@@ -479,7 +476,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
           : 'bg-muted';
         return (
           <div className={cn(
-            'mt-2 h-80 flex items-center justify-center p-6 text-center',
+            'h-80 flex items-center justify-center p-6 text-center',
             bgStyleClass
           )}>
             <p className="font-bold text-3xl break-words">{bgTextContent.text}</p>
@@ -489,7 +486,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       default:
         const textContent = post.content as TextContent;
         return (
-            <div className="px-4 pt-3">
+            <div className="px-4 pt-3 pb-2">
                  <PostText text={textContent.text} />
             </div>
         );
@@ -498,7 +495,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
 
 
   return (
-    <div className="bg-card border-b">
+    <div className="bg-card border-b sm:border sm:rounded-lg overflow-hidden">
       <div className="p-4">
           <div className="flex gap-3 sm:gap-4">
             <Avatar className="h-10 w-10 border">
@@ -518,8 +515,8 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       
       {renderContent()}
 
-      <div className="p-2">
-          <div className="flex items-center justify-between text-muted-foreground px-2">
+      <div className="px-4 py-2">
+          <div className="flex items-center justify-between text-muted-foreground">
                 {post.likeCount > 0 && <span className="text-xs">{post.likeCount} curtida(s)</span>}
                 {post.commentCount > 0 && <span className="text-xs ml-auto">{post.commentCount} comentário(s)</span>}
           </div>
@@ -730,7 +727,7 @@ export default function CongregationFeedPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 px-4 space-y-4">
+      <div className="max-w-xl mx-auto py-8 px-0 sm:px-4 space-y-4">
         <Skeleton className="h-8 w-1/4" />
         <Skeleton className="h-6 w-1/2" />
         <div className="mt-8 space-y-6">
@@ -784,14 +781,13 @@ export default function CongregationFeedPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto bg-muted/30" ref={listRef}>
-            <div className="mx-auto max-w-3xl w-full">
+            <div className="mx-auto max-w-xl w-full">
                 {user && congregationId && (
-                    <div className="bg-card border-b">
-                        <CreatePostForm
-                            user={user}
-                            congregationId={congregationId}
-                        />
-                    </div>
+                    <CreatePostForm
+                        user={user}
+                        congregationId={congregationId}
+                        className="sm:mt-4"
+                    />
                 )}
 
                 {posts.length === 0 && !user ? (
@@ -804,7 +800,7 @@ export default function CongregationFeedPage() {
                         <p className="text-sm text-muted-foreground">Seja o primeiro a compartilhar!</p>
                     </div>
                 ) : (
-                    <div className="space-y-4 sm:pt-4">
+                    <div className="space-y-4 py-4">
                         {posts.map(post => (
                             <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}

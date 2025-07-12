@@ -215,7 +215,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
 
   if (!isExpanded) {
     return (
-      <div className={cn("p-4", className)} onClick={handleExpand}>
+      <div className={cn("p-4 bg-card sm:rounded-lg border-b sm:border", className)} onClick={handleExpand}>
         <div className="flex items-center gap-4">
             <Avatar className="h-10 w-10 border">
                 <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''}/>
@@ -233,7 +233,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }
 
   return (
-    <div ref={formRef} className={cn("flex flex-col gap-4", className)}>
+    <div ref={formRef} className={cn("flex flex-col gap-0 bg-card sm:rounded-lg border-b sm:border", className)}>
         <div className="flex items-start gap-4 p-4">
             <Avatar className="h-10 w-10 border">
                 <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
@@ -303,7 +303,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
              ))}
         </div>
 
-        <div className="px-4 pb-2">
+        <div className="px-4 py-2">
             <Button onClick={handleSubmit} disabled={isUploading} className="w-full">
                 {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
             </Button>

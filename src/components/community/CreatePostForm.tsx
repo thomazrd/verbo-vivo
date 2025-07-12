@@ -123,7 +123,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     handleResetType();
     setIsUploading(false);
     setIsExpanded(false);
-  }, []);
+  }, [handleResetType]);
 
   const handleSubmit = async () => {
     if (!text.trim() && !mediaFile && !youtubeVideo) {
@@ -215,7 +215,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
 
   if (!isExpanded) {
     return (
-      <div className={cn("p-4 rounded-lg bg-card border", className)} onClick={handleExpand}>
+      <div className={cn("p-4", className)} onClick={handleExpand}>
         <div className="flex items-center gap-4">
             <Avatar className="h-10 w-10 border">
                 <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''}/>
@@ -233,7 +233,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }
 
   return (
-    <div ref={formRef} className={cn("p-4 rounded-lg bg-card border flex flex-col gap-4", className)}>
+    <div ref={formRef} className={cn("p-4 border-b flex flex-col gap-4", className)}>
         <div className="flex items-start gap-4">
             <Avatar className="h-10 w-10 border">
                 <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />

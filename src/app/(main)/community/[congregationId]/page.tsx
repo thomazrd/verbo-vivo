@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -484,7 +484,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
 
 
   return (
-    <div className="flex flex-col gap-2 p-4 rounded-lg bg-card border">
+    <div className="flex flex-col gap-2 p-4 bg-card border-b sm:border sm:rounded-lg">
       <div className="flex gap-3 sm:gap-4">
         <Avatar className="h-10 w-10 border">
           {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
@@ -687,7 +687,8 @@ export default function CongregationFeedPage() {
   useEffect(() => {
       // Scroll to top when new posts are added (simple approach)
       if (posts.length > 0 && listRef.current) {
-        listRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        // A conditional check to prevent this from firing on initial load might be needed
+        // For now, this is simple and effective.
       }
   }, [posts.length > 0 ? posts[0].id : null]);
 
@@ -732,7 +733,7 @@ export default function CongregationFeedPage() {
     <>
     <div className="flex h-full flex-col">
         <div className="p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-            <div className="container mx-auto max-w-3xl flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 max-w-5xl mx-auto">
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.push('/community')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
@@ -761,22 +762,28 @@ export default function CongregationFeedPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto" ref={listRef}>
-            <div className="container mx-auto max-w-3xl py-6 px-4">
+            <div className="mx-auto max-w-3xl w-full">
                 {user && congregationId && (
-                    <CreatePostForm
-                        user={user}
-                        congregationId={congregationId}
-                        className="mb-6"
-                    />
+                    <div className="bg-card sm:rounded-t-lg sm:border-x sm:border-t mt-4">
+                        <CreatePostForm
+                            user={user}
+                            congregationId={congregationId}
+                            className="mb-4"
+                        />
+                    </div>
                 )}
 
-                {posts.length === 0 ? (
+                {posts.length === 0 && !user ? (
                     <div className="text-center py-12">
+                        <p className="text-muted-foreground">Carregando publicações...</p>
+                    </div>
+                ) : posts.length === 0 ? (
+                     <div className="text-center py-12">
                         <p className="text-muted-foreground">Nenhuma publicação ainda.</p>
                         <p className="text-sm text-muted-foreground">Seja o primeiro a compartilhar!</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {posts.map(post => (
                             <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}

@@ -11,17 +11,22 @@ import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useWindowSize } from '@/hooks/use-window-size';
+import { BookMarked } from 'lucide-react';
 
 function BibleReaderContent() {
   const searchParams = useSearchParams();
-  const bookAbbrev = searchParams.get('book');
-  const chapterNum = searchParams.get('chapter');
+  const bookAbbrevParam = searchParams.get('book');
+  const chapterNumParam = searchParams.get('chapter');
   
   const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<BibleVersion>({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [loadingInitialState, setLoadingInitialState] = useState(true);
+
+  const { width } = useWindowSize();
+  const isMobile = width < 768; // md breakpoint
 
   // Fetch all books once on mount
   useEffect(() => {
@@ -38,18 +43,18 @@ function BibleReaderContent() {
   
   // Set initial state from URL params once books are loaded
   useEffect(() => {
-    if (allBooks.length > 0) {
-      const bookFromUrl = allBooks.find(b => b.abbrev.pt === bookAbbrev);
+    if (allBooks.length > 0 && loadingInitialState) {
+      const bookFromUrl = allBooks.find(b => b.abbrev.pt === bookAbbrevParam);
       if (bookFromUrl) {
         setSelectedBook(bookFromUrl);
-        const chapter = parseInt(chapterNum || '', 10);
+        const chapter = parseInt(chapterNumParam || '', 10);
         if (!isNaN(chapter) && chapter > 0 && chapter <= bookFromUrl.chapters) {
           setSelectedChapter(chapter);
         }
       }
       setLoadingInitialState(false);
     }
-  }, [allBooks, bookAbbrev, chapterNum]);
+  }, [allBooks, bookAbbrevParam, chapterNumParam, loadingInitialState]);
 
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
@@ -77,45 +82,52 @@ function BibleReaderContent() {
 
   const handlePrevChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter > 1) {
-      setSelectedChapter(selectedChapter - 1);
+      setSelectedChapter(selectedChapter + 1);
     }
   };
-  
-  const isReading = !!(selectedBook && selectedChapter);
 
   if (loadingInitialState) {
       return (
-        <div className="container mx-auto max-w-5xl py-8 px-4">
-            <Skeleton className="h-10 w-1/3 mb-2" />
-            <Skeleton className="h-5 w-1/2 mb-8" />
-            <div className="flex flex-col md:flex-row gap-8">
-              <aside className="w-full md:w-64 flex-shrink-0 space-y-6">
+        <div className="container mx-auto max-w-7xl py-8 px-4">
+            <div className="space-y-2 mb-8">
+              <Skeleton className="h-9 w-1/3" />
+              <Skeleton className="h-5 w-1/2" />
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="md:col-span-1 space-y-6">
                  <Skeleton className="h-10 w-full" />
                  <Skeleton className="h-64 w-full" />
-              </aside>
-               <main className="flex-1">
+              </div>
+              <div className="md:col-span-2">
                  <Skeleton className="h-96 w-full" />
-              </main>
+              </div>
             </div>
         </div>
       );
   }
 
+  const showBooksPanel = !isMobile || (!selectedBook && !selectedChapter);
+  const showChaptersPanel = (!isMobile && selectedBook) || (isMobile && selectedBook && !selectedChapter);
+  const showVersePanel = selectedChapter;
+
   return (
-    <div className="container mx-auto max-w-5xl py-8 px-4">
-      <div className={cn("mb-8", isReading && "hidden md:block")}>
+    <div className="container mx-auto max-w-7xl py-8 px-4 h-full">
+      <div className="space-y-2 mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Leitura da Bíblia</h1>
         <p className="mt-1 text-muted-foreground">
-          Navegue e leia as Escrituras Sagradas.
+          Navegue, leia e explore as Escrituras Sagradas.
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="grid md:grid-cols-3 gap-8 h-[calc(100%-120px)] relative overflow-hidden">
+        
+        {/* Painel de Livros */}
         <aside className={cn(
-            "w-full md:w-64 flex-shrink-0 space-y-6",
-            isReading ? "hidden md:flex md:flex-col" : "flex flex-col"
+          "h-full flex-col gap-6",
+          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'flex',
+          showBooksPanel ? 'translate-x-0' : '-translate-x-full',
         )}>
-           <VersionSelector 
+          <VersionSelector 
             selectedVersion={selectedVersion} 
             onVersionChange={setSelectedVersion} 
           />
@@ -126,18 +138,29 @@ function BibleReaderContent() {
           />
         </aside>
 
-        <main className="flex-1">
-          {!selectedBook ? (
-            <div className="flex items-center justify-center h-full rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
-              <p className="text-muted-foreground">Selecione um livro para começar a ler.</p>
-            </div>
-          ) : !selectedChapter ? (
+        {/* Painel de Capítulos */}
+        <div className={cn(
+          "md:col-span-1 h-full",
+          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'block',
+          showChaptersPanel ? 'translate-x-0' : (isMobile ? 'translate-x-full' : 'hidden')
+        )}>
+          {selectedBook && (
             <ChapterGrid 
               book={selectedBook} 
               onChapterSelect={handleChapterSelect} 
               onBack={handleBackToBooks}
+              selectedChapter={selectedChapter}
             />
-          ) : (
+          )}
+        </div>
+
+        {/* Painel de Versículos */}
+        <main className={cn(
+            "md:col-span-2 h-full overflow-y-auto",
+            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'block',
+            showVersePanel ? 'translate-x-0' : (isMobile ? 'translate-x-full' : 'hidden')
+        )}>
+          {selectedChapter && selectedBook ? (
             <VerseDisplay 
               version={selectedVersion}
               book={selectedBook} 
@@ -146,6 +169,13 @@ function BibleReaderContent() {
               onNextChapter={handleNextChapter}
               onPrevChapter={handlePrevChapter}
             />
+          ) : !isMobile && (
+            <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <BookMarked className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-muted-foreground">Selecione um livro e capítulo para começar.</p>
+                </div>
+            </div>
           )}
         </main>
       </div>
@@ -155,7 +185,7 @@ function BibleReaderContent() {
 
 export default function BibleReaderPage() {
   return (
-    <Suspense fallback={<div>Carregando...</div>}>
+    <Suspense fallback={<div className="flex h-full items-center justify-center">Carregando...</div>}>
       <BibleReaderContent />
     </Suspense>
   )

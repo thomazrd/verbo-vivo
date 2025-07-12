@@ -14,6 +14,7 @@ import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -70,7 +71,6 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
        // Update URL with query params
       const newUrl = `${pathname}?book=${book.abbrev.pt}&chapter=${chapter}`;
       router.replace(newUrl, { scroll: false });
-      window.scrollTo(0, 0); // Scroll to top on chapter change
     }
   }, [book, chapter, version, toast, pathname, router]);
 
@@ -136,12 +136,12 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
          <CardHeader>
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={onBack}>
+                    <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={onBack}>
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Voltar para capítulos</span>
                     </Button>
@@ -163,21 +163,25 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
               </div>
             </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-        <SummaryDisplay 
-            summary={summary}
-            isLoading={isSummaryLoading}
-            onHide={() => setSummary(null)}
-        />
+        <CardContent className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full pr-4">
+            <div className="space-y-4">
+                <SummaryDisplay 
+                    summary={summary}
+                    isLoading={isSummaryLoading}
+                    onHide={() => setSummary(null)}
+                />
 
-        {chapterData.verses.map(verse => (
-          <p key={verse.number} className="leading-relaxed">
-            <sup className="font-bold text-primary mr-2">{verse.number}</sup>
-            {verse.text}
-          </p>
-        ))}
+                {chapterData.verses.map(verse => (
+                  <p key={verse.number} className="leading-relaxed">
+                    <sup className="font-bold text-primary mr-2">{verse.number}</sup>
+                    {verse.text}
+                  </p>
+                ))}
+            </div>
+          </ScrollArea>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between border-t pt-4">
             <Button variant="outline" onClick={onPrevChapter} disabled={!hasPrevChapter}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Anterior

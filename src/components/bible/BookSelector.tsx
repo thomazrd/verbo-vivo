@@ -33,7 +33,7 @@ export function BookSelector({ allBooks, onBookSelect, selectedBookAbbrev }: Boo
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 h-full">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -44,7 +44,7 @@ export function BookSelector({ allBooks, onBookSelect, selectedBookAbbrev }: Boo
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      <ScrollArea className="h-full max-h-[calc(70vh-50px)] rounded-md border">
+      <ScrollArea className="flex-1 rounded-md border">
         <div className="p-2">
             {filteredBooks.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">Nenhum livro encontrado.</p>

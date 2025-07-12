@@ -139,7 +139,7 @@ export default function FeelingJourneyPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="flex-1 flex items-start justify-center p-4 pt-8 overflow-y-auto">
         <AnimatePresence mode="wait">
           {renderStep()}
         </AnimatePresence>

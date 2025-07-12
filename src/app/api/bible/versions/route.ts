@@ -1,8 +1,6 @@
 // /api/bible/versions
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'; // Força a rota a ser dinâmica
-
 // Define a consistent output structure for Bible versions
 interface NormalizedBibleVersion {
   id: string; // e.g., "nvi", "kjv", "cmn-union"

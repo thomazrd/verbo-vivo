@@ -1,8 +1,6 @@
 // /api/bible/verses/[version]/[abbrev]/[chapter]
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'; // Força a rota a ser dinâmica
-
 const ABIBLIA_API_URL = 'https://www.abibliadigital.com.br/api';
 
 export async function GET(

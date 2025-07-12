@@ -233,8 +233,8 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }
 
   return (
-    <div ref={formRef} className={cn("p-4 border-b flex flex-col gap-4", className)}>
-        <div className="flex items-start gap-4">
+    <div ref={formRef} className={cn("flex flex-col gap-4", className)}>
+        <div className="flex items-start gap-4 p-4">
             <Avatar className="h-10 w-10 border">
                 <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
                 <AvatarFallback>{user.displayName?.[0].toUpperCase() || 'U'}</AvatarFallback>
@@ -254,14 +254,14 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
         </div>
         
         {(mediaPreview || (youtubeVideo && useYoutubeThumbnail)) && (
-            <div className="relative rounded-lg overflow-hidden border">
+            <div className="relative bg-black">
                 <Image
                   src={mediaPreview || youtubeVideo!.thumbnail}
                   alt="Pré-visualização da mídia"
-                  width={480}
-                  height={270}
+                  width={720}
+                  height={720}
                   unoptimized={true}
-                  className="w-full h-auto object-cover bg-muted"
+                  className="w-full h-auto max-h-[80vh] object-contain"
                   data-ai-hint="user uploaded image"
                 />
                 <Button 
@@ -285,7 +285,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
             </div>
         )}
         
-        <div className="p-2 border rounded-lg flex items-center flex-wrap gap-2">
+        <div className="p-2 border-y flex items-center flex-wrap gap-2">
              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Adicionar Imagem">
                 <ImageIcon className="h-5 w-5 text-green-500" />
@@ -303,9 +303,11 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
              ))}
         </div>
 
-        <Button onClick={handleSubmit} disabled={isUploading} className="w-full">
-            {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
-        </Button>
+        <div className="px-4 pb-2">
+            <Button onClick={handleSubmit} disabled={isUploading} className="w-full">
+                {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
+            </Button>
+        </div>
     </div>
   );
 }

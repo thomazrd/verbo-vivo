@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -300,7 +300,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     }
   }, [post.createdAt]);
 
-  const fetchComments = useCallback(() => {
+  const fetchComments = () => {
     setLoadingComments(true);
     const commentsQuery = query(
       collection(db, "congregations", congregationId, "posts", post.id, "comments"),
@@ -319,7 +319,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         setLoadingComments(false);
     });
     return unsubscribe;
-  }, [congregationId, post.id, toast]);
+  };
 
   useEffect(() => {
     if (!showComments) return;
@@ -368,7 +368,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     const parts = text.split(urlRegex);
 
     return (
-        <p className="mt-1 text-card-foreground whitespace-pre-wrap break-words">
+        <p className="text-card-foreground whitespace-pre-wrap break-words">
             {parts.map((part, index) => {
                 if (part.match(urlRegex)) {
                     return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{part}</a>;
@@ -393,36 +393,39 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     switch (post.postType) {
       case 'IMAGE':
         const imageContent = post.content as ImageContent;
-        if (!imageContent.imageUrl) {
-            return (
-                <div className="mt-2 text-sm text-muted-foreground italic">
-                    {imageContent.text && <PostText text={imageContent.text} />}
-                    Processando imagem...
-                </div>
-            );
-        }
+        const hasText = imageContent.text && imageContent.text.trim().length > 0;
         return (
-          <div className="mt-2 space-y-2">
-            {imageContent.text && <PostText text={imageContent.text} />}
-            <div className="-mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+          <>
+            {hasText && (
+                <div className="px-4 pt-3">
+                    <PostText text={imageContent.text} />
+                </div>
+            )}
+            <div className={cn("w-full bg-black", !hasText && "mt-2")}>
                 <Image
                 src={imageContent.imageUrl}
                 alt={imageContent.text || `Post by ${post.authorName}`}
-                width={600}
-                height={600}
-                className="w-full h-auto bg-muted object-cover"
+                width={720}
+                height={720}
+                className="w-full h-auto max-h-[80vh] object-contain"
                 data-ai-hint="community post"
                 />
             </div>
-          </div>
+          </>
         );
       case 'VIDEO':
         const videoContent = post.content as VideoContent;
+        const hasVideoText = videoContent.text && videoContent.text.trim().length > 0;
+
         if (isPlayingVideo) {
             return (
-                <div className="mt-2 space-y-2">
-                    {videoContent.text && <PostText text={videoContent.text} />}
-                    <div className="aspect-video -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+                <>
+                    {hasVideoText && (
+                        <div className="px-4 pt-3">
+                            <PostText text={videoContent.text} />
+                        </div>
+                    )}
+                    <div className={cn("aspect-video w-full", !hasVideoText && "mt-2")}>
                         <iframe
                             className="w-full h-full"
                             src={`https://www.youtube.com/embed/${videoContent.videoId}?autoplay=1&rel=0`}
@@ -432,14 +435,21 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                             allowFullScreen
                         ></iframe>
                     </div>
-                </div>
+                </>
             )
         }
         return (
-            <div className="mt-2 space-y-2">
-                {videoContent.text && <PostText text={videoContent.text} />}
+            <>
+                {hasVideoText && (
+                    <div className="px-4 pt-3">
+                        <PostText text={videoContent.text} />
+                    </div>
+                )}
                 <div 
-                    className="relative -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden cursor-pointer group"
+                    className={cn(
+                        "relative w-full bg-black cursor-pointer group",
+                        !hasVideoText && "mt-2"
+                    )}
                     onClick={() => setIsPlayingVideo(true)}
                 >
                     <Image
@@ -447,14 +457,14 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                         alt="Video thumbnail"
                         width={480}
                         height={270}
-                        className="w-full h-auto bg-muted object-cover"
+                        className="w-full h-auto object-contain"
                         unoptimized={true}
                     />
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
                         <PlayCircle className="h-16 w-16 text-white/80" />
                     </div>
                 </div>
-            </div>
+            </>
         );
       case 'BACKGROUND_TEXT':
         const bgTextContent = post.content as BackgroundTextContent;
@@ -469,61 +479,73 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
           : 'bg-muted';
         return (
           <div className={cn(
-            'mt-2 h-64 flex items-center justify-center p-6 text-center rounded-lg',
+            'mt-2 h-80 flex items-center justify-center p-6 text-center',
             bgStyleClass
           )}>
-            <p className="font-bold text-2xl break-words">{bgTextContent.text}</p>
+            <p className="font-bold text-3xl break-words">{bgTextContent.text}</p>
           </div>
         );
       case 'TEXT':
       default:
         const textContent = post.content as TextContent;
-        return <PostText text={textContent.text} />;
+        return (
+            <div className="px-4 pt-3">
+                 <PostText text={textContent.text} />
+            </div>
+        );
     }
   };
 
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-card border-b sm:border sm:rounded-lg">
-      <div className="flex gap-3 sm:gap-4">
-        <Avatar className="h-10 w-10 border">
-          {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
-          <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 overflow-hidden">
-          <div className="flex items-center justify-between">
-              <p className="font-semibold text-sm truncate">{post.authorName}</p>
-              {timeAgo && 
-                  <p className="text-xs text-muted-foreground shrink-0 ml-2" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
+    <div className="bg-card border-b">
+      <div className="p-4">
+          <div className="flex gap-3 sm:gap-4">
+            <Avatar className="h-10 w-10 border">
+              {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
+              <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+                <p className="font-semibold text-sm truncate">{post.authorName}</p>
+                 {timeAgo && 
+                  <p className="text-xs text-muted-foreground" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
                       {timeAgo}
                   </p>
               }
+            </div>
           </div>
-          {renderContent()}
-          <div className="mt-3 flex items-center gap-1 sm:gap-4 text-muted-foreground">
+      </div>
+      
+      {renderContent()}
+
+      <div className="p-2">
+          <div className="flex items-center justify-between text-muted-foreground px-2">
+                {post.likeCount > 0 && <span className="text-xs">{post.likeCount} curtida(s)</span>}
+                {post.commentCount > 0 && <span className="text-xs ml-auto">{post.commentCount} comentário(s)</span>}
+          </div>
+          <div className="mt-1 flex items-center gap-1 border-t pt-1">
               <Button
                   variant="ghost"
                   size="sm"
-                  className={cn("gap-2 h-8 px-2", hasLiked && "text-destructive")}
+                  className={cn("w-full gap-2 h-8", hasLiked && "text-destructive")}
                   onClick={() => onLike(post.id, !!hasLiked)}
               >
                   <Heart className={cn("h-4 w-4", hasLiked && "fill-destructive")} />
-                  {post.likeCount > 0 && <span>{post.likeCount}</span>}
+                  <span className="font-semibold">Curtir</span>
               </Button>
                <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2 h-8 px-2"
+                  className="w-full gap-2 h-8"
                   onClick={() => setShowComments(s => !s)}
               >
                   <MessageCircle className="h-4 w-4"/>
-                  {post.commentCount > 0 && <span>{post.commentCount}</span>}
+                  <span className="font-semibold">Comentar</span>
               </Button>
           </div>
-        </div>
       </div>
        {showComments && (
-        <div className="pt-4 border-t border-muted/50 ml-12 sm:ml-14 space-y-4">
+        <div className="p-4 pt-2 border-t border-muted/50 space-y-4">
           {loadingComments && <Skeleton className="h-10 w-full" />}
           
           {!loadingComments && topLevelComments.map(comment => (
@@ -761,14 +783,13 @@ export default function CongregationFeedPage() {
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto" ref={listRef}>
+        <div className="flex-1 overflow-y-auto bg-muted/30" ref={listRef}>
             <div className="mx-auto max-w-3xl w-full">
                 {user && congregationId && (
-                    <div className="bg-card sm:rounded-t-lg sm:border-x sm:border-t mt-4">
+                    <div className="bg-card border-b">
                         <CreatePostForm
                             user={user}
                             congregationId={congregationId}
-                            className="mb-4"
                         />
                     </div>
                 )}
@@ -783,7 +804,7 @@ export default function CongregationFeedPage() {
                         <p className="text-sm text-muted-foreground">Seja o primeiro a compartilhar!</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 sm:pt-4">
                         {posts.map(post => (
                             <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}

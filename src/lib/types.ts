@@ -2,11 +2,17 @@
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
+export interface BibleVerse {
+  reference: string;
+  text: string;
+}
+
 export interface Message {
   id: string;
   text: string;
   sender: 'user' | 'ai';
   createdAt: Timestamp | FieldValue;
+  citedVerses?: BibleVerse[];
   hasPlanButton?: boolean;
   topic?: string;
 }
@@ -297,9 +303,17 @@ export const BibleChatResponseInputSchema = BaseAiInputSchema.extend({
   user_question: z.string().describe("The user's question or message."),
   bible_verses: z.array(z.string()).describe('Relevant Bible verses to consider in the response.'),
 });
-
 export type BibleChatResponseInput = z.infer<typeof BibleChatResponseInputSchema>;
-export type BibleChatResponseOutput = string;
+
+export const BibleChatResponseOutputSchema = z.object({
+    response: z.string().describe('The main, helpful response to the user.'),
+    verses: z.array(z.object({
+        reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
+        text: z.string().describe("The full text of the verse."),
+    })).describe('An array of relevant bible verses.'),
+});
+export type BibleChatResponseOutput = z.infer<typeof BibleChatResponseOutputSchema>;
+
 
 // From: guided-meditation-generation.ts
 export const MeditationQuestionsInputSchema = BaseAiInputSchema.extend({

@@ -10,7 +10,7 @@
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
 import type { BibleChatResponseInput, BibleChatResponseOutput } from '@/lib/types';
-import { BibleChatResponseInputSchema } from '@/lib/types';
+import { BibleChatResponseInputSchema, BibleChatResponseOutputSchema } from '@/lib/types';
 
 
 export async function bibleChatResponse(input: BibleChatResponseInput): Promise<BibleChatResponseOutput> {
@@ -21,28 +21,34 @@ const bibleChatResponseFlow = ai.defineFlow(
   {
     name: 'bibleChatResponseFlow',
     inputSchema: BibleChatResponseInputSchema,
-    outputSchema: z.string(),
+    outputSchema: BibleChatResponseOutputSchema,
   },
   async ({ model, user_question, bible_verses }) => {
-    const llmResponse = await ai.generate({
-      prompt: `Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Responda à pergunta do usuário de forma solidária, contextual e biblicamente sólida. Use os seguintes versículos bíblicos como referência principal em sua resposta.
-      
-Use formatação Markdown para melhorar a legibilidade. Por exemplo, use **negrito** para enfatizar pontos importantes e quebre o texto em parágrafos.
-      
-Incorpore os versículos de forma natural na conversa, explicando sua relevância para a pergunta do usuário.
+    
+    const prompt = `Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Sua tarefa é responder à pergunta do usuário.
+
+Regras importantes:
+1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response". Use formatação Markdown (como **negrito**) para melhorar a legibilidade.
+2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16") e o texto completo na propriedade "verses". NÃO inclua os versículos na sua resposta principal.
+3.  **Base Bíblica**: Use os versículos de referência fornecidos como a fonte primária, se eles forem relevantes para a pergunta. Caso contrário, encontre outros mais adequados.
 
 Pergunta do usuário: "${user_question}"
 
-Versículos de referência:
+Versículos de referência (use se aplicável):
 ${bible_verses.join('\n')}
-
-Sua resposta deve ser útil, encorajadora e apontar para a sabedoria encontrada nas Escrituras.`,
+`;
+    
+    const llmResponse = await ai.generate({
+      prompt,
       model: getModel(model),
+      output: {
+        schema: BibleChatResponseOutputSchema,
+      },
       config: {
         temperature: 0.7,
       },
     });
 
-    return llmResponse.text;
+    return llmResponse.output!;
   }
 );

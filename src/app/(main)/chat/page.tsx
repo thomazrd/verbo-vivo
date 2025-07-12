@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import type { Message } from "@/lib/types";
+import type { Message, BibleVerse } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
 
@@ -53,7 +53,7 @@ export default function ChatPage() {
     try {
       await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
-      const aiResponseText = await bibleChatResponse({
+      const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,
         user_question: text,
         // This is a placeholder for a real RAG implementation
@@ -61,9 +61,10 @@ export default function ChatPage() {
       });
 
       const aiMessage: Omit<Message, 'id'> = {
-        text: aiResponseText,
+        text: aiResponse.response,
         sender: "ai",
         createdAt: Timestamp.now(),
+        citedVerses: aiResponse.verses,
         hasPlanButton: true,
         topic: text,
       };

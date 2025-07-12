@@ -9,31 +9,16 @@ import { BookHeart, User, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import { PlanCreationModal } from "./PlanCreationModal";
 import { marked } from 'marked';
+import { VerseCard } from "./VerseCard";
 
 interface MessageProps {
   message: MessageType;
 }
 
-const extractVerses = (text: string): [string, { reference: string, text: string }[]] => {
-  const verseRegex = /((?:[1-3]\s)?[A-Za-z]+)\s(\d+):(\d+(?:-\d+)?)\s-\s(.+)/g;
-  const verses: { reference: string, text: string }[] = [];
-  
-  const cleanText = text.replace(verseRegex, (match, book, chapter, verseNum, verseText) => {
-    const reference = `${book} ${chapter}:${verseNum}`;
-    verses.push({ reference, text: verseText.trim() });
-    return ''; // Remove the verse from the main text
-  }).trim();
-
-  return [cleanText, verses];
-};
-
-
 export function Message({ message }: MessageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isUser = message.sender === "user";
-
-  const [mainText, citedVerses] = extractVerses(message.text);
-  const htmlContent = marked.parse(mainText) as string;
+  const htmlContent = marked.parse(message.text) as string;
 
   return (
     <>
@@ -50,7 +35,7 @@ export function Message({ message }: MessageProps) {
                 </AvatarFallback>
             </Avatar>
         )}
-        <div className={cn("max-w-xl flex flex-col gap-2")}>
+        <div className={cn("max-w-xl flex flex-col gap-3")}>
             <div
             className={cn(
                 "rounded-lg px-4 py-3 shadow-sm",
@@ -60,20 +45,17 @@ export function Message({ message }: MessageProps) {
             )}
             >
             <div
-                className="prose prose-sm max-w-none text-inherit prose-p:my-6 prose-headings:my-3"
+                className="prose prose-sm max-w-none text-inherit prose-p:my-2 prose-headings:my-3"
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
             </div>
             
-            {citedVerses.map((verse, index) => (
-                <blockquote key={index} className="mt-2 border-l-4 border-primary bg-primary/10 p-4 rounded-r-lg">
-                    <p className="text-sm font-medium text-primary-foreground/90 not-italic leading-relaxed">“{verse.text}”</p>
-                    <footer className="text-xs text-right text-primary/80 not-italic mt-3">— {verse.reference}</footer>
-                </blockquote>
+            {message.citedVerses && message.citedVerses.map((verse, index) => (
+                <VerseCard key={index} reference={verse.reference} text={verse.text} />
             ))}
 
             {message.hasPlanButton && (
-                <div className="mt-2 text-left">
+                <div className="mt-1 text-left">
                 <Button
                     variant="ghost"
                     size="sm"

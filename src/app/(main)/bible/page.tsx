@@ -10,6 +10,7 @@ import type { BibleBook, BibleVersion } from '@/lib/types';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 function BibleReaderContent() {
   const searchParams = useSearchParams();
@@ -79,6 +80,8 @@ function BibleReaderContent() {
       setSelectedChapter(selectedChapter - 1);
     }
   };
+  
+  const isReading = !!(selectedBook && selectedChapter);
 
   if (loadingInitialState) {
       return (
@@ -100,7 +103,7 @@ function BibleReaderContent() {
 
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4">
-      <div className="mb-8">
+      <div className={cn("mb-8", isReading && "hidden md:block")}>
         <h1 className="text-3xl font-bold tracking-tight">Leitura da Bíblia</h1>
         <p className="mt-1 text-muted-foreground">
           Navegue e leia as Escrituras Sagradas.
@@ -108,7 +111,10 @@ function BibleReaderContent() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-64 flex-shrink-0 space-y-6">
+        <aside className={cn(
+            "w-full md:w-64 flex-shrink-0 space-y-6",
+            isReading ? "hidden md:flex md:flex-col" : "flex flex-col"
+        )}>
            <VersionSelector 
             selectedVersion={selectedVersion} 
             onVersionChange={setSelectedVersion} 

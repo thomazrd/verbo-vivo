@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -22,6 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 type JourneyStatus = 'disclaimer' | 'selecting_emotion' | 'reporting' | 'responding' | 'reassessing' | 'concluding' | 'stopped';

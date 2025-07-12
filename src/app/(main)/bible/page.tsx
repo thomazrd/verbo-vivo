@@ -159,7 +159,7 @@ function BibleReaderContent() {
         <main className={cn(
             "md:col-span-2 h-full overflow-y-auto",
             isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'block',
-            showVersePanel ? 'translate-x-0' : (isMobile ? 'translate-x-full' : 'hidden')
+            showVersePanel ? 'translate-x-0' : 'translate-x-full'
         )}>
           {selectedChapter && selectedBook ? (
             <VerseDisplay 

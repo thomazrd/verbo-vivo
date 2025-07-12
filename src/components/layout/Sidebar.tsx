@@ -15,7 +15,8 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
-  Home
+  Home,
+  Smile,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +30,7 @@ interface SidebarProps {
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
   { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/feeling-journey", label: "Jornada", icon: Smile },
   { href: "/plans", label: "Planos", icon: BookOpen },
   { href: "/bible", label: "Bíblia", icon: BookMarked },
   { href: "/journal", label: "Diário", icon: NotebookText },

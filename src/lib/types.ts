@@ -219,6 +219,26 @@ export interface SharedContentDocument {
     viewCount: number;
 }
 
+// --- Tipos da Jornada de Sentimentos ---
+export interface FeelingJourneyStep {
+  stepNumber: number;
+  emotionBefore: string;
+  userReportText: string;
+  aiResponseText: string;
+  citedVerses: BibleVerse[];
+  emotionAfter: string;
+}
+
+export interface FeelingJourney {
+  id: string;
+  userId: string;
+  createdAt: Timestamp;
+  status: 'COMPLETED' | 'INTERRUPTED';
+  initialEmotion: string;
+  finalEmotion: string;
+  steps: FeelingJourneyStep[];
+}
+
 // --- Tipos de Notificações ---
 
 export type NotificationType = 'NEW_POST' | 'COMMENT_LIKE' | 'POST_LIKE' | 'REPLY' | 'NEW_COMMENT' | 'CONGREGATION_APPROVAL';
@@ -377,3 +397,20 @@ export type GenerateShareableContentInput = z.infer<typeof GenerateShareableCont
 // The output is the content object itself.
 export const GenerateShareableContentOutputSchema = SharedContentSchema;
 export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;
+
+
+// From: feeling-journey-flow.ts
+export const ProcessFeelingReportInputSchema = BaseAiInputSchema.extend({
+  emotion: z.string().describe("The user's selected emotion."),
+  reportText: z.string().describe("The user's voice report explaining their feeling."),
+});
+export type ProcessFeelingReportInput = z.infer<typeof ProcessFeelingReportInputSchema>;
+
+export const ProcessFeelingReportOutputSchema = z.object({
+    responseText: z.string().describe('A pastoral, Bible-based reflection on the user\'s feeling.'),
+    citedVerses: z.array(z.object({
+        reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
+        text: z.string().describe("The full text of the verse."),
+    })).describe('An array of relevant bible verses.'),
+});
+export type ProcessFeelingReportOutput = z.infer<typeof ProcessFeelingReportOutputSchema>;

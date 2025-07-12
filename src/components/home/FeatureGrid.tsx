@@ -9,6 +9,7 @@ import {
   BookUser,
   NotebookText,
   Share2,
+  Smile,
 } from "lucide-react";
 
 const features = [
@@ -35,6 +36,14 @@ const features = [
       linkTo: "/community",
       imageUrl: "https://dynamic.tiggomark.com.br/images/comunidade.jpg",
       imageHint: "community picnic laughing",
+    },
+     {
+      icon: Smile,
+      title: "Jornada de Sentimentos",
+      description: "Um fluxo guiado para processar emoções com a sabedoria da Bíblia.",
+      linkTo: "/feeling-journey",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/jornada.jpg",
+      imageHint: "calm sunrise path",
     },
     {
       icon: BookMarked,

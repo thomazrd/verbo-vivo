@@ -22,6 +22,7 @@ import {
   BookMarked,
   Share2,
   Home,
+  Smile,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -45,6 +46,7 @@ import { WisdomPearl } from "./WisdomPearl";
 const navItems = [
   { href: "/home", label: "Início", icon: Home },
   { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/feeling-journey", label: "Jornada", icon: Smile },
   { href: "/plans", label: "Planos", icon: BookOpen },
   { href: "/bible", label: "Bíblia", icon: BookMarked },
   { href: "/journal", label: "Diário", icon: NotebookText },

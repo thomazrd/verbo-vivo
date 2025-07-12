@@ -107,9 +107,9 @@ function BibleReaderContent() {
   }
 
   // --- Display Logic ---
-  const showBooksPanel = !isMobile || (!selectedBook && !selectedChapter);
-  const showChaptersPanel = isMobile ? (selectedBook && !selectedChapter) : !!selectedBook;
-  const showVersePanel = !!selectedChapter;
+  const mobileShowBooks = isMobile && !selectedBook;
+  const mobileShowChapters = isMobile && selectedBook && !selectedChapter;
+  const mobileShowVerse = isMobile && selectedBook && selectedChapter;
 
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 h-full">
@@ -126,7 +126,7 @@ function BibleReaderContent() {
         <aside className={cn(
           "h-full flex-col gap-6",
           isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'flex',
-          showBooksPanel ? 'translate-x-0' : '-translate-x-full',
+          mobileShowBooks || !isMobile ? 'translate-x-0' : '-translate-x-full',
         )}>
           <VersionSelector 
             selectedVersion={selectedVersion} 
@@ -142,8 +142,8 @@ function BibleReaderContent() {
         {/* Painel de Capítulos */}
         <div className={cn(
           "md:col-span-1 h-full",
-          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'block',
-          showChaptersPanel ? 'translate-x-0' : (isMobile ? 'translate-x-full' : 'hidden')
+          isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedBook ? 'block' : 'hidden'),
+          mobileShowChapters ? 'translate-x-0' : 'translate-x-full'
         )}>
           {selectedBook && (
             <ChapterGrid 
@@ -158,8 +158,8 @@ function BibleReaderContent() {
         {/* Painel de Versículos */}
         <main className={cn(
             "md:col-span-2 h-full overflow-y-auto",
-            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : 'block',
-            showVersePanel ? 'translate-x-0' : 'translate-x-full'
+            isMobile ? 'absolute inset-0 bg-background transition-transform duration-300' : (selectedChapter ? 'block' : 'hidden'),
+            mobileShowVerse ? 'translate-x-0' : 'translate-x-full'
         )}>
           {selectedChapter && selectedBook ? (
             <VerseDisplay 
@@ -170,8 +170,8 @@ function BibleReaderContent() {
               onNextChapter={handleNextChapter}
               onPrevChapter={handlePrevChapter}
             />
-          ) : !isMobile && (
-            <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
+          ) : !isMobile && !selectedChapter && (
+            <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center md:col-span-2">
                 <div className="flex flex-col items-center gap-4">
                   <BookMarked className="h-12 w-12 text-muted-foreground" />
                   <p className="text-muted-foreground">Selecione um livro e capítulo para começar.</p>

@@ -173,7 +173,7 @@ function BibleReaderContent() {
                 <VerseDisplay 
                   version={selectedVersion}
                   book={selectedBook} 
-                  chapter={chapter} 
+                  chapter={selectedChapter} 
                   onBack={handleBackToChapters}
                   onNextChapter={handleNextChapter}
                   onPrevChapter={handlePrevChapter}

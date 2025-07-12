@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -686,8 +686,8 @@ export default function CongregationFeedPage() {
   
   useEffect(() => {
       // Scroll to top when new posts are added (simple approach)
-      if (posts.length > 0) {
-        listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      if (posts.length > 0 && listRef.current) {
+        listRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
   }, [posts.length > 0 ? posts[0].id : null]);
 

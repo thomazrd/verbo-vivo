@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -15,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image as ImageIcon, Palette, X, Youtube } from "lucide-react";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
 
 interface CreatePostFormProps {
   user: User;
@@ -73,7 +76,6 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     const newText = e.target.value;
     setText(newText);
     
-    // Don't detect youtube link if we are already showing one
     if (youtubeVideo || postType !== 'TEXT') return;
 
     const videoId = getYoutubeVideoId(newText);
@@ -109,7 +111,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     clearMedia();
   }
   
-  const handleSelectText = () => {
+  const handleResetType = () => {
     setPostType('TEXT');
     setBackgroundStyle('');
     clearMedia();
@@ -118,10 +120,10 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
 
   const resetForm = useCallback(() => {
     setText('');
-    handleSelectText();
+    handleResetType();
     setIsUploading(false);
     setIsExpanded(false);
-  }, [handleSelectText]);
+  }, []);
 
   const handleSubmit = async () => {
     if (!text.trim() && !mediaFile && !youtubeVideo) {
@@ -199,7 +201,6 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
         if (text || mediaFile || backgroundStyle) {
-            // Do not collapse if there is content
             return;
         }
         setIsExpanded(false);
@@ -266,24 +267,25 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                 <Button 
                     variant="destructive" size="icon" 
                     className="absolute top-2 right-2 h-7 w-7"
-                    onClick={handleSelectText}>
+                    onClick={handleResetType}>
                     <X className="h-4 w-4"/>
                 </Button>
                  {youtubeVideo && (
-                     <div className="absolute bottom-2 left-2 right-2 bg-black/50 p-2 rounded-md flex items-center justify-between gap-2">
-                         <div className="flex items-center gap-2">
-                            <Youtube className="h-5 w-5 text-red-500" />
-                            <p className="text-white text-xs font-semibold">Anexar vídeo do YouTube</p>
+                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex items-center justify-between gap-2 text-white">
+                         <div className="flex items-center gap-2 min-w-0">
+                            <Youtube className="h-5 w-5 text-red-500 shrink-0" />
+                            <p className="text-xs font-semibold truncate">Anexar vídeo do YouTube</p>
                          </div>
-                        <Button size="sm" variant={useYoutubeThumbnail ? 'secondary' : 'outline'} onClick={() => setUseYoutubeThumbnail(v => !v)}>
-                            {useYoutubeThumbnail ? "Anexado" : "Anexar"}
-                        </Button>
+                         <div className="flex items-center gap-2">
+                           <Label htmlFor="youtube-switch" className="text-xs">Anexar</Label>
+                           <Switch id="youtube-switch" checked={useYoutubeThumbnail} onCheckedChange={setUseYoutubeThumbnail} />
+                         </div>
                      </div>
                  )}
             </div>
         )}
         
-        <div className="p-2 border rounded-lg flex items-center gap-2">
+        <div className="p-2 border rounded-lg flex items-center flex-wrap gap-2">
              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Adicionar Imagem">
                 <ImageIcon className="h-5 w-5 text-green-500" />
@@ -307,5 +309,3 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     </div>
   );
 }
-
-

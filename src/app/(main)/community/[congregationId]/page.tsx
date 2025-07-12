@@ -46,7 +46,7 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     const [editedText, setEditedText] = useState(comment.text);
     const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
-    const replies = allComments.filter(c => c.parentCommentId === comment.id);
+    const replies = useMemo(() => allComments.filter(c => c.parentCommentId === comment.id), [allComments, comment.id]);
 
     useEffect(() => {
         if (comment.createdAt) {
@@ -187,12 +187,12 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
                             )}
                             </div>
                         {timeAgo && 
-                            <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
+                            <p className="text-xs text-muted-foreground shrink-0 ml-2" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
                                 {timeAgo}
                             </p>
                         }
                         </div>
-                        <p className="text-sm text-card-foreground">{comment.text}</p>
+                        <p className="text-sm text-card-foreground break-words">{comment.text}</p>
                         <button 
                             className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1"
                             onClick={() => setIsReplying(!isReplying)}
@@ -216,9 +216,9 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
                           </DropdownMenuItem>
                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="mr-2 h-4 w-4 text-destructive"/>
-                                        <span className="text-destructive">Excluir</span>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                        Excluir
                                     </DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -292,7 +292,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const [timeAgo, setTimeAgo] = useState('');
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
-  const topLevelComments = comments.filter(c => !c.parentCommentId);
+  const topLevelComments = useMemo(() => comments.filter(c => !c.parentCommentId), [comments]);
 
   useEffect(() => {
     if (post.createdAt) {
@@ -300,7 +300,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     }
   }, [post.createdAt]);
 
-  const fetchComments = () => {
+  const fetchComments = useCallback(() => {
     setLoadingComments(true);
     const commentsQuery = query(
       collection(db, "congregations", congregationId, "posts", post.id, "comments"),
@@ -319,13 +319,13 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         setLoadingComments(false);
     });
     return unsubscribe;
-  }
+  }, [congregationId, post.id, toast]);
 
   useEffect(() => {
     if (!showComments) return;
     const unsubscribe = fetchComments();
     return () => unsubscribe();
-  }, [post.id, showComments, toast, congregationId]);
+  }, [post.id, showComments, fetchComments]);
   
   const handleAddComment = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -368,7 +368,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     const parts = text.split(urlRegex);
 
     return (
-        <p className="mt-1 text-card-foreground whitespace-pre-wrap">
+        <p className="mt-1 text-card-foreground whitespace-pre-wrap break-words">
             {parts.map((part, index) => {
                 if (part.match(urlRegex)) {
                     return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{part}</a>;
@@ -472,7 +472,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
             'mt-2 h-64 flex items-center justify-center p-6 text-center rounded-lg',
             bgStyleClass
           )}>
-            <p className="font-bold text-2xl">{bgTextContent.text}</p>
+            <p className="font-bold text-2xl break-words">{bgTextContent.text}</p>
           </div>
         );
       case 'TEXT':
@@ -485,22 +485,22 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
 
   return (
     <div className="flex flex-col gap-2 p-4 rounded-lg bg-card border">
-      <div className="flex gap-4">
+      <div className="flex gap-3 sm:gap-4">
         <Avatar className="h-10 w-10 border">
           {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
           <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
         </Avatar>
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <div className="flex items-center justify-between">
-              <p className="font-semibold text-sm">{post.authorName}</p>
+              <p className="font-semibold text-sm truncate">{post.authorName}</p>
               {timeAgo && 
-                  <p className="text-xs text-muted-foreground" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
+                  <p className="text-xs text-muted-foreground shrink-0 ml-2" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
                       {timeAgo}
                   </p>
               }
           </div>
           {renderContent()}
-          <div className="mt-3 flex items-center gap-4 text-muted-foreground">
+          <div className="mt-3 flex items-center gap-1 sm:gap-4 text-muted-foreground">
               <Button
                   variant="ghost"
                   size="sm"
@@ -523,7 +523,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         </div>
       </div>
        {showComments && (
-        <div className="pt-4 border-t border-muted/50 ml-14 space-y-4">
+        <div className="pt-4 border-t border-muted/50 ml-12 sm:ml-14 space-y-4">
           {loadingComments && <Skeleton className="h-10 w-full" />}
           
           {!loadingComments && topLevelComments.map(comment => (
@@ -685,24 +685,20 @@ export default function CongregationFeedPage() {
   }, [userProfile, authLoading, congregationId, isMember]);
   
   useEffect(() => {
-      listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll to top when new posts are added (simple approach)
+      if (posts.length > 0) {
+        listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
   }, [posts.length > 0 ? posts[0].id : null]);
 
   const handleLike = async (postId: string, hasLiked: boolean) => {
     if (!user) return;
     const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
     try {
-        if (hasLiked) {
-            await updateDoc(postRef, {
-                likes: arrayRemove(user.uid),
-                likeCount: increment(-1),
-            });
-        } else {
-            await updateDoc(postRef, {
-                likes: arrayUnion(user.uid),
-                likeCount: increment(1),
-            });
-        }
+        await updateDoc(postRef, {
+            likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+            likeCount: increment(hasLiked ? -1 : 1),
+        });
     } catch (error) {
       console.error("Error updating like status:", error);
       toast({ variant: "destructive", title: "Erro", description: "Não foi possível registrar sua interação." });
@@ -736,29 +732,29 @@ export default function CongregationFeedPage() {
     <>
     <div className="flex h-full flex-col">
         <div className="p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-            <div className="container mx-auto max-w-3xl flex items-center gap-4">
+            <div className="container mx-auto max-w-3xl flex items-center gap-2 sm:gap-4">
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.push('/community')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold">{congregation?.name}</h1>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-bold truncate">{congregation?.name}</h1>
                     <p className="text-sm text-muted-foreground">{congregation?.memberCount} membro(s)</p>
                 </div>
                 {congregation && (
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Convidar
+                            <Button variant="outline" size="sm" className="shrink-0">
+                                <UserPlus className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">Convidar</span>
                             </Button>
                         </DialogTrigger>
                         <InviteModal inviteCode={congregation.inviteCode} />
                     </Dialog>
                 )}
                  {isAdmin && (
-                    <Button variant="secondary" size="sm" onClick={() => router.push(`/community/${congregationId}/manage`)}>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Gerenciar
+                    <Button variant="secondary" size="sm" className="shrink-0" onClick={() => router.push(`/community/${congregationId}/manage`)}>
+                        <Settings className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Gerenciar</span>
                     </Button>
                 )}
             </div>

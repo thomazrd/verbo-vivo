@@ -230,7 +230,7 @@ export default function ChatPage() {
             exit={{ opacity: 0, y: 20 }}
             className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-10"
           >
-            <Button size="icon" className="rounded-full shadow-lg h-10 w-10 animate-pulse" onClick={scrollToBottom}>
+            <Button size="icon" className="rounded-full shadow-lg h-10 w-10" onClick={scrollToBottom}>
               <ChevronDown className="h-5 w-5" />
             </Button>
           </motion.div>

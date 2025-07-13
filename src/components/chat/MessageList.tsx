@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookHeart, ChevronDown, Loader2 } from "lucide-react";
 import { VerseOfTheDay } from "./VerseOfTheDay";
 import { Button } from "../ui/button";
-import { AnimatePresence, motion } from "framer-motion";
 
 interface MessageListProps {
   messages: Message[];
@@ -16,8 +15,6 @@ interface MessageListProps {
   hasMore: boolean;
   loadMore: () => void;
   isSending: boolean;
-  showScrollButton: boolean;
-  scrollToBottom: () => void;
 }
 
 export function MessageList({ 
@@ -27,8 +24,6 @@ export function MessageList({
   hasMore, 
   loadMore,
   isSending,
-  showScrollButton,
-  scrollToBottom
 }: MessageListProps) {
   
   return (
@@ -91,21 +86,6 @@ export function MessageList({
             </div>
           )}
         </div>
-      <AnimatePresence>
-        {showScrollButton && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-4 right-4 z-10"
-            style={{ right: 'calc(50% - 1.5rem + 32px)' }} // Adjust position based on layout
-          >
-            <Button size="icon" className="rounded-full shadow-lg h-10 w-10" onClick={scrollToBottom}>
-              <ChevronDown className="h-5 w-5" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

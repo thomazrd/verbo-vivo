@@ -16,11 +16,14 @@ import {
   Timestamp,
   doc,
 } from "firebase/firestore";
+import { AnimatePresence, motion } from 'framer-motion';
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import type { Message } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -55,7 +58,11 @@ export default function ChatPage() {
            
            // Check if message is already in the list to avoid duplicates from optimistic updates
            if(!messages.some(msg => msg.id === newMessage.id)) {
-               wasAtBottomRef.current = true; // Always auto-scroll for new incoming messages
+               const container = scrollContainerRef.current;
+               if (container) {
+                   const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+                   wasAtBottomRef.current = isScrolledToBottom;
+               }
                setMessages((prevMessages) => [...prevMessages, newMessage]);
            }
         }
@@ -64,7 +71,7 @@ export default function ChatPage() {
 
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, messages]);
 
 
   // Initial load
@@ -136,8 +143,7 @@ export default function ChatPage() {
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 1; // +1 for pixel perfect
-      wasAtBottomRef.current = isAtBottom;
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 20;
       setShowScrollButton(!isAtBottom);
     }
   };
@@ -205,7 +211,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col relative">
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef} onScroll={handleScroll}>
         <MessageList 
           messages={messages} 
@@ -214,10 +220,22 @@ export default function ChatPage() {
           hasMore={hasMore}
           loadMore={loadMoreMessages}
           isSending={isSending}
-          showScrollButton={showScrollButton}
-          scrollToBottom={scrollToBottom}
         />
       </div>
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-10"
+          >
+            <Button size="icon" className="rounded-full shadow-lg h-10 w-10 animate-pulse" onClick={scrollToBottom}>
+              <ChevronDown className="h-5 w-5" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <ChatInput onSubmit={handleSendMessage} isSending={isSending} />
     </div>
   );

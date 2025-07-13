@@ -31,12 +31,12 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [firstVisible, setFirstVisible] = useState<any>(null);
+  const [lastVisible, setLastVisible] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
   
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isAutoScrolling = useRef(true);
+  const wasAtBottomRef = useRef(true);
 
   // Subscribe to new messages
   useEffect(() => {
@@ -53,28 +53,18 @@ export default function ChatPage() {
         if (change.type === "added") {
            const newMessage = { id: change.doc.id, ...change.doc.data() } as Message;
            
-           if(messages.length > 0 && messages[messages.length-1].id === newMessage.id) return;
-           
-           setMessages((prevMessages) => {
-               if (prevMessages.some(msg => msg.id === newMessage.id)) {
-                   return prevMessages;
-               }
-               const container = scrollContainerRef.current;
-               if (container) {
-                 const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                 if (isAtBottom) {
-                   isAutoScrolling.current = true;
-                 }
-               }
-               return [...prevMessages, newMessage];
-           });
+           // Check if message is already in the list to avoid duplicates from optimistic updates
+           if(!messages.some(msg => msg.id === newMessage.id)) {
+               wasAtBottomRef.current = true; // Always auto-scroll for new incoming messages
+               setMessages((prevMessages) => [...prevMessages, newMessage]);
+           }
         }
       });
     });
 
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, messages.length > 0 ? messages[messages.length - 1].id : null]);
+  }, [user]);
 
 
   // Initial load
@@ -91,21 +81,16 @@ export default function ChatPage() {
     getDocs(q).then((querySnapshot) => {
       const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message)).reverse();
       setMessages(msgs);
-      setFirstVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
       setHasMore(querySnapshot.docs.length === PAGE_SIZE);
       setIsLoading(false);
-      isAutoScrolling.current = true;
     });
   }, [user]);
 
   // Auto-scroll logic
   useEffect(() => {
-    if (isAutoScrolling.current && scrollContainerRef.current) {
-        setTimeout(() => {
-            if(scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-            }
-        }, 100);
+    if (wasAtBottomRef.current && scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -116,7 +101,7 @@ export default function ChatPage() {
     const q = query(
       collection(db, `users/${user.uid}/messages`),
       orderBy("createdAt", "desc"),
-      startAfter(firstVisible),
+      startAfter(lastVisible),
       limit(PAGE_SIZE)
     );
 
@@ -129,11 +114,12 @@ export default function ChatPage() {
 
     const oldMsgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message)).reverse();
     
-    setFirstVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+    setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
     
     const container = scrollContainerRef.current;
     const previousScrollHeight = container?.scrollHeight || 0;
 
+    wasAtBottomRef.current = false;
     setMessages(prev => [...oldMsgs, ...prev]);
     setHasMore(querySnapshot.docs.length === PAGE_SIZE);
     
@@ -144,21 +130,15 @@ export default function ChatPage() {
         });
     }
     
-    isAutoScrolling.current = false;
     setIsLoadingMore(false);
-  }, [user, hasMore, isLoadingMore, firstVisible]);
+  }, [user, hasMore, isLoadingMore, lastVisible]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      if (isAtBottom) {
-        isAutoScrolling.current = true;
-        setShowScrollButton(false);
-      } else {
-        isAutoScrolling.current = false;
-        setShowScrollButton(true);
-      }
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+      wasAtBottomRef.current = isAtBottom;
+      setShowScrollButton(!isAtBottom);
     }
   };
 
@@ -174,7 +154,7 @@ export default function ChatPage() {
   const handleSendMessage = async (text: string) => {
     if (!user || !text.trim()) return;
 
-    isAutoScrolling.current = true;
+    wasAtBottomRef.current = true;
     setIsSending(true);
 
     const userMessage: Omit<Message, 'id'> = {
@@ -184,19 +164,11 @@ export default function ChatPage() {
     };
 
     try {
-      // Add user message optimistically to local state first
-      const tempId = `temp_${Date.now()}`;
-      setMessages(prev => [...prev, { ...userMessage, id: tempId }]);
-      // Scroll to show the optimistic message
-      if(scrollContainerRef.current) {
-        setTimeout(() => scrollToBottom(), 100);
-      }
-      
-      // Then add to Firestore
+      // Add user message to Firestore first
       const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
-      // Update local message with real ID from Firestore
-      setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, id: docRef.id } : msg));
+      // Update local state optimistically, but with the real ID
+      setMessages(prev => [...prev, { ...userMessage, id: docRef.id }]);
 
       const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,

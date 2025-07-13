@@ -98,6 +98,7 @@ export function MessageList({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             className="absolute bottom-4 right-4 z-10"
+            style={{ right: 'calc(50% - 1.5rem + 32px)' }} // Adjust position based on layout
           >
             <Button size="icon" className="rounded-full shadow-lg h-10 w-10" onClick={scrollToBottom}>
               <ChevronDown className="h-5 w-5" />

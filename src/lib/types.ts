@@ -217,6 +217,9 @@ export interface SharedContentDocument {
     content: SharedContent;
     status: 'ACTIVE' | 'DELETED';
     viewCount: number;
+    isLetter?: boolean;
+    recipientName?: string | null;
+    senderName?: string | null;
 }
 
 // --- Tipos da Jornada de Sentimentos ---
@@ -391,6 +394,7 @@ export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;
 // From: shareable-content-generation.ts
 export const GenerateShareableContentInputSchema = BaseAiInputSchema.extend({
   problemDescription: z.string().describe('The problem description provided by the user.'),
+  recipientName: z.string().optional().describe("The name of the person receiving the letter, for personalization."),
 });
 export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;
 

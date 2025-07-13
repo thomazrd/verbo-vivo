@@ -1,10 +1,8 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import type { Message } from "@/lib/types";
 import { Message as MessageComponent } from "./Message";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookHeart, ChevronDown, Loader2 } from "lucide-react";
 import { VerseOfTheDay } from "./VerseOfTheDay";
@@ -17,42 +15,31 @@ interface MessageListProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
-  viewportRef: React.RefObject<HTMLDivElement>;
-  onManualScroll: () => void;
+  isSending: boolean;
+  showScrollButton: boolean;
+  scrollToBottom: () => void;
 }
 
-export function MessageList({ messages, isLoading, isLoadingMore, hasMore, loadMore, viewportRef, onManualScroll }: MessageListProps) {
-  const [showScrollButton, setShowScrollButton] = useState(false);
-
-  const handleScroll = () => {
-    onManualScroll();
-    const viewport = viewportRef.current;
-    if (viewport) {
-      const isAtBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
-      setShowScrollButton(!isAtBottom);
-    }
-  };
-
-  const scrollToBottom = () => {
-    if (viewportRef.current) {
-        viewportRef.current.scrollTo({
-            top: viewportRef.current.scrollHeight,
-            behavior: 'smooth'
-        });
-    }
-  };
-
-
+export function MessageList({ 
+  messages, 
+  isLoading, 
+  isLoadingMore, 
+  hasMore, 
+  loadMore,
+  isSending,
+  showScrollButton,
+  scrollToBottom
+}: MessageListProps) {
+  
   return (
-    <div className="flex-1 relative overflow-hidden">
-      <ScrollArea className="h-full" viewportRef={viewportRef} onScroll={handleScroll}>
-        <div className="mx-auto max-w-3xl p-4 sm:p-6">
+    <div className="relative h-full">
+        <div className="mx-auto max-w-3xl p-4 sm:p-6 h-full">
           <div className="flex justify-center mb-4">
             {isLoadingMore ? (
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             ) : hasMore ? (
               <Button variant="outline" size="sm" onClick={loadMore}>
-                Carregar mais
+                Carregar mais antigas
               </Button>
             ) : (
               messages.length > 0 && <p className="text-xs text-muted-foreground">Início da conversa</p>
@@ -90,7 +77,7 @@ export function MessageList({ messages, isLoading, isLoadingMore, hasMore, loadM
                 <MessageComponent key={msg.id} message={msg} />
               ))}
               {isSending && (
-                <div className="flex items-start space-x-4">
+                <div className="flex items-start space-x-4 animate-pulse">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-primary/20">
                       <BookHeart className="h-6 w-6 text-primary"/>
                   </div>
@@ -104,7 +91,6 @@ export function MessageList({ messages, isLoading, isLoadingMore, hasMore, loadM
             </div>
           )}
         </div>
-      </ScrollArea>
       <AnimatePresence>
         {showScrollButton && (
           <motion.div

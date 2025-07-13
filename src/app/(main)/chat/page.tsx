@@ -136,7 +136,7 @@ export default function ChatPage() {
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 20;
       wasAtBottomRef.current = isAtBottom;
       setShowScrollButton(!isAtBottom);
     }

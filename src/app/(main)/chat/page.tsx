@@ -57,21 +57,24 @@ export default function ChatPage() {
            const newMessage = { id: change.doc.id, ...change.doc.data() } as Message;
            
            // Check if message is already in the list to avoid duplicates from optimistic updates
-           if(!messages.some(msg => msg.id === newMessage.id)) {
-               const container = scrollContainerRef.current;
-               if (container) {
-                   const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
-                   wasAtBottomRef.current = isScrolledToBottom;
-               }
-               setMessages((prevMessages) => [...prevMessages, newMessage]);
-           }
+           setMessages((prevMessages) => {
+                if (prevMessages.some(msg => msg.id === newMessage.id)) {
+                    return prevMessages;
+                }
+                const container = scrollContainerRef.current;
+                if (container) {
+                    const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+                    wasAtBottomRef.current = isScrolledToBottom;
+                }
+                return [...prevMessages, newMessage];
+           });
         }
       });
     });
 
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, messages]);
+  }, [user]);
 
 
   // Initial load
@@ -91,6 +94,12 @@ export default function ChatPage() {
       setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
       setHasMore(querySnapshot.docs.length === PAGE_SIZE);
       setIsLoading(false);
+      // Scroll to bottom after initial load
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+      }, 0);
     });
   }, [user]);
 

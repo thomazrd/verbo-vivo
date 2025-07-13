@@ -87,7 +87,7 @@ export default function ChatPage() {
     });
   }, [user]);
 
-  // Auto-scroll logic
+  // Auto-scroll logic for new messages
   useEffect(() => {
     if (wasAtBottomRef.current && scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -136,7 +136,7 @@ export default function ChatPage() {
   const handleScroll = () => {
     const container = scrollContainerRef.current;
     if (container) {
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 20;
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 1; // +1 for pixel perfect
       wasAtBottomRef.current = isAtBottom;
       setShowScrollButton(!isAtBottom);
     }

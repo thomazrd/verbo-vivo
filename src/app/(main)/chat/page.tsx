@@ -58,6 +58,7 @@ export default function ChatPage() {
            
            // Check if message is already in the list to avoid duplicates from optimistic updates
            setMessages((prevMessages) => {
+                // This check is the definitive fix for the duplication issue.
                 if (prevMessages.some(msg => msg.id === newMessage.id)) {
                     return prevMessages;
                 }
@@ -179,12 +180,9 @@ export default function ChatPage() {
     };
 
     try {
-      // Add user message to Firestore first
-      const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
+      // Add user message to Firestore. The onSnapshot listener will handle UI updates.
+      await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
-      // Update local state optimistically, but with the real ID
-      setMessages(prev => [...prev, { ...userMessage, id: docRef.id }]);
-
       const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,
         user_question: text,
@@ -199,6 +197,7 @@ export default function ChatPage() {
         hasPlanButton: true,
         topic: text,
       };
+      // Add AI message to Firestore. The onSnapshot listener will handle UI updates.
       await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
 
     } catch (error) {

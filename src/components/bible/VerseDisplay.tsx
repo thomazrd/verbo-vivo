@@ -20,12 +20,11 @@ interface VerseDisplayProps {
   version: BibleVersion;
   book: BibleBook;
   chapter: number;
-  onBack: () => void;
   onNextChapter: () => void;
   onPrevChapter: () => void;
 }
 
-export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, onPrevChapter }: VerseDisplayProps) {
+export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChapter }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,14 +108,9 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
   if (loading) {
     return (
-        <div className="space-y-4 p-4">
-            <div className="flex items-center gap-4">
-                 <Skeleton className="h-8 w-8 rounded-md" />
-                 <div className="space-y-2">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                 </div>
-            </div>
+        <div className="p-8 space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-5 w-1/4 mb-6" />
             <div className="pt-4 space-y-3">
                 <Skeleton className="h-5 w-full" />
                 <Skeleton className="h-5 w-full" />
@@ -128,7 +122,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   }
 
   if (error) {
-    return <p className="text-destructive">{error}</p>;
+    return <p className="text-destructive p-8">{error}</p>;
   }
 
   if (!chapterData) {
@@ -136,19 +130,12 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   }
 
   return (
-    <Card className="h-full flex flex-col">
-         <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={onBack}>
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="sr-only">Voltar para capítulos</span>
-                    </Button>
-                    <div>
-                        <CardTitle className="text-2xl">{chapterData.book.name} {chapterData.chapter.number}</CardTitle>
-                        <CardDescription>{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</CardDescription>
-                    </div>
+    <div className="p-4 sm:p-6 md:p-8">
+        <header className="mb-8">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-4xl font-bold tracking-tight">{chapterData.book.name} {chapterData.chapter.number}</h1>
+                    <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
                 </div>
                 {!summary && !isSummaryLoading && (
                     <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
@@ -160,28 +147,25 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
                         Explicar...
                     </Button>
                 )}
-              </div>
             </div>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full pr-4">
-            <div className="space-y-4">
-                <SummaryDisplay 
-                    summary={summary}
-                    isLoading={isSummaryLoading}
-                    onHide={() => setSummary(null)}
-                />
+        </header>
 
-                {chapterData.verses.map(verse => (
-                  <p key={verse.number} className="leading-relaxed">
-                    <sup className="font-bold text-primary mr-2">{verse.number}</sup>
-                    {verse.text}
-                  </p>
-                ))}
-            </div>
-          </ScrollArea>
-      </CardContent>
-      <CardFooter className="flex justify-between border-t pt-4">
+        <SummaryDisplay 
+            summary={summary}
+            isLoading={isSummaryLoading}
+            onHide={() => setSummary(null)}
+        />
+        
+        <div className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
+            {chapterData.verses.map(verse => (
+              <p key={verse.number} className="text-card-foreground">
+                <sup className="font-bold text-primary mr-2 no-underline">{verse.number}</sup>
+                {verse.text}
+              </p>
+            ))}
+        </div>
+        
+        <footer className="mt-12 flex justify-between border-t pt-6">
             <Button variant="outline" onClick={onPrevChapter} disabled={!hasPrevChapter}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Anterior
@@ -190,7 +174,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
                 Próximo
                 <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-      </CardFooter>
-    </Card>
+      </footer>
+    </div>
   );
 }

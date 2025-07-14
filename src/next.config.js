@@ -32,6 +32,7 @@ const nextConfig = {
       }
     ],
   },
+  transpilePackages: ['firebase'],
 };
 
 export default nextConfig;

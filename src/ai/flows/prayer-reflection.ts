@@ -51,8 +51,12 @@ const processPrayerFlow = ai.defineFlow(
     
     // Simple verse extraction for citation.
     const citedVerses = bible_verses
-      .map(v => v.split(' - ')[0])
-      .filter(ref => responseText.includes(ref));
+      .map(v => {
+        const [reference, text] = v.split(' - ');
+        return { reference, text };
+      })
+      .filter(v => responseText.includes(v.reference));
+
 
     return {
       responseText,

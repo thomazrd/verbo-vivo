@@ -15,6 +15,7 @@ export interface Message {
   citedVerses?: BibleVerse[];
   hasPlanButton?: boolean;
   topic?: string;
+  history?: { role: string, parts: { text: string }[] }[]; // Adicionado para o histórico
 }
 
 export interface Task {
@@ -170,7 +171,7 @@ export interface Prayer {
   createdAt: Timestamp;
   prayerText: string;
   responseText: string;
-  citedVerses: string[];
+  citedVerses: BibleVerse[];
 }
 
 // --- Tipos dos Círculos de Oração ---
@@ -321,10 +322,23 @@ const BaseAiInputSchema = z.object({
     model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
 });
 
+const ChatPartSchema = z.object({
+  text: z.string(),
+});
+
+const ChatHistoryItemSchema = z.object({
+    role: z.enum(['user', 'model']),
+    parts: z.array(ChatPartSchema),
+});
+export type ChatHistoryItem = z.infer<typeof ChatHistoryItemSchema>;
+
+
 // From: bible-chat-response.ts
 export const BibleChatResponseInputSchema = BaseAiInputSchema.extend({
   user_question: z.string().describe("The user's question or message."),
-  bible_verses: z.array(z.string()).describe('Relevant Bible verses to consider in the response.'),
+  history: z.array(ChatHistoryItemSchema).optional().describe('The recent chat history.'),
+  userId: z.string(),
+  messageId: z.string(),
 });
 export type BibleChatResponseInput = z.infer<typeof BibleChatResponseInputSchema>;
 
@@ -357,7 +371,10 @@ export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
 
 export const ProcessPrayerOutputSchema = z.object({
     responseText: z.string().describe('The devotional reflection based on the prayer.'),
-    citedVerses: z.array(z.string()).describe('An array of Bible verse references cited in the response.'),
+    citedVerses: z.array(z.object({
+      reference: z.string(),
+      text: z.string()
+    })).describe('An array of Bible verse references cited in the response.'),
 });
 export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
 

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/accordion";
 import { VersionSelector } from './VersionSelector';
 import { Skeleton } from '../ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface BibleNavigationProps {
   allBooks: BibleBook[];
@@ -38,6 +39,11 @@ export function BibleNavigation({
 }: BibleNavigationProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
+  // State to control which accordion item is open
+  const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(
+    selectedBook ? `book-${selectedBook.abbrev.pt}` : undefined
+  );
+
   const filteredBooks = allBooks.filter(book => 
     normalizeString(book.name).includes(normalizeString(searchTerm))
   );
@@ -56,11 +62,6 @@ export function BibleNavigation({
         </div>
      )
   }
-
-  // Determine the default open accordion item
-  const defaultAccordionValue = selectedBook ? `book-${selectedBook.abbrev.pt}` : (
-      (searchTerm && filteredBooks.length > 0) ? `book-${filteredBooks[0].abbrev.pt}` : undefined
-  );
   
   return (
     <>
@@ -78,7 +79,13 @@ export function BibleNavigation({
         </div>
       </div>
       <ScrollArea className="flex-1">
-        <Accordion type="single" collapsible className="w-full" value={defaultAccordionValue}>
+        <Accordion 
+            type="single" 
+            collapsible 
+            className="w-full" 
+            value={activeAccordionItem}
+            onValueChange={setActiveAccordionItem}
+        >
             {filteredBooks.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">Nenhum livro encontrado.</p>
             )}
@@ -87,7 +94,7 @@ export function BibleNavigation({
                     <p className="text-sm font-semibold text-muted-foreground px-2 py-1 mb-1">Antigo Testamento</p>
                     {oldTestamentBooks.map(book => (
                         <AccordionItem value={`book-${book.abbrev.pt}`} key={book.abbrev.pt}>
-                            <AccordionTrigger className="px-2 py-2 text-base rounded-md hover:bg-muted/50">
+                            <AccordionTrigger className="px-2 py-2 text-base rounded-md hover:bg-muted/50 hover:no-underline">
                                 {book.name}
                             </AccordionTrigger>
                             <AccordionContent className="p-2">
@@ -114,7 +121,7 @@ export function BibleNavigation({
                     <p className="text-sm font-semibold text-muted-foreground px-2 py-1 mb-1">Novo Testamento</p>
                     {newTestamentBooks.map(book => (
                         <AccordionItem value={`book-${book.abbrev.pt}`} key={book.abbrev.pt}>
-                            <AccordionTrigger className="px-2 py-2 text-base rounded-md hover:bg-muted/50">
+                            <AccordionTrigger className="px-2 py-2 text-base rounded-md hover:bg-muted/50 hover:no-underline">
                                 {book.name}
                             </AccordionTrigger>
                             <AccordionContent className="p-2">

@@ -86,8 +86,16 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
     setIsDefining(true);
     setDefinitionError(null);
     const lang = i18n.language.split('-')[0]; // Pega 'pt' de 'pt-BR'
+    const wordToDefine = selectedText.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"");
+
+    if (!wordToDefine) {
+        setDefinitionError("Por favor, selecione uma palavra válida.");
+        setIsDefining(false);
+        return;
+    }
+
     try {
-      const response = await axios.get(`/api/dictionary/${selectedText}?lang=${lang}`);
+      const response = await axios.get(`/api/dictionary/${wordToDefine}?lang=${lang}`);
       setDefinition(response.data);
     } catch (error: any) {
       console.error("Error fetching definition:", error);

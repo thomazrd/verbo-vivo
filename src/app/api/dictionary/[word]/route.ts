@@ -1,3 +1,4 @@
+
 // /api/dictionary/[word]?lang=...
 import { NextResponse } from 'next/server';
 import axios from 'axios';
@@ -22,7 +23,7 @@ export async function GET(
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
       const apiError = error.response.data;
-      const message = apiError.title || 'Palavra não encontrada';
+      const message = apiError.title || `Nenhuma definição encontrada para "${word}".`;
       return NextResponse.json({ message }, { status: 404 });
     }
     console.error(`Erro no proxy do dicionário para a palavra "${word}" (lang: ${lang}):`, error);

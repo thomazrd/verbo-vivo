@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFocusMode } from '@/contexts/focus-mode-context';
 import { useWindowSize } from '@/hooks/use-window-size';
+import { SelectionPopover } from './SelectionPopover';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -49,6 +50,8 @@ export function VerseDisplay({
   const { isFocusMode } = useFocusMode();
   const { width } = useWindowSize();
   const isDesktop = width >= 768;
+
+  const contentRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -185,14 +188,16 @@ export function VerseDisplay({
             onHide={() => setSummary(null)}
         />
         
-        <div className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
-            {chapterData.verses.map(verse => (
-              <p key={verse.number} className="text-card-foreground">
-                <sup className="font-bold text-primary mr-2 no-underline">{verse.number}</sup>
-                {verse.text}
-              </p>
-            ))}
-        </div>
+        <SelectionPopover containerRef={contentRef}>
+            <div ref={contentRef} className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
+                {chapterData.verses.map(verse => (
+                  <p key={verse.number} className="text-card-foreground">
+                    <sup className="font-bold text-primary mr-2 no-underline select-none">{verse.number}</sup>
+                    <span>{verse.text}</span>
+                  </p>
+                ))}
+            </div>
+        </SelectionPopover>
         
         <footer className="mt-12 flex justify-between border-t pt-6">
             <Button variant="outline" onClick={onPrevChapter} disabled={!hasPrevChapter}>
@@ -207,3 +212,5 @@ export function VerseDisplay({
     </div>
   );
 }
+
+    

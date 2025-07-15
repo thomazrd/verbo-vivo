@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -8,3 +9,6 @@ import '@/ai/flows/prayer-reflection';
 import '@/ai/flows/chapter-summary-generation';
 import '@/ai/flows/shareable-content-generation';
 import '@/ai/flows/feeling-journey-flow';
+import '@/ai/flows/explain-passage-flow';
+
+    

@@ -11,7 +11,7 @@ import BookSelector from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import { useWindowSize } from '@/hooks/use-window-size';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { useFocusMode } from '@/contexts/focus-mode-context';
 
@@ -76,26 +76,28 @@ function BibleReaderContent() {
     }
   }, [allBooks, bookAbbrevParam, chapterNumParam, loadingInitialState]);
   
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
+    toggleFocusMode();
+  };
+  
   useEffect(() => {
     const handleFullscreenChange = () => {
-        if (!document.fullscreenElement && isFocusMode) {
-          toggleFocusMode();
-        }
+      // Exit focus mode if user presses Esc to exit fullscreen
+      if (!document.fullscreenElement && isFocusMode) {
+        toggleFocusMode();
+      }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [isFocusMode, toggleFocusMode]);
 
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-      });
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-    toggleFocusMode();
-  };
 
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
@@ -117,8 +119,8 @@ function BibleReaderContent() {
   const handleBackToChapters = useCallback(() => {
     if (isFocusMode) {
       toggleFocusMode();
-      if(document.exitFullscreen) {
-        document.exitFullscreen();
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(err => console.error(err));
       }
     }
     setSelectedChapter(null);
@@ -155,6 +157,7 @@ function BibleReaderContent() {
                     <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
                   </div>
                   <BookSelector allBooks={allBooks} onBookSelect={(book) => {
+                      // Use a SheetClose inside BookSelector or handle close manually if needed
                       handleBookSelect(book);
                   }} />
               </SheetContent>
@@ -252,3 +255,5 @@ export default function BibleReaderPage() {
     </Suspense>
   )
 }
+
+    

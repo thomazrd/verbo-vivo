@@ -1,4 +1,5 @@
 
+
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
@@ -288,6 +289,7 @@ export interface BibleVersion {
 }
 
 export interface BibleBook {
+  id?: string;
   abbrev: { pt: string; en: string; };
   author: string;
   chapters: number;
@@ -435,3 +437,16 @@ export const ProcessFeelingReportOutputSchema = z.object({
     })).describe('An array of relevant bible verses.'),
 });
 export type ProcessFeelingReportOutput = z.infer<typeof ProcessFeelingReportOutputSchema>;
+
+// From: explain-passage-flow.ts
+export const ExplainPassageInputSchema = BaseAiInputSchema.extend({
+  passage: z.string().describe("The biblical passage to be explained."),
+});
+export type ExplainPassageInput = z.infer<typeof ExplainPassageInputSchema>;
+
+export const ExplainPassageOutputSchema = z.object({
+  explanation: z.string().describe("A clear and concise explanation of the passage."),
+});
+export type ExplainPassageOutput = z.infer<typeof ExplainPassageOutputSchema>;
+
+    

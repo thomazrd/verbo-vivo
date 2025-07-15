@@ -19,9 +19,11 @@ interface VerseDisplayProps {
   chapter: number;
   onNextChapter: () => void;
   onPrevChapter: () => void;
+  onBackToChapters: () => void;
+  isDesktop: boolean;
 }
 
-export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChapter }: VerseDisplayProps) {
+export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChapter, onBackToChapters, isDesktop }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,9 +124,15 @@ export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChap
   return (
     <div className="p-4 sm:p-6 md:p-8">
         <header className="mb-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight">{chapterData.book.name} {chapterData.chapter.number}</h1>
+            <div className="flex items-center justify-between gap-4">
+                {!isDesktop && (
+                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={onBackToChapters}>
+                        <ArrowLeft className="h-4 w-4" />
+                        <span className="sr-only">Voltar para capítulos</span>
+                    </Button>
+                )}
+                <div className="flex-1">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{chapterData.book.name} {chapterData.chapter.number}</h1>
                     <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
                 </div>
                 {!summary && !isSummaryLoading && (

@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function BibleReaderContent() {
   const router = useRouter();
@@ -94,6 +95,11 @@ function BibleReaderContent() {
     updateUrlParams(null, null);
   };
 
+  const handleBackToChapters = () => {
+    setSelectedChapter(null);
+    updateUrlParams(selectedBook, null);
+  }
+
   const handleNextChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter < selectedBook.chapters) {
       const nextChapter = selectedChapter + 1;
@@ -126,6 +132,7 @@ function BibleReaderContent() {
           selectedChapter={selectedChapter}
           onChapterSelect={handleChapterSelect}
           onBack={handleBackToBooks}
+          isDesktop={isDesktop}
         />
       )}
     </div>
@@ -141,12 +148,14 @@ function BibleReaderContent() {
           chapter={selectedChapter} 
           onNextChapter={handleNextChapter}
           onPrevChapter={handlePrevChapter}
+          onBackToChapters={handleBackToChapters}
+          isDesktop={isDesktop}
         />
       );
     }
     // On desktop, show placeholder. On mobile, this area will be hidden by navigation.
     return (
-      <div className="flex h-full items-center justify-center p-12 text-center">
+      <div className="hidden md:flex h-full items-center justify-center p-12 text-center">
         <div className="flex flex-col items-center gap-4">
           <BookMarked className="h-16 w-16 text-muted-foreground" />
           <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
@@ -189,9 +198,35 @@ function BibleReaderContent() {
   // Mobile Layout
   return (
     <div className="h-full">
-      {(!selectedBook && !selectedChapter) && NavigationPanel}
-      {(selectedBook && !selectedChapter) && NavigationPanel}
-      {(selectedBook && selectedChapter) && <MainContent />}
+      {!selectedBook && !selectedChapter && (
+        <div className="p-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button>
+                <Menu className="mr-2 h-4 w-4"/>
+                Selecionar Livro
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0">
+              {NavigationPanel}
+            </SheetContent>
+          </Sheet>
+        </div>
+      )}
+      {selectedBook && !selectedChapter && (
+         <Card className="h-full border-none rounded-none">
+            <CardContent className="p-0 h-full">
+              <ChapterGrid
+                book={selectedBook}
+                selectedChapter={selectedChapter}
+                onChapterSelect={handleChapterSelect}
+                onBack={handleBackToBooks}
+                isDesktop={isDesktop}
+              />
+            </CardContent>
+          </Card>
+      )}
+      {selectedChapter && <MainContent />}
     </div>
   );
 }

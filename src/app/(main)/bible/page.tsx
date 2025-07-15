@@ -19,6 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 function BibleReaderContent() {
   const searchParams = useSearchParams();
@@ -94,36 +95,43 @@ function BibleReaderContent() {
   };
   
   const NavigationContent = (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+      </div>
+      <BookSelector
+        allBooks={allBooks}
+        selectedBook={selectedBook}
+        onBookSelect={handleBookSelect}
+        selectedChapter={selectedChapter}
+        onChapterSelect={handleChapterSelect}
+      />
+    </div>
+  );
+
+  const MobileNavigation = (
     <>
-        <div className="p-4 border-b">
-            <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
-        </div>
-        {!isMobile ? (
-             <BookSelector
-                allBooks={allBooks}
-                selectedBook={selectedBook}
-                onBookSelect={handleBookSelect}
-                selectedChapter={selectedChapter}
-                onChapterSelect={handleChapterSelect}
-             />
-        ) : mobileView === 'books' ? (
-             <BookSelector
-                allBooks={allBooks}
-                selectedBook={selectedBook}
-                onBookSelect={handleBookSelect}
-                selectedChapter={selectedChapter}
-                onChapterSelect={handleChapterSelect}
-             />
-        ) : ( // mobileView === 'chapters'
-             selectedBook && (
-                <ChapterGrid 
-                    book={selectedBook}
-                    selectedChapter={selectedChapter}
-                    onChapterSelect={handleChapterSelect}
-                    onBack={handleBackToBooks}
-                />
-            )
-        )}
+      <div className="p-4 border-b">
+        <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+      </div>
+      {mobileView === 'books' || !selectedBook ? (
+        <BookSelector
+          allBooks={allBooks}
+          selectedBook={selectedBook}
+          onBookSelect={handleBookSelect}
+          selectedChapter={selectedChapter}
+          onChapterSelect={handleChapterSelect}
+        />
+      ) : (
+        <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
+          <ChapterGrid 
+            book={selectedBook}
+            selectedChapter={selectedChapter}
+            onChapterSelect={handleChapterSelect}
+            onBack={handleBackToBooks}
+          />
+        </Card>
+      )}
     </>
   );
 
@@ -162,7 +170,7 @@ function BibleReaderContent() {
                     key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
                     version={selectedVersion}
                     book={selectedBook} 
-                    chapter={selectedChapter} 
+                    chapter={chapterNumParam ? parseInt(chapterNumParam) : selectedChapter} 
                     onNextChapter={handleNextChapter}
                     onPrevChapter={handlePrevChapter}
                   />
@@ -178,7 +186,7 @@ function BibleReaderContent() {
                                   </Button>
                               </SheetTrigger>
                               <SheetContent side="left" className="p-0 w-full max-w-sm flex flex-col">
-                                  {NavigationContent}
+                                  {MobileNavigation}
                               </SheetContent>
                           </Sheet>
                         </div>
@@ -193,7 +201,7 @@ function BibleReaderContent() {
             </>
         ) : (
              <div className="flex flex-col h-full bg-background/95">
-                {NavigationContent}
+                {MobileNavigation}
             </div>
         )}
       </main>

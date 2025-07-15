@@ -19,35 +19,35 @@ export function ChapterGrid({ book, onChapterSelect, onBack, selectedChapter }: 
   const chapters = Array.from({ length: book.chapters }, (_, i) => i + 1);
 
   return (
-    <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
-        <CardHeader>
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={onBack}>
-                    <ArrowLeft className="h-4 w-4" />
-                    <span className="sr-only">Voltar para livros</span>
-                </Button>
-                <div>
-                    <CardTitle className="text-2xl">{book.name}</CardTitle>
-                    <CardDescription>Selecione um capítulo</CardDescription>
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-4 lg:grid-cols-5 gap-2 pr-4">
+    <>
+      <CardHeader>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Voltar para livros</span>
+          </Button>
+          <div>
+            <CardTitle className="text-2xl">{book.name}</CardTitle>
+            <CardDescription>Selecione um capítulo</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-4 lg:grid-cols-5 gap-2 pr-4">
             {chapters.map((chapter) => (
-                <Button
+              <Button
                 key={chapter}
                 variant={selectedChapter === chapter ? "default" : "outline"}
                 className="aspect-square h-auto w-full text-base"
                 onClick={() => onChapterSelect(chapter)}
-                >
+              >
                 {chapter}
-                </Button>
+              </Button>
             ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-    </Card>
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </>
   );
 }

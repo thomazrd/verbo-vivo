@@ -115,9 +115,15 @@ function BibleReaderContent() {
   };
 
   const handleBackToChapters = useCallback(() => {
+    if (isFocusMode) {
+      toggleFocusMode();
+      if(document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
     setSelectedChapter(null);
     updateUrlParams(selectedBook, null);
-  }, [selectedBook, updateUrlParams]);
+  }, [selectedBook, updateUrlParams, isFocusMode, toggleFocusMode]);
 
   const handleNextChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter < selectedBook.chapters) {

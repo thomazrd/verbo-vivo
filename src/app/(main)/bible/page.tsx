@@ -1,20 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { BibleBook } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookMarked } from 'lucide-react';
+import { BookMarked, Menu } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import { useWindowSize } from '@/hooks/use-window-size';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/contexts/focus-mode-context';
 
 function BibleReaderContent() {
@@ -35,7 +33,7 @@ function BibleReaderContent() {
   const { width } = useWindowSize();
   const isDesktop = width >= 768;
 
-  const updateUrlParams = (book: BibleBook | null, chapter: number | null) => {
+  const updateUrlParams = useCallback((book: BibleBook | null, chapter: number | null) => {
     const params = new URLSearchParams(searchParams);
     if (book) {
       params.set('book', book.abbrev.pt);
@@ -48,7 +46,7 @@ function BibleReaderContent() {
       params.delete('chapter');
     }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [searchParams, router, pathname]);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -90,11 +88,13 @@ function BibleReaderContent() {
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      toggleFocusMode();
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
     } else if (document.exitFullscreen) {
       document.exitFullscreen();
     }
+    toggleFocusMode();
   };
 
   const handleBookSelect = (book: BibleBook) => {
@@ -114,10 +114,10 @@ function BibleReaderContent() {
     updateUrlParams(null, null);
   };
 
-  const handleBackToChapters = () => {
+  const handleBackToChapters = useCallback(() => {
     setSelectedChapter(null);
     updateUrlParams(selectedBook, null);
-  }
+  }, [selectedBook, updateUrlParams]);
 
   const handleNextChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter < selectedBook.chapters) {
@@ -134,55 +134,31 @@ function BibleReaderContent() {
       updateUrlParams(selectedBook, prevChapter);
     }
   };
-  
-  const NavigationPanel = (
-    <div className="flex flex-col h-full bg-background/95">
-      <div className="p-4 border-b">
-        <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
-      </div>
-      {!selectedBook ? (
-        <BookSelector
-          allBooks={allBooks}
-          onBookSelect={handleBookSelect}
-        />
-      ) : (
-        <ChapterGrid 
-          book={selectedBook}
-          onChapterSelect={handleChapterSelect}
-          onBack={handleBackToBooks}
-          selectedChapter={selectedChapter}
-        />
-      )}
-    </div>
-  );
 
-  const MainContent = () => {
-    if (selectedBook && selectedChapter) {
-      return (
-        <VerseDisplay 
-          key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
-          version={selectedVersion}
-          book={selectedBook} 
-          chapter={selectedChapter} 
-          onNextChapter={handleNextChapter}
-          onPrevChapter={handlePrevChapter}
-          onBackToChapters={handleBackToChapters}
-          isDesktop={isDesktop}
-          onToggleFullscreen={handleToggleFullscreen}
-        />
-      );
-    }
-    return (
-      <div className="hidden md:flex h-full items-center justify-center p-12 text-center">
-        <div className="flex flex-col items-center gap-4">
+  const MobileInitialView = (
+      <div className="h-full flex flex-col justify-center items-center p-8 text-center bg-background">
+          <Sheet>
+              <SheetTrigger asChild>
+                  <Button variant="outline" className="mb-8">
+                      <Menu className="mr-2 h-4 w-4" />
+                      Selecionar Livro
+                  </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-full max-w-sm">
+                 <div className="p-4 border-b">
+                    <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+                  </div>
+                  <BookSelector allBooks={allBooks} onBookSelect={(book) => {
+                      handleBookSelect(book);
+                  }} />
+              </SheetContent>
+          </Sheet>
           <BookMarked className="h-16 w-16 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
-          <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura.</p>
-        </div>
+          <h2 className="text-2xl font-semibold mt-4">Leitura da Bíblia</h2>
+          <p className="text-muted-foreground max-w-sm">Use o menu para selecionar um livro e capítulo para começar.</p>
       </div>
-    );
-  };
-
+  );
+  
   if (loadingInitialState) {
     return (
       <div className="grid md:grid-cols-[350px_1fr] h-full">
@@ -200,69 +176,65 @@ function BibleReaderContent() {
     );
   }
   
-  if (isFocusMode && selectedChapter) {
+  const mainContent = selectedBook && selectedChapter && (
+     <VerseDisplay 
+        key={`${selectedVersion.id}-${selectedBook.abbrev.pt}-${selectedChapter}`}
+        version={selectedVersion}
+        book={selectedBook} 
+        chapter={selectedChapter} 
+        onNextChapter={handleNextChapter}
+        onPrevChapter={handlePrevChapter}
+        onBackToChapters={handleBackToChapters}
+        onToggleFullscreen={handleToggleFullscreen}
+      />
+  );
+  
+  if (isFocusMode) {
      return (
         <main className="overflow-y-auto h-full w-full bg-background flex justify-center">
             <div className="w-full max-w-4xl">
-                <MainContent />
+                {mainContent}
             </div>
         </main>
      )
   }
 
+  // --- Desktop Layout ---
   if (isDesktop) {
     return (
       <div className="grid h-full md:grid-cols-[350px_1fr]">
-        <aside className="border-r">
-          {NavigationPanel}
+        <aside className="border-r flex flex-col">
+            <div className="p-4 border-b">
+                <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+            </div>
+            {!selectedBook ? (
+                 <BookSelector allBooks={allBooks} onBookSelect={handleBookSelect} />
+            ) : (
+                 <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} />
+            )}
         </aside>
         <main className="overflow-y-auto">
-          <MainContent />
+          {mainContent || (
+            <div className="flex h-full items-center justify-center p-12 text-center">
+                <div className="flex flex-col items-center gap-4">
+                <BookMarked className="h-16 w-16 text-muted-foreground" />
+                <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
+                <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura.</p>
+                </div>
+            </div>
+          )}
         </main>
       </div>
     );
   }
   
-  // Mobile Layout
+  // --- Mobile Layout ---
   return (
-    <div className="h-full">
-      {selectedBook && selectedChapter ? (
-        <MainContent />
-      ) : selectedBook ? (
-        <Card className="h-full border-none rounded-none">
-          <CardContent className="p-0 h-full">
-            <ChapterGrid
-              book={selectedBook}
-              selectedChapter={selectedChapter}
-              onChapterSelect={handleChapterSelect}
-              onBack={handleBackToBooks}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="p-0 h-full">
-          <Sheet>
-            <SheetTrigger asChild>
-              <div className="p-4">
-                <Button>
-                  Selecionar Livro
-                </Button>
-              </div>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-full max-w-sm">
-                <BookSelector allBooks={allBooks} onBookSelect={handleBookSelect} />
-            </SheetContent>
-          </Sheet>
-
-           <div className="h-full flex items-center justify-center p-12 text-center -mt-16">
-                <div className="flex flex-col items-center gap-4">
-                    <BookMarked className="h-16 w-16 text-muted-foreground" />
-                    <h2 className="text-2xl font-semibold">Leitura da Bíblia</h2>
-                    <p className="text-muted-foreground max-w-sm">Use o botão acima para selecionar um livro e iniciar sua leitura.</p>
-                </div>
-            </div>
-        </div>
-      )}
+    <div className="h-full bg-background">
+      {mainContent ? mainContent : 
+       selectedBook ? <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} /> :
+       <MobileInitialView />
+      }
     </div>
   );
 }

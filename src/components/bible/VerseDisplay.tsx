@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFocusMode } from '@/contexts/focus-mode-context';
+import { useWindowSize } from '@/hooks/use-window-size';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -22,7 +23,6 @@ interface VerseDisplayProps {
   onNextChapter: () => void;
   onPrevChapter: () => void;
   onBackToChapters: () => void;
-  isDesktop: boolean;
   onToggleFullscreen: () => void;
 }
 
@@ -33,7 +33,6 @@ export function VerseDisplay({
   onNextChapter, 
   onPrevChapter, 
   onBackToChapters, 
-  isDesktop,
   onToggleFullscreen
 }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
@@ -48,6 +47,8 @@ export function VerseDisplay({
   const { i18n } = useTranslation();
   const { userProfile } = useAuth();
   const { isFocusMode } = useFocusMode();
+  const { width } = useWindowSize();
+  const isDesktop = width >= 768;
 
 
   useEffect(() => {
@@ -140,16 +141,16 @@ export function VerseDisplay({
         <header className="mb-8">
             <div className="flex items-center justify-between gap-4">
                 {(!isDesktop || isFocusMode) && (
-                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={onBackToChapters}>
+                     <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onBackToChapters}>
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Voltar para capítulos</span>
                     </Button>
                 )}
-                <div className="flex-1">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{chapterData.book.name} {chapterData.chapter.number}</h1>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight truncate">{chapterData.book.name} {chapterData.chapter.number}</h1>
                     <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {!summary && (
                         <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
                             {isSummaryLoading ? (
@@ -157,7 +158,7 @@ export function VerseDisplay({
                             ) : (
                                 <Sparkles className="mr-2 h-4 w-4" />
                             )}
-                            Explicar...
+                            Explicar
                         </Button>
                     )}
                      {isDesktop && (

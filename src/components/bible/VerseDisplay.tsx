@@ -13,6 +13,7 @@ import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFocusMode } from '@/contexts/focus-mode-context';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -22,7 +23,6 @@ interface VerseDisplayProps {
   onPrevChapter: () => void;
   onBackToChapters: () => void;
   isDesktop: boolean;
-  isFullscreen: boolean;
   onToggleFullscreen: () => void;
 }
 
@@ -34,7 +34,6 @@ export function VerseDisplay({
   onPrevChapter, 
   onBackToChapters, 
   isDesktop,
-  isFullscreen,
   onToggleFullscreen
 }: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
@@ -48,6 +47,8 @@ export function VerseDisplay({
   const { toast } = useToast();
   const { i18n } = useTranslation();
   const { userProfile } = useAuth();
+  const { isFocusMode } = useFocusMode();
+
 
   useEffect(() => {
     setSummary(null);
@@ -138,7 +139,7 @@ export function VerseDisplay({
     <div className="p-4 sm:p-6 md:p-8">
         <header className="mb-8">
             <div className="flex items-center justify-between gap-4">
-                {!isDesktop && (
+                {(!isDesktop || isFocusMode) && (
                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={onBackToChapters}>
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Voltar para capítulos</span>
@@ -164,11 +165,11 @@ export function VerseDisplay({
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="outline" size="icon" onClick={onToggleFullscreen} className="h-9 w-9">
-                                        {isFullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                                        {isFocusMode ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}</p>
+                                    <p>{isFocusMode ? "Sair da Tela Cheia" : "Modo Foco"}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>

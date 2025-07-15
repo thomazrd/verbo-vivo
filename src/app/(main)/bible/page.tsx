@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { BibleBook } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookMarked, Expand, Shrink } from 'lucide-react';
+import { BookMarked } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
@@ -15,13 +15,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFocusMode } from '@/contexts/focus-mode-context';
 
 function BibleReaderContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+  const { isFocusMode, toggleFocusMode } = useFocusMode();
+
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
   
@@ -30,7 +31,6 @@ function BibleReaderContent() {
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [loadingInitialState, setLoadingInitialState] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const { width } = useWindowSize();
   const isDesktop = width >= 768;
@@ -80,15 +80,18 @@ function BibleReaderContent() {
   
   useEffect(() => {
     const handleFullscreenChange = () => {
-        setIsFullscreen(!!document.fullscreenElement);
+        if (!document.fullscreenElement && isFocusMode) {
+          toggleFocusMode();
+        }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  }, [isFocusMode, toggleFocusMode]);
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
+      toggleFocusMode();
     } else if (document.exitFullscreen) {
       document.exitFullscreen();
     }
@@ -165,7 +168,6 @@ function BibleReaderContent() {
           onPrevChapter={handlePrevChapter}
           onBackToChapters={handleBackToChapters}
           isDesktop={isDesktop}
-          isFullscreen={isFullscreen}
           onToggleFullscreen={handleToggleFullscreen}
         />
       );
@@ -197,11 +199,21 @@ function BibleReaderContent() {
       </div>
     );
   }
+  
+  if (isFocusMode && selectedChapter) {
+     return (
+        <main className="overflow-y-auto h-full w-full bg-background flex justify-center">
+            <div className="w-full max-w-4xl">
+                <MainContent />
+            </div>
+        </main>
+     )
+  }
 
   if (isDesktop) {
     return (
-      <div className={cn("grid h-full", isFullscreen ? "grid-cols-1" : "md:grid-cols-[350px_1fr]")}>
-        <aside className={cn("border-r", isFullscreen && "hidden")}>
+      <div className="grid h-full md:grid-cols-[350px_1fr]">
+        <aside className="border-r">
           {NavigationPanel}
         </aside>
         <main className="overflow-y-auto">

@@ -6,9 +6,11 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
+import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 
-export default function MainLayout({ children }: { children: ReactNode }) {
+function AppLayout({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isFocusMode } = useFocusMode();
   
   // Initialize notification hooks for the logged-in user
   useNotifications();
@@ -16,6 +18,14 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
+  
+  if (isFocusMode) {
+    return (
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+    )
+  }
 
   return (
     <div className="min-h-screen w-full bg-muted/40">
@@ -35,4 +45,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
+}
+
+
+export default function MainLayout({ children }: { children: ReactNode }) {
+  return (
+    <FocusModeProvider>
+        <AppLayout>{children}</AppLayout>
+    </FocusModeProvider>
+  )
 }

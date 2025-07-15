@@ -2,9 +2,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Book, Sparkles, Loader2, Library } from 'lucide-react';
+import { Book, Sparkles, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { explainPassage } from '@/ai/flows/explain-passage-flow';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,6 +20,7 @@ interface SelectionPopoverProps {
 export function SelectionPopover({ children, containerRef }: SelectionPopoverProps) {
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -83,16 +85,14 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
   const handleDefine = async () => {
     setIsDefining(true);
     setDefinitionError(null);
+    const lang = i18n.language.split('-')[0]; // Pega 'pt' de 'pt-BR'
     try {
-      const response = await axios.get(`/api/dictionary/${selectedText}`);
-      if (response.data && response.data.length > 0) {
-        setDefinition(response.data);
-      } else {
-        setDefinitionError(`Não foi encontrada uma definição para "${selectedText}".`);
-      }
-    } catch (error) {
+      const response = await axios.get(`/api/dictionary/${selectedText}?lang=${lang}`);
+      setDefinition(response.data);
+    } catch (error: any) {
       console.error("Error fetching definition:", error);
-      setDefinitionError("Não foi possível buscar a definição.");
+      const errorMessage = error.response?.data?.message || 'Não foi possível buscar a definição.';
+      setDefinitionError(errorMessage);
     } finally {
       setIsDefining(false);
     }
@@ -117,14 +117,26 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
   };
   
   const renderDictionaryResult = () => {
+    if (!definition) return null;
+    // A API pode retornar um array de entradas para uma palavra
     return (
-        <div className="space-y-3 text-sm">
-            {definition?.map((entry, index) => (
-                <div key={index}>
-                    {entry.meanings?.map((meaning: string, mIndex: number) => (
-                        <p key={mIndex} className="text-muted-foreground">{mIndex + 1}. {meaning}</p>
+        <div className="space-y-4">
+            {definition.map((entry, entryIndex) => (
+                <div key={entryIndex}>
+                    {entry.phonetic && <p className="text-muted-foreground mb-2 font-mono">{entry.phonetic}</p>}
+                    {entry.meanings?.map((meaning: any, mIndex: number) => (
+                        <div key={mIndex} className="mb-3">
+                            <p className="font-semibold text-sm capitalize text-primary">{meaning.partOfSpeech}</p>
+                            <ul className="list-disc pl-5 mt-1 space-y-1">
+                                {meaning.definitions.map((def: any, dIndex: number) => (
+                                    <li key={dIndex} className="text-sm text-card-foreground">
+                                        {def.definition}
+                                        {def.example && <p className="text-xs italic text-muted-foreground mt-1">Ex: "{def.example}"</p>}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     ))}
-                    {entry.etymology && <p className="text-xs italic mt-2">Etimologia: {entry.etymology}</p>}
                 </div>
             ))}
         </div>
@@ -158,7 +170,7 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
             isLoading={isDefining}
             content={definitionError || (definition ? renderDictionaryResult() : 'Buscando...')}
             onClose={() => { setDefinition(null); setDefinitionError(null); }}
-            className="fixed bottom-4 right-4 w-80 z-50 shadow-lg animate-in slide-in-from-bottom-5"
+            className="fixed bottom-4 right-4 w-96 z-50 shadow-lg animate-in slide-in-from-bottom-5"
         />
       )}
       {(isExplaining || explanation || explanationError) && (
@@ -174,5 +186,3 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
     </>
   );
 }
-
-    

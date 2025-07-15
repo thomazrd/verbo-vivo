@@ -1,38 +1,31 @@
-
-// /api/dictionary/[word]
+// /api/dictionary/[word]?lang=...
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const DICIONARIO_API_URL = 'https://significado.herokuapp.com';
+const DICTIONARY_API_URL = 'https://api.dictionaryapi.dev/api/v2/entries';
 
 export async function GET(
   request: Request,
   { params }: { params: { word: string } }
 ) {
   const { word } = params;
+  const { searchParams } = new URL(request.url);
+  const lang = searchParams.get('lang') || 'pt'; // Default to Portuguese
 
   if (!word) {
     return NextResponse.json({ message: 'A palavra é obrigatória.' }, { status: 400 });
   }
 
   try {
-    // A API que estou usando é a "significado.herokuapp.com", 
-    // que não requer chave e parece mais estável que a "dicionario-aberto".
-    const response = await axios.get(`${DICIONARIO_API_URL}/${word}`);
-
-    if (response.data.error) {
-        return NextResponse.json({ message: 'Palavra não encontrada' }, { status: 404 });
-    }
-
+    const response = await axios.get(`${DICTIONARY_API_URL}/${lang}/${word}`);
     return NextResponse.json(response.data);
-
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
-      return NextResponse.json({ message: 'Palavra não encontrada' }, { status: 404 });
+      const apiError = error.response.data;
+      const message = apiError.title || 'Palavra não encontrada';
+      return NextResponse.json({ message }, { status: 404 });
     }
-    console.error(`Erro no proxy do dicionário para a palavra "${word}":`, error);
+    console.error(`Erro no proxy do dicionário para a palavra "${word}" (lang: ${lang}):`, error);
     return NextResponse.json({ message: 'Erro ao buscar definição.' }, { status: 500 });
   }
 }
-
-    

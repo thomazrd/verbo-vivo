@@ -4,7 +4,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import { cn } from '@/lib/utils';
 import type { BibleBook, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BookMarked, Menu } from 'lucide-react';
@@ -19,7 +18,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 
 function BibleReaderContent() {
   const searchParams = useSearchParams();
@@ -32,7 +30,6 @@ function BibleReaderContent() {
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [loadingInitialState, setLoadingInitialState] = useState(true);
   
-  const [mobileView, setMobileView] = useState<'books' | 'chapters'>('books');
   const { width } = useWindowSize();
   const isMobile = width < 768; // md breakpoint
 
@@ -54,7 +51,7 @@ function BibleReaderContent() {
     if (allBooks.length > 0 && loadingInitialState) {
       const bookFromUrl = allBooks.find(b => b.abbrev.pt === bookAbbrevParam);
       if (bookFromUrl) {
-        handleBookSelect(bookFromUrl); // This will set the book and mobile view
+        handleBookSelect(bookFromUrl);
         const chapter = parseInt(chapterNumParam || '', 10);
         if (!isNaN(chapter) && chapter > 0 && chapter <= bookFromUrl.chapters) {
           handleChapterSelect(chapter);
@@ -67,9 +64,6 @@ function BibleReaderContent() {
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
     setSelectedChapter(null); // Reset chapter when a new book is selected
-    if (isMobile) {
-        setMobileView('chapters');
-    }
   };
 
   const handleChapterSelect = (chapter: number) => {
@@ -77,7 +71,6 @@ function BibleReaderContent() {
   };
   
   const handleBackToBooks = () => {
-      setMobileView('books');
       setSelectedBook(null);
       setSelectedChapter(null);
   }
@@ -94,7 +87,7 @@ function BibleReaderContent() {
     }
   };
   
-  const NavigationContent = (
+  const DesktopNavigation = (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
@@ -103,37 +96,63 @@ function BibleReaderContent() {
         allBooks={allBooks}
         selectedBook={selectedBook}
         onBookSelect={handleBookSelect}
-        selectedChapter={selectedChapter}
-        onChapterSelect={handleChapterSelect}
       />
     </div>
   );
 
   const MobileNavigation = (
-    <>
-      <div className="p-4 border-b">
-        <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+      <div className="flex flex-col h-full bg-background/95">
+        <div className="p-4 border-b">
+          <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+        </div>
+        {!selectedBook ? (
+            <BookSelector
+                allBooks={allBooks}
+                selectedBook={selectedBook}
+                onBookSelect={handleBookSelect}
+            />
+        ) : (
+            <ChapterGrid 
+                book={selectedBook}
+                selectedChapter={selectedChapter}
+                onChapterSelect={handleChapterSelect}
+                onBack={handleBackToBooks}
+            />
+        )}
       </div>
-      {mobileView === 'books' || !selectedBook ? (
-        <BookSelector
-          allBooks={allBooks}
-          selectedBook={selectedBook}
-          onBookSelect={handleBookSelect}
-          selectedChapter={selectedChapter}
-          onChapterSelect={handleChapterSelect}
-        />
-      ) : (
-        <Card className="h-full flex flex-col border-none shadow-none md:border md:shadow-sm">
-          <ChapterGrid 
-            book={selectedBook}
-            selectedChapter={selectedChapter}
-            onChapterSelect={handleChapterSelect}
-            onBack={handleBackToBooks}
-          />
-        </Card>
-      )}
-    </>
   );
+
+  const renderContent = () => {
+      // VerseDisplay has priority if a chapter is selected
+      if (selectedBook && selectedChapter) {
+        return (
+            <VerseDisplay 
+                key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
+                version={selectedVersion}
+                book={selectedBook} 
+                chapter={chapterNumParam ? parseInt(chapterNumParam) : selectedChapter} 
+                onNextChapter={handleNextChapter}
+                onPrevChapter={handlePrevChapter}
+            />
+        );
+      }
+      
+      // On mobile, show the navigation flow (books or chapters)
+      if (isMobile) {
+          return MobileNavigation;
+      }
+
+      // On desktop, show the placeholder if no chapter is selected
+      return (
+        <div className="flex h-full items-center justify-center p-12 text-center">
+            <div className="flex flex-col items-center gap-4">
+                <BookMarked className="h-16 w-16 text-muted-foreground" />
+                <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
+                <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura nas Escrituras Sagradas.</p>
+            </div>
+        </div>
+      );
+  }
 
 
   if (loadingInitialState) {
@@ -157,53 +176,12 @@ function BibleReaderContent() {
     <div className="grid md:grid-cols-[350px_1fr] h-full">
       {/* --- Navegação --- */}
       <aside className="hidden md:flex flex-col border-r bg-background/95">
-        {NavigationContent}
+        {DesktopNavigation}
       </aside>
 
       {/* --- Conteúdo --- */}
       <main className="overflow-y-auto">
-        {/* Mostrar conteúdo apenas se um capítulo for selecionado, ou em telas maiores */}
-        {(selectedBook && selectedChapter) || !isMobile ? (
-            <>
-                {selectedBook && selectedChapter ? (
-                  <VerseDisplay 
-                    key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
-                    version={selectedVersion}
-                    book={selectedBook} 
-                    chapter={chapterNumParam ? parseInt(chapterNumParam) : selectedChapter} 
-                    onNextChapter={handleNextChapter}
-                    onPrevChapter={handlePrevChapter}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center p-12 text-center">
-                     <div className="flex flex-col items-center gap-4">
-                        <div className="md:hidden">
-                          <Sheet>
-                              <SheetTrigger asChild>
-                                  <Button>
-                                      <Menu className="mr-2 h-4 w-4"/>
-                                      Escolher Livro e Capítulo
-                                  </Button>
-                              </SheetTrigger>
-                              <SheetContent side="left" className="p-0 w-full max-w-sm flex flex-col">
-                                  {MobileNavigation}
-                              </SheetContent>
-                          </Sheet>
-                        </div>
-                         <div className="hidden md:flex flex-col items-center gap-4">
-                            <BookMarked className="h-16 w-16 text-muted-foreground" />
-                            <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
-                            <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura nas Escrituras Sagradas.</p>
-                        </div>
-                      </div>
-                  </div>
-                )}
-            </>
-        ) : (
-             <div className="flex flex-col h-full bg-background/95">
-                {MobileNavigation}
-            </div>
-        )}
+        {renderContent()}
       </main>
     </div>
   );

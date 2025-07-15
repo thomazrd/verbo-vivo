@@ -7,14 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface BookSelectorProps {
   allBooks: BibleBook[];
   selectedBook: BibleBook | null;
-  selectedChapter: number | null;
   onBookSelect: (book: BibleBook) => void;
-  onChapterSelect: (book: BibleBook, chapter: number) => void;
 }
 
 const normalizeString = (str: string) => 

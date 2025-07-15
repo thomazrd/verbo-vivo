@@ -16,7 +16,7 @@ interface BookSelectorProps {
 const normalizeString = (str: string) => 
   str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export function BookSelector({ allBooks, onBookSelect }: BookSelectorProps) {
+export default function BookSelector({ allBooks, onBookSelect }: BookSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredBooks = allBooks.filter(book => 

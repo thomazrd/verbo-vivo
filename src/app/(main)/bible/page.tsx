@@ -7,7 +7,7 @@ import type { BibleBook } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BookMarked, Menu } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
-import { BookSelector } from '@/components/bible/BookSelector';
+import BookSelector from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import { useWindowSize } from '@/hooks/use-window-size';
@@ -239,7 +239,7 @@ function BibleReaderContent() {
     <div className="h-full bg-background">
       {mainContent ? mainContent : 
        selectedBook ? <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} /> :
-       <MobileInitialView />
+       MobileInitialView
       }
     </div>
   );

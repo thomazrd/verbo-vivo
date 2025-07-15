@@ -6,15 +6,12 @@ import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
-import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { ScrollArea } from '../ui/scroll-area';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -36,11 +33,8 @@ export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChap
   const { toast } = useToast();
   const { i18n } = useTranslation();
   const { userProfile } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    // Reset states on chapter change
     setSummary(null);
     setSummaryError(null);
     setIsSummaryLoading(false);
@@ -67,11 +61,8 @@ export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChap
 
     if (book && chapter) {
       fetchChapter();
-       // Update URL with query params
-      const newUrl = `${pathname}?book=${book.abbrev.pt}&chapter=${chapter}`;
-      router.replace(newUrl, { scroll: false });
     }
-  }, [book, chapter, version, toast, pathname, router]);
+  }, [book, chapter, version, toast]);
 
   const handleGenerateSummary = async () => {
     if (!chapterData) return;
@@ -82,7 +73,6 @@ export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChap
     const chapterText = chapterData.verses.map(v => v.text).join(' ');
 
     try {
-        // Use the app's current language for the summary
         const langCode = i18n.language.split('-')[0];
         const result = await generateChapterSummary({ 
             model: userProfile?.preferredModel,

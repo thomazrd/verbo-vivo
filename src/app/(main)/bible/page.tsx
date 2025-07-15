@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import axios from 'axios';
 import type { BibleBook, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +20,10 @@ import {
 import { Button } from '@/components/ui/button';
 
 function BibleReaderContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
   
@@ -31,9 +34,23 @@ function BibleReaderContent() {
   const [loadingInitialState, setLoadingInitialState] = useState(true);
   
   const { width } = useWindowSize();
-  const isMobile = width < 768; // md breakpoint
+  const isDesktop = width >= 768; // md breakpoint
 
-  // Fetch all books once on mount
+  const updateUrlParams = (book: BibleBook | null, chapter: number | null) => {
+    const params = new URLSearchParams(searchParams);
+    if (book) {
+      params.set('book', book.abbrev.pt);
+    } else {
+      params.delete('book');
+    }
+    if (chapter) {
+      params.set('chapter', chapter.toString());
+    } else {
+      params.delete('chapter');
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -46,15 +63,14 @@ function BibleReaderContent() {
     fetchBooks();
   }, []);
   
-  // Set initial state from URL params once books are loaded
   useEffect(() => {
     if (allBooks.length > 0 && loadingInitialState) {
       const bookFromUrl = allBooks.find(b => b.abbrev.pt === bookAbbrevParam);
       if (bookFromUrl) {
-        handleBookSelect(bookFromUrl);
+        setSelectedBook(bookFromUrl);
         const chapter = parseInt(chapterNumParam || '', 10);
         if (!isNaN(chapter) && chapter > 0 && chapter <= bookFromUrl.chapters) {
-          handleChapterSelect(chapter);
+          setSelectedChapter(chapter);
         }
       }
       setLoadingInitialState(false);
@@ -63,126 +79,119 @@ function BibleReaderContent() {
   
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
-    setSelectedChapter(null); // Reset chapter when a new book is selected
+    setSelectedChapter(null);
+    updateUrlParams(book, null);
   };
 
   const handleChapterSelect = (chapter: number) => {
     setSelectedChapter(chapter);
+    updateUrlParams(selectedBook, chapter);
   };
   
   const handleBackToBooks = () => {
-      setSelectedBook(null);
-      setSelectedChapter(null);
-  }
+    setSelectedBook(null);
+    setSelectedChapter(null);
+    updateUrlParams(null, null);
+  };
 
   const handleNextChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter < selectedBook.chapters) {
-      setSelectedChapter(selectedChapter + 1);
+      const nextChapter = selectedChapter + 1;
+      setSelectedChapter(nextChapter);
+      updateUrlParams(selectedBook, nextChapter);
     }
   };
 
   const handlePrevChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter > 1) {
-      setSelectedChapter(selectedChapter - 1);
+      const prevChapter = selectedChapter - 1;
+      setSelectedChapter(prevChapter);
+      updateUrlParams(selectedBook, prevChapter);
     }
   };
   
-  const DesktopNavigation = (
-    <div className="flex flex-col h-full">
+  const NavigationPanel = (
+    <div className="flex flex-col h-full bg-background/95">
       <div className="p-4 border-b">
         <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
       </div>
-      <BookSelector
-        allBooks={allBooks}
-        selectedBook={selectedBook}
-        onBookSelect={handleBookSelect}
-      />
+      {!selectedBook ? (
+        <BookSelector
+          allBooks={allBooks}
+          onBookSelect={handleBookSelect}
+        />
+      ) : (
+        <ChapterGrid 
+          book={selectedBook}
+          selectedChapter={selectedChapter}
+          onChapterSelect={handleChapterSelect}
+          onBack={handleBackToBooks}
+        />
+      )}
     </div>
   );
 
-  const MobileNavigation = (
-      <div className="flex flex-col h-full bg-background/95">
-        <div className="p-4 border-b">
-          <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
-        </div>
-        {!selectedBook ? (
-            <BookSelector
-                allBooks={allBooks}
-                selectedBook={selectedBook}
-                onBookSelect={handleBookSelect}
-            />
-        ) : (
-            <ChapterGrid 
-                book={selectedBook}
-                selectedChapter={selectedChapter}
-                onChapterSelect={handleChapterSelect}
-                onBack={handleBackToBooks}
-            />
-        )}
-      </div>
-  );
-
-  const renderContent = () => {
-      // VerseDisplay has priority if a chapter is selected
-      if (selectedBook && selectedChapter) {
-        return (
-            <VerseDisplay 
-                key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
-                version={selectedVersion}
-                book={selectedBook} 
-                chapter={chapterNumParam ? parseInt(chapterNumParam) : selectedChapter} 
-                onNextChapter={handleNextChapter}
-                onPrevChapter={handlePrevChapter}
-            />
-        );
-      }
-      
-      // On mobile, show the navigation flow (books or chapters)
-      if (isMobile) {
-          return MobileNavigation;
-      }
-
-      // On desktop, show the placeholder if no chapter is selected
+  const MainContent = () => {
+    if (selectedBook && selectedChapter) {
       return (
-        <div className="flex h-full items-center justify-center p-12 text-center">
-            <div className="flex flex-col items-center gap-4">
-                <BookMarked className="h-16 w-16 text-muted-foreground" />
-                <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
-                <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura nas Escrituras Sagradas.</p>
-            </div>
-        </div>
+        <VerseDisplay 
+          key={`${selectedBook.abbrev.pt}-${selectedChapter}`}
+          version={selectedVersion}
+          book={selectedBook} 
+          chapter={selectedChapter} 
+          onNextChapter={handleNextChapter}
+          onPrevChapter={handlePrevChapter}
+        />
       );
-  }
-
+    }
+    // On desktop, show placeholder. On mobile, this area will be hidden by navigation.
+    return (
+      <div className="flex h-full items-center justify-center p-12 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <BookMarked className="h-16 w-16 text-muted-foreground" />
+          <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
+          <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura.</p>
+        </div>
+      </div>
+    );
+  };
 
   if (loadingInitialState) {
-      return (
-        <div className="grid md:grid-cols-[350px_1fr] h-full">
-            <div className="hidden md:block border-r p-4">
-                <Skeleton className="h-10 w-full mb-4" />
-                <Skeleton className="h-full w-full" />
-            </div>
-            <div className="p-8">
-                <Skeleton className="h-12 w-1/3 mb-8" />
-                <Skeleton className="h-6 w-full mb-2" />
-                <Skeleton className="h-6 w-full mb-2" />
-                <Skeleton className="h-6 w-2/3" />
-            </div>
+    return (
+      <div className="grid md:grid-cols-[350px_1fr] h-full">
+        <div className="hidden md:block border-r p-4">
+          <Skeleton className="h-10 w-full mb-4" />
+          <Skeleton className="h-full w-full" />
         </div>
-      );
+        <div className="p-8">
+          <Skeleton className="h-12 w-1/3 mb-8" />
+          <Skeleton className="h-6 w-full mb-2" />
+          <Skeleton className="h-6 w-full mb-2" />
+          <Skeleton className="h-6 w-2/3" />
+        </div>
+      </div>
+    );
   }
 
+  if (isDesktop) {
+    return (
+      <div className="grid md:grid-cols-[350px_1fr] h-full">
+        <aside className="border-r">
+          {NavigationPanel}
+        </aside>
+        <main className="overflow-y-auto">
+          <MainContent />
+        </main>
+      </div>
+    );
+  }
+  
+  // Mobile Layout
   return (
-    <div className="grid md:grid-cols-[350px_1fr] h-full">
-      {/* --- Navegação --- */}
-      <aside className="hidden md:flex flex-col border-r bg-background/95">
-        {DesktopNavigation}
-      </aside>
-
-      {/* --- Conteúdo --- */}
-      <main className="overflow-y-auto">
-        {renderContent()}
-      </main>
+    <div className="h-full">
+      {(!selectedBook && !selectedChapter) && NavigationPanel}
+      {(selectedBook && !selectedChapter) && NavigationPanel}
+      {(selectedBook && selectedChapter) && <MainContent />}
     </div>
   );
 }

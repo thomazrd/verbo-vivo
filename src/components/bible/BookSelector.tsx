@@ -10,7 +10,6 @@ import { Search } from 'lucide-react';
 
 interface BookSelectorProps {
   allBooks: BibleBook[];
-  selectedBook: BibleBook | null;
   onBookSelect: (book: BibleBook) => void;
 }
 

@@ -3,22 +3,19 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import axios from 'axios';
-import type { BibleBook, BibleVersion } from '@/lib/types';
+import type { BibleBook } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookMarked, Menu } from 'lucide-react';
+import { BookMarked, Expand, Shrink } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import { BookSelector } from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import { useWindowSize } from '@/hooks/use-window-size';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 function BibleReaderContent() {
   const router = useRouter();
@@ -29,13 +26,14 @@ function BibleReaderContent() {
   const chapterNumParam = searchParams.get('chapter');
   
   const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<BibleVersion>({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
+  const [selectedVersion, setSelectedVersion] = useState({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [loadingInitialState, setLoadingInitialState] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const { width } = useWindowSize();
-  const isDesktop = width >= 768; // md breakpoint
+  const isDesktop = width >= 768;
 
   const updateUrlParams = (book: BibleBook | null, chapter: number | null) => {
     const params = new URLSearchParams(searchParams);
@@ -55,8 +53,10 @@ function BibleReaderContent() {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await axios.get<BibleBook[]>('/api/bible/books');
-        setAllBooks(response.data);
+        const response = await fetch('/api/bible/books');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setAllBooks(data);
       } catch (err) {
         console.error("Erro ao buscar livros:", err);
       }
@@ -78,6 +78,22 @@ function BibleReaderContent() {
     }
   }, [allBooks, bookAbbrevParam, chapterNumParam, loadingInitialState]);
   
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  };
+
   const handleBookSelect = (book: BibleBook) => {
     setSelectedBook(book);
     setSelectedChapter(null);
@@ -129,10 +145,9 @@ function BibleReaderContent() {
       ) : (
         <ChapterGrid 
           book={selectedBook}
-          selectedChapter={selectedChapter}
           onChapterSelect={handleChapterSelect}
           onBack={handleBackToBooks}
-          isDesktop={isDesktop}
+          selectedChapter={selectedChapter}
         />
       )}
     </div>
@@ -150,10 +165,11 @@ function BibleReaderContent() {
           onPrevChapter={handlePrevChapter}
           onBackToChapters={handleBackToChapters}
           isDesktop={isDesktop}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
         />
       );
     }
-    // On desktop, show placeholder. On mobile, this area will be hidden by navigation.
     return (
       <div className="hidden md:flex h-full items-center justify-center p-12 text-center">
         <div className="flex flex-col items-center gap-4">
@@ -184,8 +200,8 @@ function BibleReaderContent() {
 
   if (isDesktop) {
     return (
-      <div className="grid md:grid-cols-[350px_1fr] h-full">
-        <aside className="border-r">
+      <div className={cn("grid h-full", isFullscreen ? "grid-cols-1" : "md:grid-cols-[350px_1fr]")}>
+        <aside className={cn("border-r", isFullscreen && "hidden")}>
           {NavigationPanel}
         </aside>
         <main className="overflow-y-auto">
@@ -198,35 +214,43 @@ function BibleReaderContent() {
   // Mobile Layout
   return (
     <div className="h-full">
-      {!selectedBook && !selectedChapter && (
-        <div className="p-4">
+      {selectedBook && selectedChapter ? (
+        <MainContent />
+      ) : selectedBook ? (
+        <Card className="h-full border-none rounded-none">
+          <CardContent className="p-0 h-full">
+            <ChapterGrid
+              book={selectedBook}
+              selectedChapter={selectedChapter}
+              onChapterSelect={handleChapterSelect}
+              onBack={handleBackToBooks}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="p-0 h-full">
           <Sheet>
             <SheetTrigger asChild>
-              <Button>
-                <Menu className="mr-2 h-4 w-4"/>
-                Selecionar Livro
-              </Button>
+              <div className="p-4">
+                <Button>
+                  Selecionar Livro
+                </Button>
+              </div>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0">
-              {NavigationPanel}
+            <SheetContent side="left" className="p-0 w-full max-w-sm">
+                <BookSelector allBooks={allBooks} onBookSelect={handleBookSelect} />
             </SheetContent>
           </Sheet>
+
+           <div className="h-full flex items-center justify-center p-12 text-center -mt-16">
+                <div className="flex flex-col items-center gap-4">
+                    <BookMarked className="h-16 w-16 text-muted-foreground" />
+                    <h2 className="text-2xl font-semibold">Leitura da Bíblia</h2>
+                    <p className="text-muted-foreground max-w-sm">Use o botão acima para selecionar um livro e iniciar sua leitura.</p>
+                </div>
+            </div>
         </div>
       )}
-      {selectedBook && !selectedChapter && (
-         <Card className="h-full border-none rounded-none">
-            <CardContent className="p-0 h-full">
-              <ChapterGrid
-                book={selectedBook}
-                selectedChapter={selectedChapter}
-                onChapterSelect={handleChapterSelect}
-                onBack={handleBackToBooks}
-                isDesktop={isDesktop}
-              />
-            </CardContent>
-          </Card>
-      )}
-      {selectedChapter && <MainContent />}
     </div>
   );
 }

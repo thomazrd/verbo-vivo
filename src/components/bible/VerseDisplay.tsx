@@ -6,12 +6,13 @@ import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -21,9 +22,21 @@ interface VerseDisplayProps {
   onPrevChapter: () => void;
   onBackToChapters: () => void;
   isDesktop: boolean;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
 }
 
-export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChapter, onBackToChapters, isDesktop }: VerseDisplayProps) {
+export function VerseDisplay({ 
+  version, 
+  book, 
+  chapter, 
+  onNextChapter, 
+  onPrevChapter, 
+  onBackToChapters, 
+  isDesktop,
+  isFullscreen,
+  onToggleFullscreen
+}: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,16 +148,32 @@ export function VerseDisplay({ version, book, chapter, onNextChapter, onPrevChap
                     <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{chapterData.book.name} {chapterData.chapter.number}</h1>
                     <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
                 </div>
-                {!summary && !isSummaryLoading && (
-                    <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
-                        {isSummaryLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="mr-2 h-4 w-4" />
-                        )}
-                        Explicar...
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {!summary && (
+                        <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
+                            {isSummaryLoading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="mr-2 h-4 w-4" />
+                            )}
+                            Explicar...
+                        </Button>
+                    )}
+                     {isDesktop && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={onToggleFullscreen} className="h-9 w-9">
+                                        {isFullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
             </div>
         </header>
 

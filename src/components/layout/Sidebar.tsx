@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Home,
   Smile,
+  Newspaper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -42,6 +43,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
     { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: HeartHandshake },
     { href: "/community", label: t('nav_community'), icon: Users },
+    { href: "/blog", label: "Artigos", icon: Newspaper },
     { href: "/characters", label: t('nav_characters'), icon: BookUser },
     { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
   ];

@@ -23,6 +23,7 @@ import {
   Share2,
   Home,
   Smile,
+  Newspaper,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -59,6 +60,7 @@ export function Header() {
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
     { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: HeartHandshake },
     { href: "/community", label: t('nav_community'), icon: Users },
+    { href: "/blog", label: "Artigos", icon: Newspaper },
     { href: "/characters", label: t('nav_characters'), icon: BookUser },
     { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
   ];

@@ -279,6 +279,23 @@ export interface CongregationReport {
   createdAt: Timestamp;
 }
 
+// --- Tipos de Artigos (Blog) ---
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  content: string; // Markdown
+  excerpt: string;
+  coverImageUrl: string | null;
+  authorId: string;
+  authorName: string;
+  authorPhotoURL: string | null;
+  status: 'draft' | 'published';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  publishedAt?: Timestamp;
+}
+
 // --- Tipos da API da Bíblia ---
 
 export interface BibleVersion {
@@ -448,5 +465,3 @@ export const ExplainPassageOutputSchema = z.object({
   explanation: z.string().describe("A clear and concise explanation of the passage."),
 });
 export type ExplainPassageOutput = z.infer<typeof ExplainPassageOutputSchema>;
-
-    

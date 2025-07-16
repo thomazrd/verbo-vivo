@@ -10,6 +10,23 @@ const I18nInitializer = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    // This effect runs on language change and ensures the document lang attribute is updated.
+    const handleLanguageChange = (lng: string) => {
+      if (document.documentElement.lang !== lng) {
+        document.documentElement.lang = lng;
+      }
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    
+    // Set initial language
+    handleLanguageChange(i18n.language);
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    }
+  }, []);
+
+  useEffect(() => {
     if (loading || !user) {
       return;
     }
@@ -25,8 +42,6 @@ const I18nInitializer = () => {
           const currentLanguage = i18n.language;
           
           if (preferredLanguage && preferredLanguage !== currentLanguage) {
-            // Only change if the stored preference is different from the current
-            // language (which might have been set by the browser detector).
             i18n.changeLanguage(preferredLanguage);
           }
         }

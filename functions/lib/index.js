@@ -37,7 +37,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onCongregationApproval = exports.onNewComment = exports.onNewPostLike = void 0;
+exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewComment = exports.onNewPostLike = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -155,7 +155,8 @@ exports.onNewComment = functions.region(region)
         }
     }
 });
-// Gatilho para Aprovação na Congregação
+// Gatilho para Aprovação na Congregação (agora acionado pela Cloud Function)
+// A função onUpdate não é mais necessária para aprovação, mas pode ser útil para outras transições de status.
 exports.onCongregationApproval = functions.region(region)
     .firestore.document("congregations/{congregationId}/members/{userId}")
     .onUpdate(async (change, context) => {
@@ -167,13 +168,49 @@ exports.onCongregationApproval = functions.region(region)
         const congregationDoc = await db.doc(`congregations/${congregationId}`).get();
         await createAndSendNotification({
             recipientId,
-            actorId: congregationId,
+            actorId: congregationId, // Pode ser o ID do admin que aprovou, se passado para a função.
             actorName: ((_a = congregationDoc.data()) === null || _a === void 0 ? void 0 : _a.name) || "Sua Congregação",
             actorPhotoURL: null,
             type: "CONGREGATION_APPROVAL",
             entityId: congregationId,
             entityPath: `/community/${congregationId}`,
         });
+    }
+});
+/**
+ * Função Chamável para Aprovar Membros
+ */
+exports.approveCongregationMemberRequest = functions.region(region)
+    .https.onCall(async (data, context) => {
+    var _a, _b;
+    const adminUid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    const { congregationId, targetUserId } = data;
+    if (!adminUid) {
+        throw new functions.https.HttpsError("unauthenticated", "Você deve estar logado para realizar esta ação.");
+    }
+    if (!congregationId || !targetUserId) {
+        throw new functions.https.HttpsError("invalid-argument", " congregationId e targetUserId são obrigatórios.");
+    }
+    const congregationRef = db.doc(`congregations/${congregationId}`);
+    const memberRef = db.doc(`congregations/${congregationId}/members/${targetUserId}`);
+    const userRef = db.doc(`users/${targetUserId}`);
+    const adminMemberRef = db.doc(`congregations/${congregationId}/members/${adminUid}`);
+    // Verificar se o chamador é um admin da congregação
+    const adminMemberSnap = await adminMemberRef.get();
+    if (!adminMemberSnap.exists || ((_b = adminMemberSnap.data()) === null || _b === void 0 ? void 0 : _b.status) !== "ADMIN") {
+        throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para aprovar membros.");
+    }
+    const batch = db.batch();
+    batch.update(memberRef, { status: "MEMBER", joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+    batch.update(userRef, { congregationStatus: "MEMBER" });
+    batch.update(congregationRef, { memberCount: admin.firestore.FieldValue.increment(1) });
+    try {
+        await batch.commit();
+        return { success: true, message: "Membro aprovado com sucesso." };
+    }
+    catch (error) {
+        console.error("Erro ao aprovar membro:", error);
+        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao aprovar o membro.");
     }
 });
 //# sourceMappingURL=index.js.map

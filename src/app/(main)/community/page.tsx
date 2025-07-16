@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, getDocs, updateDoc, doc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
 import type { Congregation, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Plus, LogIn, ChevronRight, Loader2, Church } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useTranslation } from 'react-i18next';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -75,42 +76,25 @@ export default function CommunityPage() {
   const handleCreateCongregation = async () => {
     if (!user || !newCongregationName.trim() || userProfile?.congregationId) return;
     setIsCreating(true);
+    
     try {
-      const newCongregationData = {
-        name: newCongregationName,
-        city: newCongregationCity,
-        pastorName: newCongregationPastor,
-        admins: { [user.uid]: true },
-        memberCount: 1,
-        inviteCode: generateInviteCode(),
-        createdAt: serverTimestamp(),
-        createdBy: user.uid,
-      };
-      
-      const congregationRef = await addDoc(collection(db, "congregations"), newCongregationData);
-      
-      const memberRef = doc(db, 'congregations', congregationRef.id, 'members', user.uid);
-      await setDoc(memberRef, {
-        displayName: user.displayName || user.email,
-        photoURL: user.photoURL,
-        joinedAt: serverTimestamp(),
-        status: 'ADMIN',
-      });
+        const functions = getFunctions();
+        const createCongregation = httpsCallable(functions, 'createCongregation');
+        await createCongregation({
+            name: newCongregationName,
+            city: newCongregationCity,
+            pastorName: newCongregationPastor,
+        });
 
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-          congregationId: congregationRef.id,
-          congregationStatus: 'ADMIN'
-      });
+        toast({ title: t('toast_success'), description: t('toast_congregation_created') });
+        setNewCongregationName("");
+        setNewCongregationCity("");
+        setNewCongregationPastor("");
+        setIsCreateDialogOpen(false);
 
-      toast({ title: t('toast_success'), description: t('toast_congregation_created') });
-      setNewCongregationName("");
-      setNewCongregationCity("");
-      setNewCongregationPastor("");
-      setIsCreateDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating congregation:", error);
-      toast({ variant: "destructive", title: t('toast_error'), description: t('toast_congregation_create_error') });
+      toast({ variant: "destructive", title: t('toast_error'), description: error.message || t('toast_congregation_create_error') });
     } finally {
       setIsCreating(false);
     }
@@ -119,43 +103,24 @@ export default function CommunityPage() {
   const handleJoinCongregation = async () => {
       if (!user || !inviteCode.trim() || userProfile?.congregationId) return;
       setIsJoining(true);
+      
       try {
-          const q = query(collection(db, "congregations"), where("inviteCode", "==", inviteCode.trim().toUpperCase()));
-          const querySnapshot = await getDocs(q);
+        const functions = getFunctions();
+        const requestToJoin = httpsCallable(functions, 'requestToJoinCongregation');
+        const result = await requestToJoin({ inviteCode: inviteCode.trim().toUpperCase() });
+        const data = result.data as { success: boolean, message: string, congregationName?: string };
 
-          if (querySnapshot.empty) {
-              toast({ variant: "destructive", title: t('toast_error'), description: t('toast_invalid_invite_code') });
-          } else {
-              const congregationDoc = querySnapshot.docs[0];
-              const congregationId = congregationDoc.id;
-              
-              const memberRef = doc(db, 'congregations', congregationId, 'members', user.uid);
-              const memberSnap = await getDoc(memberRef);
-              
-              if(memberSnap.exists()) {
-                   toast({ title: t('toast_warning'), description: t('toast_already_member', { name: congregationDoc.data().name }) });
-              } else {
-                  await setDoc(memberRef, {
-                      displayName: user.displayName || user.email,
-                      photoURL: user.photoURL,
-                      status: 'PENDING',
-                      requestedAt: serverTimestamp()
-                  });
+        if(data.success) {
+            toast({ title: t('toast_request_sent'), description: t('toast_join_request_sent', { name: data.congregationName }) });
+            setInviteCode("");
+            setIsJoinDialogOpen(false);
+        } else {
+             toast({ variant: "destructive", title: t('toast_error'), description: data.message });
+        }
 
-                  const userRef = doc(db, 'users', user.uid);
-                  await updateDoc(userRef, {
-                      congregationId: congregationId,
-                      congregationStatus: 'PENDING'
-                  });
-
-                  toast({ title: t('toast_request_sent'), description: t('toast_join_request_sent', { name: congregationDoc.data().name }) });
-              }
-              setInviteCode("");
-              setIsJoinDialogOpen(false);
-          }
-      } catch (error) {
+      } catch (error: any) {
           console.error("Error joining congregation:", error);
-          toast({ variant: "destructive", title: t('toast_error'), description: t('toast_join_request_error') });
+          toast({ variant: "destructive", title: t('toast_error'), description: error.message || t('toast_join_request_error') });
       } finally {
           setIsJoining(false);
       }
@@ -301,3 +266,5 @@ export default function CommunityPage() {
     </div>
   );
 }
+
+    

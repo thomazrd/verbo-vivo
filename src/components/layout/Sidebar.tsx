@@ -21,28 +21,30 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";
+import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
 }
 
-const navItems = [
-  { href: "/home", label: "Início", icon: Home },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/feeling-journey", label: "Jornada", icon: Smile },
-  { href: "/plans", label: "Planos", icon: BookOpen },
-  { href: "/bible", label: "Bíblia", icon: BookMarked },
-  { href: "/journal", label: "Diário", icon: NotebookText },
-  { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
-  { href: "/community", label: "Comunidade", icon: Users },
-  { href: "/characters", label: "Personagens", icon: BookUser },
-  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
-];
-
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+  
+  const navItems = [
+    { href: "/home", label: t('nav_home'), icon: Home },
+    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
+    { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
+    { href: "/plans", label: t('nav_plans'), icon: BookOpen },
+    { href: "/bible", label: t('nav_bible'), icon: BookMarked },
+    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
+    { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: HeartHandshake },
+    { href: "/community", label: t('nav_community'), icon: Users },
+    { href: "/characters", label: t('nav_characters'), icon: BookUser },
+    { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
+  ];
 
   return (
     <div
@@ -98,12 +100,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         <div className="mt-auto p-4 space-y-2 border-t">
            {appVersion && (
             <div className={cn("text-center text-xs text-muted-foreground font-mono", isCollapsed && "hidden")}>
-                Versão: {appVersion}
+                {t('version_label')}: {appVersion}
             </div>
            )}
            <Button variant="outline" size="icon" className="w-full h-9" onClick={onToggle}>
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            <span className="sr-only">Retrair/Expandir menu</span>
+            <span className="sr-only">{t('toggle_sidebar_button')}</span>
           </Button>
         </div>
       </div>

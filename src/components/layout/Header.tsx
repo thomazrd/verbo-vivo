@@ -42,24 +42,26 @@ import {
 } from "@/components/ui/sheet";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WisdomPearl } from "./WisdomPearl";
-
-const navItems = [
-  { href: "/home", label: "Início", icon: Home },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/feeling-journey", label: "Jornada", icon: Smile },
-  { href: "/plans", label: "Planos", icon: BookOpen },
-  { href: "/bible", label: "Bíblia", icon: BookMarked },
-  { href: "/journal", label: "Diário", icon: NotebookText },
-  { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
-  { href: "/community", label: "Comunidade", icon: Users },
-  { href: "/characters", label: "Personagens", icon: BookUser },
-  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
-];
+import { useTranslation } from "react-i18next";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, userProfile } = useAuth();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: "/home", label: t('nav_home'), icon: Home },
+    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
+    { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
+    { href: "/plans", label: t('nav_plans'), icon: BookOpen },
+    { href: "/bible", label: t('nav_bible'), icon: BookMarked },
+    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
+    { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: HeartHandshake },
+    { href: "/community", label: t('nav_community'), icon: Users },
+    { href: "/characters", label: t('nav_characters'), icon: BookUser },
+    { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
+  ];
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -76,7 +78,7 @@ export function Header() {
             className="shrink-0 md:hidden"
           >
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Abrir menu de navegação</span>
+            <span className="sr-only">{t('toggle_nav_menu')}</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
@@ -128,7 +130,7 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{userProfile?.displayName || 'Minha Conta'}</p>
+                    <p className="text-sm font-medium leading-none">{userProfile?.displayName || t('my_account')}</p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>
@@ -137,12 +139,12 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span>
+                  <span>{t('nav_settings')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sair</span>
+                  <span>{t('sign_out_button')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

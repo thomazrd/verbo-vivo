@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Plus, LogIn, ChevronRight, Loader2, Church } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useTranslation } from 'react-i18next';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -24,6 +25,7 @@ function generateInviteCode(): string {
 export default function CommunityPage() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -101,14 +103,14 @@ export default function CommunityPage() {
           congregationStatus: 'ADMIN'
       });
 
-      toast({ title: "Sucesso!", description: "Congregação criada." });
+      toast({ title: t('toast_success'), description: t('toast_congregation_created') });
       setNewCongregationName("");
       setNewCongregationCity("");
       setNewCongregationPastor("");
       setIsCreateDialogOpen(false);
     } catch (error) {
       console.error("Error creating congregation:", error);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a congregação." });
+      toast({ variant: "destructive", title: t('toast_error'), description: t('toast_congregation_create_error') });
     } finally {
       setIsCreating(false);
     }
@@ -122,7 +124,7 @@ export default function CommunityPage() {
           const querySnapshot = await getDocs(q);
 
           if (querySnapshot.empty) {
-              toast({ variant: "destructive", title: "Erro", description: "Código de convite inválido." });
+              toast({ variant: "destructive", title: t('toast_error'), description: t('toast_invalid_invite_code') });
           } else {
               const congregationDoc = querySnapshot.docs[0];
               const congregationId = congregationDoc.id;
@@ -131,7 +133,7 @@ export default function CommunityPage() {
               const memberSnap = await getDoc(memberRef);
               
               if(memberSnap.exists()) {
-                   toast({ title: "Aviso", description: `Você já solicitou ou é membro de "${congregationDoc.data().name}".` });
+                   toast({ title: t('toast_warning'), description: t('toast_already_member', { name: congregationDoc.data().name }) });
               } else {
                   await setDoc(memberRef, {
                       displayName: user.displayName || user.email,
@@ -146,14 +148,14 @@ export default function CommunityPage() {
                       congregationStatus: 'PENDING'
                   });
 
-                  toast({ title: "Solicitação enviada!", description: `Sua solicitação para entrar em "${congregationDoc.data().name}" foi enviada para aprovação.` });
+                  toast({ title: t('toast_request_sent'), description: t('toast_join_request_sent', { name: congregationDoc.data().name }) });
               }
               setInviteCode("");
               setIsJoinDialogOpen(false);
           }
       } catch (error) {
           console.error("Error joining congregation:", error);
-          toast({ variant: "destructive", title: "Erro", description: "Não foi possível solicitar a entrada na congregação." });
+          toast({ variant: "destructive", title: t('toast_error'), description: t('toast_join_request_error') });
       } finally {
           setIsJoining(false);
       }
@@ -175,9 +177,9 @@ export default function CommunityPage() {
     <div className="container mx-auto max-w-4xl py-8 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Comunidade</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('nav_community')}</h1>
           <p className="mt-1 text-muted-foreground">
-            Conecte-se com os membros da sua igreja local.
+            {t('community_subtitle')}
           </p>
         </div>
         <TooltipProvider>
@@ -188,29 +190,29 @@ export default function CommunityPage() {
                             <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" disabled={userHasCongregation}>
-                                        <LogIn className="mr-2 h-4 w-4" /> Entrar
+                                        <LogIn className="mr-2 h-4 w-4" /> {t('join_button')}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Entrar em uma Congregação</DialogTitle>
-                                        <DialogDescription>Insira o código de convite para solicitar a entrada.</DialogDescription>
+                                        <DialogTitle>{t('join_congregation_title')}</DialogTitle>
+                                        <DialogDescription>{t('join_congregation_desc')}</DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-4">
-                                        <Label htmlFor="invite-code">Código de Convite</Label>
+                                        <Label htmlFor="invite-code">{t('invite_code_label')}</Label>
                                         <Input id="invite-code" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} className="font-mono tracking-widest" placeholder="ABCXYZ" />
                                     </div>
                                     <DialogFooter>
                                         <Button onClick={handleJoinCongregation} disabled={isJoining || !inviteCode.trim()}>
                                         {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Solicitar Entrada
+                                        {t('request_join_button')}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
                         </div>
                     </TooltipTrigger>
-                    {userHasCongregation && <TooltipContent><p>Saia da sua congregação atual para entrar em uma nova.</p></TooltipContent>}
+                    {userHasCongregation && <TooltipContent><p>{t('community_tooltip_leave_to_join')}</p></TooltipContent>}
                  </Tooltip>
                 
                  <Tooltip>
@@ -218,38 +220,38 @@ export default function CommunityPage() {
                         <div tabIndex={0}>
                             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button disabled={userHasCongregation}><Plus className="mr-2 h-4 w-4" /> Criar</Button>
+                                    <Button disabled={userHasCongregation}><Plus className="mr-2 h-4 w-4" /> {t('create_button')}</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Criar Nova Congregação</DialogTitle>
-                                        <DialogDescription>Preencha os detalhes da sua igreja.</DialogDescription>
+                                        <DialogTitle>{t('create_congregation_title')}</DialogTitle>
+                                        <DialogDescription>{t('create_congregation_desc')}</DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="cong-name">Nome da Igreja</Label>
-                                            <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder="Ex: Primeira Igreja Batista" />
+                                            <Label htmlFor="cong-name">{t('church_name_label')}</Label>
+                                            <Input id="cong-name" value={newCongregationName} onChange={(e) => setNewCongregationName(e.target.value)} placeholder={t('church_name_placeholder')} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="cong-city">Cidade</Label>
-                                            <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder="Ex: São Paulo, SP" />
+                                            <Label htmlFor="cong-city">{t('city_label')}</Label>
+                                            <Input id="cong-city" value={newCongregationCity} onChange={(e) => setNewCongregationCity(e.target.value)} placeholder={t('city_placeholder')} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="cong-pastor">Pastor Responsável</Label>
-                                            <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder="Ex: Pr. João da Silva" />
+                                            <Label htmlFor="cong-pastor">{t('pastor_name_label')}</Label>
+                                            <Input id="cong-pastor" value={newCongregationPastor} onChange={(e) => setNewCongregationPastor(e.target.value)} placeholder={t('pastor_name_placeholder')} />
                                         </div>
                                     </div>
                                     <DialogFooter>
                                         <Button onClick={handleCreateCongregation} disabled={isCreating || !newCongregationName.trim()}>
                                         {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Criar Congregação
+                                        {t('create_congregation_button')}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
                         </div>
                     </TooltipTrigger>
-                     {userHasCongregation && <TooltipContent><p>Saia da sua congregação atual para criar uma nova.</p></TooltipContent>}
+                     {userHasCongregation && <TooltipContent><p>{t('community_tooltip_leave_to_create')}</p></TooltipContent>}
                 </Tooltip>
             </div>
         </TooltipProvider>
@@ -259,9 +261,9 @@ export default function CommunityPage() {
         {!congregation && userProfile?.congregationStatus !== 'PENDING' && (
           <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-xl font-semibold">Você ainda não faz parte de uma congregação</h3>
+            <h3 className="mt-4 text-xl font-semibold">{t('no_congregation_title')}</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Crie uma nova congregação para sua igreja ou entre em uma existente com um código de convite.
+              {t('no_congregation_desc')}
             </p>
           </div>
         )}
@@ -269,9 +271,9 @@ export default function CommunityPage() {
         {userProfile?.congregationStatus === 'PENDING' && congregation && (
              <Card>
                 <CardHeader className="text-center">
-                    <CardTitle>Solicitação Pendente</CardTitle>
+                    <CardTitle>{t('pending_request_title')}</CardTitle>
                     <CardDescription>
-                        Sua solicitação para entrar na congregação "{congregation.name}" está aguardando aprovação de um administrador.
+                        {t('pending_request_desc', { name: congregation.name })}
                     </CardDescription>
                 </CardHeader>
              </Card>
@@ -287,7 +289,7 @@ export default function CommunityPage() {
                             </div>
                             <div>
                             <CardTitle className="text-lg font-semibold">{congregation.name}</CardTitle>
-                            <CardDescription>{congregation.memberCount} membro(s)</CardDescription>
+                            <CardDescription>{t('member_count', { count: congregation.memberCount })}</CardDescription>
                             </div>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />

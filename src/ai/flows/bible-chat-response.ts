@@ -45,7 +45,7 @@ const bibleChatResponseFlow = ai.defineFlow(
 Pergunta do usuário: "${input.user_question}"
 
 Versículos de referência (use se aplicável):
-${input.bible_verses.join('\n')}
+${(input.bible_verses || []).join('\n')}
 `;
     
     const llmResponse = await ai.generate({

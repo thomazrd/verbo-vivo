@@ -63,6 +63,9 @@ const processPrayerFlow = ai.defineFlow(
       ${bible_verses.join('\n')}
       `,
       model: getModel(input.model),
+      output: {
+        schema: z.string(),
+      },
       config: {
         temperature: 0.6,
       },

@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { Congregation, CongregationMember } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -126,60 +127,62 @@ export default function ManageCongregationPage() {
   ) => {
     setActionInProgress(prev => ({ ...prev, [targetUserId]: true }));
     try {
-      const batch = writeBatch(db);
-      const congregationRef = doc(db, 'congregations', congregationId);
-      const memberRef = doc(db, 'congregations', congregationId, 'members', targetUserId);
-      const userRef = doc(db, 'users', targetUserId);
-
-      switch (action) {
-        case 'approve':
-          batch.update(memberRef, { status: 'MEMBER', joinedAt: serverTimestamp() });
-          batch.update(userRef, { congregationStatus: 'MEMBER' });
-          batch.update(congregationRef, { memberCount: increment(1) });
+      if (action === 'approve') {
+          const functions = getFunctions();
+          const approveMember = httpsCallable(functions, 'approveCongregationMemberRequest');
+          await approveMember({ congregationId, targetUserId });
           toast({ title: "Membro Aprovado!", description: "O usuário agora faz parte da congregação." });
-          break;
-        case 'reject':
-          batch.delete(memberRef);
-          batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-          toast({ title: "Solicitação Rejeitada." });
-          break;
-        case 'promote':
-            batch.update(memberRef, { status: 'ADMIN' });
-            batch.update(userRef, { congregationStatus: 'ADMIN' });
-            toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
-            break;
-        case 'remove':
-            const currentMemberDoc = await getDoc(memberRef);
-            if (!currentMemberDoc.exists()) {
-                throw new Error("Member not found");
-            }
-            const currentMember = currentMemberDoc.data();
-
+      } else {
+        const batch = writeBatch(db);
+        const congregationRef = doc(db, 'congregations', congregationId);
+        const memberRef = doc(db, 'congregations', congregationId, 'members', targetUserId);
+        const userRef = doc(db, 'users', targetUserId);
+  
+        switch (action) {
+          case 'reject':
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            
-            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+            toast({ title: "Solicitação Rejeitada." });
+            break;
+          case 'promote':
+              batch.update(memberRef, { status: 'ADMIN' });
+              batch.update(userRef, { congregationStatus: 'ADMIN' });
+              toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
+              break;
+          case 'remove':
+              const currentMemberDoc = await getDoc(memberRef);
+              if (!currentMemberDoc.exists()) {
+                  throw new Error("Member not found");
+              }
+              const currentMember = currentMemberDoc.data();
+  
+              batch.delete(memberRef);
+              batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
+              
+              if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+                batch.update(congregationRef, { memberCount: increment(-1) });
+              }
+              toast({ title: "Membro Removido." });
+              break;
+          case 'leave':
+               const memberLeaveDoc = await getDoc(memberRef);
+              if (!memberLeaveDoc.exists()) throw new Error("Member not found");
+  
+              batch.delete(memberRef);
+              batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
               batch.update(congregationRef, { memberCount: increment(-1) });
-            }
-            toast({ title: "Membro Removido." });
-            break;
-        case 'leave':
-             const memberLeaveDoc = await getDoc(memberRef);
-            if (!memberLeaveDoc.exists()) throw new Error("Member not found");
-
-            batch.delete(memberRef);
-            batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            batch.update(congregationRef, { memberCount: increment(-1) });
-            toast({ title: "Você saiu da congregação." });
-            router.push('/community');
-            break;
+              toast({ title: "Você saiu da congregação." });
+              router.push('/community');
+              break;
+        }
+        
+        await batch.commit();
       }
-      
-      await batch.commit();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error performing action ${action} on user ${targetUserId}:`, error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível completar a ação. Verifique as permissões.' });
+      const errorMessage = error.message || 'Não foi possível completar a ação. Verifique as permissões.';
+      toast({ variant: 'destructive', title: 'Erro', description: errorMessage });
     } finally {
       setActionInProgress(prev => ({ ...prev, [targetUserId]: false }));
     }

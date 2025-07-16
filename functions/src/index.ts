@@ -156,7 +156,8 @@ export const onNewComment = functions.region(region)
         }
     });
 
-// Gatilho para Aprovação na Congregação
+// Gatilho para Aprovação na Congregação (agora acionado pela Cloud Function)
+// A função onUpdate não é mais necessária para aprovação, mas pode ser útil para outras transições de status.
 export const onCongregationApproval = functions.region(region)
     .firestore.document("congregations/{congregationId}/members/{userId}")
     .onUpdate(async (change, context) => {
@@ -168,7 +169,7 @@ export const onCongregationApproval = functions.region(region)
             const congregationDoc = await db.doc(`congregations/${congregationId}`).get();
             await createAndSendNotification({
                 recipientId,
-                actorId: congregationId,
+                actorId: congregationId, // Pode ser o ID do admin que aprovou, se passado para a função.
                 actorName: congregationDoc.data()?.name || "Sua Congregação",
                 actorPhotoURL: null,
                 type: "CONGREGATION_APPROVAL",
@@ -176,4 +177,44 @@ export const onCongregationApproval = functions.region(region)
                 entityPath: `/community/${congregationId}`,
             });
         }
+    });
+
+/**
+ * Função Chamável para Aprovar Membros
+ */
+export const approveCongregationMemberRequest = functions.region(region)
+    .https.onCall(async (data, context) => {
+      const adminUid = context.auth?.uid;
+      const {congregationId, targetUserId} = data;
+
+      if (!adminUid) {
+        throw new functions.https.HttpsError("unauthenticated", "Você deve estar logado para realizar esta ação.");
+      }
+      if (!congregationId || !targetUserId) {
+        throw new functions.https.HttpsError("invalid-argument", " congregationId e targetUserId são obrigatórios.");
+      }
+
+      const congregationRef = db.doc(`congregations/${congregationId}`);
+      const memberRef = db.doc(`congregations/${congregationId}/members/${targetUserId}`);
+      const userRef = db.doc(`users/${targetUserId}`);
+      const adminMemberRef = db.doc(`congregations/${congregationId}/members/${adminUid}`);
+
+      // Verificar se o chamador é um admin da congregação
+      const adminMemberSnap = await adminMemberRef.get();
+      if (!adminMemberSnap.exists || adminMemberSnap.data()?.status !== "ADMIN") {
+        throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para aprovar membros.");
+      }
+
+      const batch = db.batch();
+      batch.update(memberRef, {status: "MEMBER", joinedAt: admin.firestore.FieldValue.serverTimestamp()});
+      batch.update(userRef, {congregationStatus: "MEMBER"});
+      batch.update(congregationRef, {memberCount: admin.firestore.FieldValue.increment(1)});
+
+      try {
+        await batch.commit();
+        return {success: true, message: "Membro aprovado com sucesso."};
+      } catch (error) {
+        console.error("Erro ao aprovar membro:", error);
+        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao aprovar o membro.");
+      }
     });

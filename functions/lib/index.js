@@ -37,12 +37,15 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewComment = exports.onNewPostLike = void 0;
+exports.createCongregation = exports.requestToJoinCongregation = exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewComment = exports.onNewPostLike = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
+function generateInviteCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 /**
  * Função principal que cria um documento de notificação e envia um push.
  */
@@ -182,7 +185,7 @@ exports.onCongregationApproval = functions.region(region)
  */
 exports.approveCongregationMemberRequest = functions.region(region)
     .https.onCall(async (data, context) => {
-    var _a, _b;
+    var _a, _b, _c;
     const adminUid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
     const { congregationId, targetUserId } = data;
     if (!adminUid) {
@@ -194,10 +197,13 @@ exports.approveCongregationMemberRequest = functions.region(region)
     const congregationRef = db.doc(`congregations/${congregationId}`);
     const memberRef = db.doc(`congregations/${congregationId}/members/${targetUserId}`);
     const userRef = db.doc(`users/${targetUserId}`);
-    const adminMemberRef = db.doc(`congregations/${congregationId}/members/${adminUid}`);
+    const congregationDoc = await congregationRef.get();
+    if (!congregationDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Congregação não encontrada.");
+    }
     // Verificar se o chamador é um admin da congregação
-    const adminMemberSnap = await adminMemberRef.get();
-    if (!adminMemberSnap.exists || ((_b = adminMemberSnap.data()) === null || _b === void 0 ? void 0 : _b.status) !== "ADMIN") {
+    const isAdmin = ((_c = (_b = congregationDoc.data()) === null || _b === void 0 ? void 0 : _b.admins) === null || _c === void 0 ? void 0 : _c[adminUid]) === true;
+    if (!isAdmin) {
         throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para aprovar membros.");
     }
     const batch = db.batch();
@@ -211,6 +217,111 @@ exports.approveCongregationMemberRequest = functions.region(region)
     catch (error) {
         console.error("Erro ao aprovar membro:", error);
         throw new functions.https.HttpsError("internal", "Ocorreu um erro ao aprovar o membro.");
+    }
+});
+/**
+ * Função Chamável para Solicitar Entrada na Congregação
+ */
+exports.requestToJoinCongregation = functions.region(region)
+    .https.onCall(async (data, context) => {
+    var _a, _b, _c, _d, _e;
+    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    const { inviteCode } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
+    }
+    if (!inviteCode) {
+        throw new functions.https.HttpsError("invalid-argument", "Código de convite é obrigatório.");
+    }
+    const userDocRef = db.doc(`users/${uid}`);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Usuário não encontrado.");
+    }
+    if ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.congregationId) {
+        throw new functions.https.HttpsError("failed-precondition", "Você já faz parte ou solicitou entrada em uma congregação.");
+    }
+    const congregationsRef = db.collection("congregations");
+    const q = congregationsRef.where("inviteCode", "==", inviteCode.toUpperCase());
+    const querySnapshot = await q.get();
+    if (querySnapshot.empty) {
+        throw new functions.https.HttpsError("not-found", "Código de convite inválido.");
+    }
+    const congregationDoc = querySnapshot.docs[0];
+    const congregationId = congregationDoc.id;
+    const memberRef = db.doc(`congregations/${congregationId}/members/${uid}`);
+    const batch = db.batch();
+    batch.set(memberRef, {
+        displayName: ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.displayName) || ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.email),
+        photoURL: ((_e = userDoc.data()) === null || _e === void 0 ? void 0 : _e.photoURL) || null,
+        status: 'PENDING',
+        requestedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    batch.update(userDocRef, {
+        congregationId: congregationId,
+        congregationStatus: 'PENDING'
+    });
+    try {
+        await batch.commit();
+        return { success: true, message: "Solicitação enviada com sucesso.", congregationName: congregationDoc.data().name };
+    }
+    catch (error) {
+        console.error("Erro ao solicitar entrada:", error);
+        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao processar sua solicitação.");
+    }
+});
+/**
+ * Função Chamável para Criar uma Congregação
+ */
+exports.createCongregation = functions.region(region)
+    .https.onCall(async (data, context) => {
+    var _a, _b, _c, _d, _e;
+    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    const { name, city, pastorName } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
+    }
+    if (!name || !city || !pastorName) {
+        throw new functions.https.HttpsError("invalid-argument", "Todos os campos são obrigatórios.");
+    }
+    const userDocRef = db.doc(`users/${uid}`);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Usuário não encontrado.");
+    }
+    if ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.congregationId) {
+        throw new functions.https.HttpsError("failed-precondition", "Você já está em uma congregação.");
+    }
+    const congregationRef = db.collection("congregations").doc();
+    const memberRef = db.doc(`congregations/${congregationRef.id}/members/${uid}`);
+    const batch = db.batch();
+    batch.set(congregationRef, {
+        name,
+        city,
+        pastorName,
+        admins: { [uid]: true },
+        memberCount: 1,
+        inviteCode: generateInviteCode(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdBy: uid,
+    });
+    batch.set(memberRef, {
+        displayName: ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.displayName) || ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.email),
+        photoURL: ((_e = userDoc.data()) === null || _e === void 0 ? void 0 : _e.photoURL) || null,
+        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'ADMIN',
+    });
+    batch.update(userDocRef, {
+        congregationId: congregationRef.id,
+        congregationStatus: 'ADMIN'
+    });
+    try {
+        await batch.commit();
+        return { success: true, message: "Congregação criada com sucesso.", congregationId: congregationRef.id };
+    }
+    catch (error) {
+        console.error("Erro ao criar congregação:", error);
+        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao criar a congregação.");
     }
 });
 //# sourceMappingURL=index.js.map

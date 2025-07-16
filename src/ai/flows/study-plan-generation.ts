@@ -31,14 +31,14 @@ const generateStudyPlanFlow = ai.defineFlow(
     inputSchema: StudyPlanInputSchema,
     outputSchema: StudyPlanOutputSchema,
   },
-  async ({ model, language, topic }) => {
+  async (input) => {
     
-    const systemPrompt = (systemPrompts[language || 'pt'] || systemPrompts.pt).replace('[TÓPICO]', topic);
+    const systemPrompt = (systemPrompts[input.language || 'pt'] || systemPrompts.pt).replace('[TÓPICO]', input.topic);
 
     const llmResponse = await ai.generate({
       system: systemPrompt,
-      prompt: `Tópico: "${topic}"`,
-      model: getModel(model),
+      prompt: `Tópico: "${input.topic}"`,
+      model: getModel(input.model),
       output: {
         schema: StudyPlanOutputSchema,
       },

@@ -44,7 +44,7 @@ const processPrayerFlow = ai.defineFlow(
     inputSchema: ProcessPrayerInputSchema,
     outputSchema: ProcessPrayerOutputSchema,
   },
-  async ({ model, language, prayerText }) => {
+  async (input) => {
     // In a real application, this would involve a semantic search
     // to find relevant verses. For now, we use a static set.
     const bible_verses = [
@@ -53,16 +53,16 @@ const processPrayerFlow = ai.defineFlow(
       "1 João 5:14 - Esta é a confiança que temos ao nos aproximarmos de Deus: se pedirmos alguma coisa de acordo com a vontade de Deus, ele nos ouve."
     ];
     
-    const systemPrompt = systemPrompts[language || 'pt'] || systemPrompts.pt;
+    const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
 
     const llmResponse = await ai.generate({
       system: systemPrompt,
-      prompt: `Oração do usuário: "${prayerText}"
+      prompt: `Oração do usuário: "${input.prayerText}"
 
       Versículos para usar como base:
       ${bible_verses.join('\n')}
       `,
-      model: getModel(model),
+      model: getModel(input.model),
       config: {
         temperature: 0.6,
       },

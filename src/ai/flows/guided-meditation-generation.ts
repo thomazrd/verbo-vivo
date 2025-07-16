@@ -30,14 +30,14 @@ const generateMeditationQuestionsFlow = ai.defineFlow(
     inputSchema: MeditationQuestionsInputSchema,
     outputSchema: MeditationQuestionsOutputSchema,
   },
-  async ({ model, language, bible_verse }) => {
+  async (input) => {
     
-    const systemPrompt = systemPrompts[language || 'pt'] || systemPrompts.pt;
+    const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
 
     const llmResponse = await ai.generate({
       system: systemPrompt,
-      prompt: `Versículo: "${bible_verse}"`,
-      model: getModel(model),
+      prompt: `Versículo: "${input.bible_verse}"`,
+      model: getModel(input.model),
       output: {
         schema: MeditationQuestionsOutputSchema,
       },

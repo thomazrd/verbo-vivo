@@ -31,14 +31,14 @@ const explainPassageFlow = ai.defineFlow(
     inputSchema: ExplainPassageInputSchema,
     outputSchema: ExplainPassageOutputSchema,
   },
-  async ({ model, language, passage }) => {
+  async (input) => {
     
-    const systemPrompt = systemPrompts[language || 'pt'] || systemPrompts.pt;
+    const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
     
     const llmResponse = await ai.generate({
       system: systemPrompt,
-      prompt: `Trecho: "${passage}"`,
-      model: getModel(model),
+      prompt: `Trecho: "${input.passage}"`,
+      model: getModel(input.model),
       output: {
         schema: ExplainPassageOutputSchema,
       },
@@ -50,5 +50,3 @@ const explainPassageFlow = ai.defineFlow(
     return llmResponse.output!;
   }
 );
-
-    

@@ -31,9 +31,9 @@ const bibleChatResponseFlow = ai.defineFlow(
     inputSchema: BibleChatResponseInputSchema,
     outputSchema: BibleChatResponseOutputSchema,
   },
-  async ({ model, language, user_question, bible_verses }) => {
+  async (input) => {
     
-    const systemPrompt = systemPrompts[language || 'pt'] || systemPrompts.pt;
+    const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
 
     const prompt = `Regras importantes:
 1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
@@ -42,16 +42,16 @@ const bibleChatResponseFlow = ai.defineFlow(
 2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16") e o texto completo na propriedade "verses". NÃO inclua os versículos na sua resposta principal.
 3.  **Base Bíblica**: Use os versículos de referência fornecidos como a fonte primária, se eles forem relevantes para a pergunta. Caso contrário, encontre outros mais adequados.
 
-Pergunta do usuário: "${user_question}"
+Pergunta do usuário: "${input.user_question}"
 
 Versículos de referência (use se aplicável):
-${bible_verses.join('\n')}
+${input.bible_verses.join('\n')}
 `;
     
     const llmResponse = await ai.generate({
       system: systemPrompt,
       prompt,
-      model: getModel(model),
+      model: getModel(input.model),
       output: {
         schema: BibleChatResponseOutputSchema,
       },

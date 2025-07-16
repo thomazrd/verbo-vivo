@@ -31,14 +31,14 @@ const generateChapterSummaryFlow = ai.defineFlow(
     inputSchema: ChapterSummaryInputSchema,
     outputSchema: z.string(),
   },
-  async ({ chapterText, language, model }) => {
+  async (input) => {
     
-    const systemPrompt = systemPrompts[language] || systemPrompts.pt;
+    const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
 
     const llmResponse = await ai.generate({
       system: systemPrompt,
-      prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${chapterText}`,
-      model: getModel(model),
+      prompt: `Aqui está o texto do capítulo. Por favor, gere a explicação com base nele:\n\n${input.chapterText}`,
+      model: getModel(input.model),
       config: {
         temperature: 0.3,
       },

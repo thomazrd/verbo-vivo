@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Share2, Wand } from 'lucide-react';
 import { ContentPreviewModal } from '@/components/esperanca/ContentPreviewModal';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const formSchema = z.object({
   problemDescription: z.string().min(10, { message: "Descreva a situação com pelo menos 10 caracteres." }).max(500, { message: "A descrição não pode ter mais de 500 caracteres." }),
@@ -42,6 +44,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function PonteDaEsperancaPage() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<SharedContent | null>(null);
   const [generatedContentId, setGeneratedContentId] = useState<string | null>(null);
@@ -73,6 +76,7 @@ export default function PonteDaEsperancaPage() {
       // 1. Generate content with Genkit
       const content = await generateShareableContent({ 
         model: userProfile?.preferredModel,
+        language: userProfile?.preferredLanguage || i18n.language,
         problemDescription: data.problemDescription,
         recipientName: data.isLetter ? data.recipientName : undefined,
       });

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -24,12 +25,15 @@ import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 
 export default function ChatPage() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -181,12 +185,15 @@ export default function ChatPage() {
 
     try {
       // Add user message to Firestore. The onSnapshot listener will handle UI updates.
-      await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
+      const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
       const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,
+        language: userProfile?.preferredLanguage || i18n.language,
         user_question: text,
-        bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."]
+        bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."],
+        userId: user.uid,
+        messageId: docRef.id,
       });
 
       const aiMessage: Omit<Message, 'id'> = {

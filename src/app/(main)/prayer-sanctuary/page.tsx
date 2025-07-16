@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -107,11 +108,11 @@ function PrayerHistoryList({ userId }: { userId: string }) {
 }
 
 export default function PrayerSanctuaryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
-  const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: string[]}| null>(null);
+  const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: any[]}| null>(null);
   const [processingText, setProcessingText] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
@@ -219,7 +220,11 @@ export default function PrayerSanctuaryPage() {
     if(!user) return;
 
     try {
-        const result = await processPrayer({ model: userProfile?.preferredModel, prayerText });
+        const result = await processPrayer({ 
+            model: userProfile?.preferredModel, 
+            language: userProfile?.preferredLanguage || i18n.language,
+            prayerText 
+        });
         await addDoc(collection(db, "prayers"), {
             userId: user.uid,
             prayerText,

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { Loader2, Sparkles, CheckCircle, BookCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { generateStudyPlan } from "@/ai/flows/study-plan-generation";
 import type { StudyPlanOutput } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 interface PlanCreationModalProps {
   isOpen: boolean;
@@ -30,6 +32,7 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
   const { user, userProfile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<StudyPlanOutput | null>(null);
@@ -40,7 +43,11 @@ export function PlanCreationModal({ isOpen, onClose, topic }: PlanCreationModalP
     setIsLoading(true);
     setGeneratedPlan(null);
     try {
-      const plan = await generateStudyPlan({ model: userProfile?.preferredModel, topic });
+      const plan = await generateStudyPlan({ 
+          model: userProfile?.preferredModel,
+          language: userProfile?.preferredLanguage || i18n.language,
+          topic 
+      });
       setGeneratedPlan(plan);
     } catch (error) {
       console.error("Error generating plan:", error);

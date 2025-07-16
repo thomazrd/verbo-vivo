@@ -322,6 +322,7 @@ export interface BibleChapter {
 // === AI Flow Schemas and Types ===
 const BaseAiInputSchema = z.object({
     model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
+    language: z.string().optional().describe('The language code for the response (e.g., "pt", "en").'),
 });
 
 const ChatPartSchema = z.object({
@@ -401,7 +402,6 @@ export type StudyPlanOutput = z.infer<typeof StudyPlanOutputSchema>;
 // From: chapter-summary-generation.ts
 export const ChapterSummaryInputSchema = BaseAiInputSchema.extend({
   chapterText: z.string().describe('The full text of the Bible chapter.'),
-  language: z.string().describe('The language code for the summary (e.g., "pt", "en").'),
 });
 export type ChapterSummaryInput = z.infer<typeof ChapterSummaryInputSchema>;
 

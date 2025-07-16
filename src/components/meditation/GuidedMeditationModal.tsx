@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wand } from "lucide-react";
 import type { Verse } from "@/lib/types";
 import { generateMeditationQuestions } from "@/ai/flows/guided-meditation-generation";
+import { useTranslation } from "react-i18next";
 
 interface GuidedMeditationModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ interface GuidedMeditationModalProps {
 export function GuidedMeditationModal({ isOpen, onClose, verse }: GuidedMeditationModalProps) {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [questions, setQuestions] = useState<string[]>([]);
@@ -45,6 +48,7 @@ export function GuidedMeditationModal({ isOpen, onClose, verse }: GuidedMeditati
     try {
       const result = await generateMeditationQuestions({ 
           model: userProfile?.preferredModel,
+          language: userProfile?.preferredLanguage || i18n.language,
           bible_verse: verse.text 
       });
       setQuestions(result.questions);

@@ -13,9 +13,10 @@ interface BibleResponseStepProps {
   emotion: EmotionOption;
   reportText: string;
   onResponseReady: (response: ProcessFeelingReportOutput) => void;
+  language: string;
 }
 
-export function BibleResponseStep({ emotion, reportText, onResponseReady }: BibleResponseStepProps) {
+export function BibleResponseStep({ emotion, reportText, onResponseReady, language }: BibleResponseStepProps) {
   const { userProfile } = useAuth();
   const [response, setResponse] = useState<ProcessFeelingReportOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady }: Bibl
       try {
         const result = await processFeelingReport({
           model: userProfile?.preferredModel,
+          language: language,
           emotion: emotion.name,
           reportText: reportText,
         });
@@ -35,7 +37,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady }: Bibl
       }
     };
     getResponse();
-  }, [emotion, reportText, userProfile]);
+  }, [emotion, reportText, userProfile, language]);
 
   if (error) {
     return (

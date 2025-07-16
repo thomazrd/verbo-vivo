@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import type { FeelingJourneyStep, ProcessFeelingReportOutput, BibleVerse } from '@/lib/types';
 import { Emotion, Smile, Frown, Annoyed, Angry, Meh, Hand, AlertTriangle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import { EmotionSelector, feelingOptions, EmotionOption } from '@/components/feeling-journey/EmotionSelector';
 import { VoiceReportStep } from '@/components/feeling-journey/VoiceReportStep';
@@ -31,7 +33,8 @@ type JourneyStatus = 'disclaimer' | 'selecting_emotion' | 'reporting' | 'respond
 const MAX_CYCLES = 3;
 
 export default function FeelingJourneyPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const { i18n } = useTranslation();
   const [status, setStatus] = useState<JourneyStatus>('disclaimer');
   const [currentCycle, setCurrentCycle] = useState(0);
   const [journeySteps, setJourneySteps] = useState<FeelingJourneyStep[]>([]);
@@ -125,7 +128,7 @@ export default function FeelingJourneyPage() {
       case 'reporting':
         return <VoiceReportStep emotion={currentEmotion!} onSubmit={handleReportSubmit} />;
       case 'responding':
-        return <BibleResponseStep emotion={currentEmotion!} reportText={currentReport} onResponseReady={handleResponseRead} />;
+        return <BibleResponseStep emotion={currentEmotion!} reportText={currentReport} onResponseReady={handleResponseRead} language={userProfile?.preferredLanguage || i18n.language} />;
       case 'reassessing':
         return <EmotionSelector onSelectEmotion={handleReassessment} title="E agora, como você se sente?" />;
       case 'concluding':

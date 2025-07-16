@@ -17,17 +17,25 @@ export async function bibleChatResponse(input: BibleChatResponseInput): Promise<
   return bibleChatResponseFlow(input);
 }
 
+const systemPrompts: Record<string, string> = {
+    pt: "Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Sua tarefa é responder à pergunta do usuário de forma clara e acolhedora em português.",
+    en: "You are a compassionate and knowledgeable AI assistant with a deep understanding of the Bible. Your task is to answer the user's question clearly and warmly in English.",
+    es: "Eres un asistente de IA compasivo y experto, con un profundo conocimiento de la Biblia. Tu tarea es responder a la pregunta del usuario de forma clara y acogedora en español.",
+    zh: "你是一位富有同情心和知识渊博的人工智能助手，对圣经有深刻的理解。你的任务是用中文清晰而热情地回答用户的问题。",
+    ja: "あなたは聖書を深く理解している、思いやりのある知識豊富なAIアシスタントです。あなたの仕事は、ユーザーの質問に日本語で明確かつ温かく答えることです。"
+};
+
 const bibleChatResponseFlow = ai.defineFlow(
   {
     name: 'bibleChatResponseFlow',
     inputSchema: BibleChatResponseInputSchema,
     outputSchema: BibleChatResponseOutputSchema,
   },
-  async ({ model, user_question, bible_verses }) => {
+  async ({ model, language, user_question, bible_verses }) => {
     
-    const prompt = `Você é um assistente de IA compassivo e experiente, com um profundo conhecimento da Bíblia. Sua tarefa é responder à pergunta do usuário de forma clara e acolhedora.
+    const systemPrompt = systemPrompts[language || 'pt'] || systemPrompts.pt;
 
-Regras importantes:
+    const prompt = `Regras importantes:
 1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
     - **Estruture o texto em parágrafos curtos e bem definidos** para facilitar a leitura.
     - **Use formatação Markdown** (como **negrito** para destacar ideias importantes e listas com marcadores para organizar os pontos) para melhorar a legibilidade.
@@ -41,6 +49,7 @@ ${bible_verses.join('\n')}
 `;
     
     const llmResponse = await ai.generate({
+      system: systemPrompt,
       prompt,
       model: getModel(model),
       output: {

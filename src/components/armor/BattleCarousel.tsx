@@ -8,10 +8,12 @@ import {
   CarouselApi,
   CarouselContent,
   CarouselItem,
+  CarouselNext,
+  CarouselPrevious
 } from "@/components/ui/carousel";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, ArrowLeft, ArrowRight, BookOpen } from 'lucide-react';
+import { X, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
@@ -48,7 +50,6 @@ function BattleVerseCard({ weapon }: { weapon: ArmorWeapon }) {
 
 export function BattleCarousel({ armor }: { armor: Armor }) {
   const router = useRouter();
-  const [api, setApi] = useState<CarouselApi>();
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col">
@@ -60,8 +61,13 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
         </Button>
       </header>
 
-      <div className="flex-1 flex flex-col justify-center">
-          <Carousel setApi={setApi} className="w-full">
+      <div className="flex-1 flex flex-col justify-center relative">
+          <Carousel
+            opts={{
+              align: "start",
+            }}
+            className="w-full max-w-4xl mx-auto"
+          >
             <CarouselContent className="ml-0">
               {armor.weapons.map((weapon) => (
                 <CarouselItem key={weapon.id}>
@@ -69,32 +75,12 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
                 </CarouselItem>
               ))}
             </CarouselContent>
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
           </Carousel>
       </div>
 
-
-      <footer className="flex-shrink-0 z-10 p-4">
-        <div className="max-w-2xl mx-auto flex justify-between items-center">
-            <Button
-              variant="outline"
-              className="bg-background/80 backdrop-blur-sm"
-              onClick={() => api?.scrollPrev()}
-              disabled={!api?.canScrollPrev()}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              className="bg-background/80 backdrop-blur-sm"
-              onClick={() => api?.scrollNext()}
-              disabled={!api?.canScrollNext}
-            >
-              Próximo
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-        </div>
-      </footer>
+      <div className="h-16 flex-shrink-0" />
     </div>
   );
 }

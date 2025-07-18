@@ -12,7 +12,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Share2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -50,8 +50,8 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
   const [api, setApi] = useState<CarouselApi>();
 
   return (
-    <div className="relative h-screen w-screen bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col">
-      <header className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center">
+    <div className="h-screen w-screen bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col">
+      <header className="flex-shrink-0 p-4 flex justify-between items-center z-10">
         <h1 className="text-lg font-semibold text-muted-foreground">{armor.name}</h1>
         <Button variant="ghost" size="icon" onClick={() => router.push('/armor')}>
           <X className="h-5 w-5" />
@@ -59,23 +59,26 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
         </Button>
       </header>
 
-      <Carousel setApi={setApi} className="flex-1 w-full h-full">
-        <CarouselContent className="h-full">
-          {armor.weapons.map((weapon) => (
-            <CarouselItem key={weapon.id} className="h-full">
-              <BattleVerseCard weapon={weapon} />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+      <div className="flex-1 flex flex-col justify-center">
+          <Carousel setApi={setApi} className="w-full">
+            <CarouselContent>
+              {armor.weapons.map((weapon) => (
+                <CarouselItem key={weapon.id}>
+                  <BattleVerseCard weapon={weapon} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+      </div>
 
-      <footer className="absolute bottom-0 left-0 right-0 z-10 p-4">
+
+      <footer className="flex-shrink-0 z-10 p-4">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
             <Button
               variant="outline"
               className="bg-background/80 backdrop-blur-sm"
               onClick={() => api?.scrollPrev()}
-              disabled={!api?.canScrollPrev}
+              disabled={!api?.canScrollPrev()}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Anterior

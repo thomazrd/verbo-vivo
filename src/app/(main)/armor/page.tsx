@@ -21,32 +21,33 @@ export default function MyArmorPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Wait until authentication status and user profile are fully loaded
+    // Apenas continue se o carregamento de autenticação e perfil estiver concluído
     if (authLoading) {
       return;
     }
 
-    // If loading is finished and there's no user, redirect to login
+    // Se não houver usuário, redirecione para o login
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // If user is loaded, but profile is not yet, wait.
+    // Se o usuário existe mas o perfil ainda não carregou, o authLoading já deveria ter pego.
+    // Mas como uma segurança extra, podemos verificar.
     if (!userProfile) {
-        // This case can happen briefly. We wait for the profile.
-        // The isLoading state will show the skeleton.
+        // Isso pode acontecer se o documento do usuário não existir.
+        // O ideal é que o Onboarding cuide disso. Redirecionar para um local seguro.
+        router.push('/home');
         return;
     }
     
-    // Redirect to onboarding if not completed
+    // Agora que sabemos que o usuário e o perfil estão carregados, verificamos o onboarding.
     if (!userProfile.armorOnboardingCompleted) {
       router.push('/armor/onboarding');
       return;
     }
 
-    // At this point, user and profile are loaded, and onboarding is complete.
-    // We can now safely fetch the armors.
+    // Se passou por todas as verificações, busque as armaduras.
     const q = query(collection(db, `users/${user.uid}/armors`), orderBy('updatedAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const userArmors: Armor[] = [];

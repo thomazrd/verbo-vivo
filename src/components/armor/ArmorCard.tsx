@@ -26,6 +26,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords } from 'lucide-react';
@@ -92,7 +93,7 @@ export function ArmorCard({ armor }: ArmorCardProps) {
                                 Duplicar
                             </DropdownMenuItem>
                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Desmontar
                                 </DropdownMenuItem>

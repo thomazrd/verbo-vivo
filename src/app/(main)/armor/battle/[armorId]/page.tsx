@@ -25,6 +25,7 @@ export default function BattleModePage() {
         if (!user || !armorId) return;
 
         const fetchArmor = async () => {
+            setLoading(true);
             try {
                 const armorRef = doc(db, `users/${user.uid}/armors`, armorId);
                 const docSnap = await getDoc(armorRef);
@@ -54,7 +55,6 @@ export default function BattleModePage() {
     }
 
     if (error) {
-        // A simple error display, could be enhanced
         return (
             <div className="flex h-screen w-screen items-center justify-center bg-background text-destructive">
                 <p>{error}</p>

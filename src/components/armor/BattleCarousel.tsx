@@ -51,7 +51,7 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
   const [api, setApi] = useState<CarouselApi>();
 
   return (
-    <div className="h-screen w-screen bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col">
+    <div className="h-screen w-screen overflow-hidden bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col">
       <header className="flex-shrink-0 p-4 flex justify-between items-center z-10">
         <h1 className="text-lg font-semibold text-muted-foreground">{armor.name}</h1>
         <Button variant="ghost" size="icon" onClick={() => router.push('/armor')}>
@@ -62,7 +62,7 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
 
       <div className="flex-1 flex flex-col justify-center">
           <Carousel setApi={setApi} className="w-full">
-            <CarouselContent>
+            <CarouselContent className="ml-0">
               {armor.weapons.map((weapon) => (
                 <CarouselItem key={weapon.id}>
                   <BattleVerseCard weapon={weapon} />

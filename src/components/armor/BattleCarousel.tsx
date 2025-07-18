@@ -73,8 +73,8 @@ export function BattleCarousel({ armor }: { armor: Armor }) {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
-            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20" />
+            <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20 h-10 w-10 sm:h-12 sm:w-12" />
+            <CarouselNext className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 border-white/20 h-10 w-10 sm:h-12 sm:w-12" />
           </Carousel>
       </div>
       

@@ -11,7 +11,6 @@ import type { Armor } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
 import { Plus, Shield } from 'lucide-react';
 import { ArmorCard } from '@/components/armor/ArmorCard';
 
@@ -22,18 +21,32 @@ export default function MyArmorPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
+    // Wait until authentication status and user profile are fully loaded
+    if (authLoading) {
+      return;
+    }
+
+    // If loading is finished and there's no user, redirect to login
     if (!user) {
       router.push('/login');
       return;
     }
+
+    // If user is loaded, but profile is not yet, wait.
+    if (!userProfile) {
+        // This case can happen briefly. We wait for the profile.
+        // The isLoading state will show the skeleton.
+        return;
+    }
     
     // Redirect to onboarding if not completed
-    if (userProfile && !userProfile.armorOnboardingCompleted) {
+    if (!userProfile.armorOnboardingCompleted) {
       router.push('/armor/onboarding');
       return;
     }
 
+    // At this point, user and profile are loaded, and onboarding is complete.
+    // We can now safely fetch the armors.
     const q = query(collection(db, `users/${user.uid}/armors`), orderBy('updatedAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const userArmors: Armor[] = [];

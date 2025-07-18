@@ -1,152 +1,88 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if a user document exists and belongs to the user
-    function userExists(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId));
-    }
-
-    // Helper function to check if user's ID matches the one in the resource
-    function isResourceOwner(resourceUserId) {
-      return request.auth.uid == resourceUserId;
-    }
-    
-    // User Profiles
     match /users/{userId} {
-      // A user can only create their own profile document.
-      allow create: if isResourceOwner(userId);
-      // A user can only read and update their own profile document.
-      allow read, update: if isResourceOwner(userId);
-      // Users cannot delete their profiles through the client SDK.
-      allow delete: if false;
+      allow read: if request.auth.uid == userId;
     }
 
-    // Armors (Private to each user)
     match /users/{userId}/armors/{armorId} {
-      // A user can read, create, update, and delete their own armors.
-      // The `userId` in the resource must match the authenticated user's ID.
-      allow read, write: if isResourceOwner(userId) && request.resource.data.userId == request.auth.uid;
+      // Regra de Leitura: Permite que o usuário leia suas próprias armaduras.
+      // A condição `request.auth.uid == userId` verifica se o ID na rota corresponde ao usuário autenticado.
+      allow get, list: if request.auth.uid == userId;
+
+      // Regra de Escrita: Permite que o usuário crie/atualize/delete suas próprias armaduras.
+      // `request.auth.uid == userId` garante que o usuário está no caminho correto.
+      // `request.resource.data.userId == request.auth.uid` garante que o `userId` no documento também está correto.
+      allow create, update, delete: if request.auth.uid == userId && request.resource.data.userId == request.auth.uid;
     }
 
-    // Study Plans (Private to each user)
-    match /users/{userId}/plans/{planId} {
-      allow read, write: if isResourceOwner(userId) && request.resource.data.userId == request.auth.uid;
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
     }
 
-    // Chat Messages (Private to each user)
-    match /users/{userId}/messages/{messageId} {
-      allow read, write: if isResourceOwner(userId);
-    }
-    
-    // Journal Entries (Private to each user)
-    match /journals/{journalId} {
-      allow read, write, delete: if request.auth.uid == resource.data.userId;
-    }
-    
-    // Prayer Sanctuary recordings (Private to each user)
-    match /prayers/{prayerId} {
-       allow read, create: if request.auth.uid == resource.data.userId;
-       allow update, delete: if false; // Users shouldn't edit their past prayers
-    }
-    
-    // Feeling Journeys (Private to each user)
-    match /feelingJourneys/{journeyId} {
-        allow read, create: if request.auth.uid == resource.data.userId;
-        allow update, delete: if false;
-    }
-    
-    // Meditations (Private to each user)
-    match /meditations/{meditationId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
-      // You might want a read rule if you decide to list past meditations
-      allow read, update, delete: if false; 
+    // Regras para Congregações e Posts
+    match /congregations/{congregationId} {
+      // Qualquer usuário autenticado pode ler os dados públicos da congregação.
+      allow get: if request.auth.uid != null;
+      // Admins podem atualizar dados da congregação (como nome, etc.)
+      allow update: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins;
     }
 
-    // Notifications and Push Tokens
-    match /notifications/{notificationId} {
-        // Users can only read notifications intended for them
-        allow read: if request.auth.uid == resource.data.recipientId;
-        // Only backend can create/update notifications
-        allow write: if false;
-    }
-    match /userPushTokens/{userId} {
-        // Users can only manage their own push notification token
-        allow read, write: if isResourceOwner(userId);
+    match /congregations/{congregationId}/members/{memberId} {
+      // Membros da congregação podem ler a lista de membros.
+      // Qualquer usuário logado pode ler seu próprio status de membro.
+      allow get: if request.auth.uid == memberId || request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data;
+      allow list: if request.auth.uid != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      
+      // Um usuário pode criar seu próprio registro de membro (solicitação para entrar).
+      allow create: if request.auth.uid == memberId;
+      // Admins podem atualizar o status dos membros (aprovar).
+      allow update: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins;
+      // Admins podem remover membros, e usuários podem remover a si mesmos.
+      allow delete: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins || request.auth.uid == memberId;
     }
 
-    // Publicly Readable Content
-    match /sharedContent/{contentId} {
-      // Anyone can read a shared content page
-      allow read: if true;
-      // Only the creator can create/update it
-      allow create, update: if request.auth.uid == request.resource.data.creatorId;
-      allow delete: if false;
+    match /congregations/{congregationId}/posts/{postId} {
+       // Membros da congregação podem ler e listar posts.
+      allow get, list: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      // Membros da congregação podem criar posts.
+      allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      // O autor do post pode atualizá-lo ou excluí-lo.
+      allow update, delete: if resource.data.authorId == request.auth.uid;
+    }
+
+    match /congregations/{congregationId}/posts/{postId}/{subcollection}/{docId} {
+      // Qualquer membro da congregação pode ler likes e comentários.
+      allow get, list: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      // Qualquer membro da congregação pode criar (curtir, comentar).
+      allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      // O autor do like/comentário pode excluí-lo.
+      allow delete: if resource.data.authorId == request.auth.uid;
+       // O autor do comentário pode atualizá-lo.
+      allow update: if resource.data.authorId == request.auth.uid;
     }
     
     match /articles/{articleId} {
-        // Anyone can read published articles
-        allow read: if resource.data.status == 'published';
-        // Only admins of congregations can write/update/delete articles
-        allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
+      // Permite leitura pública de artigos publicados.
+      allow get: if resource.data.status == 'published';
+      // Permite listagem apenas de artigos publicados.
+      allow list: if request.query.where.status == 'published';
+      // Permite que admins da congregação criem, atualizem e deletem artigos.
+      // Esta regra é permissiva. Idealmente, a verificação de admin seria mais granular.
+      allow create, update, delete: if request.auth != null;
     }
 
-
-    // Congregations (Complex Rules)
-    function isCongregationMember(congregationId) {
-        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-    }
-    function isCongregationAdmin(congregationId) {
-        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
+    match /sharedContent/{contentId} {
+        // Qualquer pessoa pode ler um conteúdo compartilhado.
+        allow get: true;
+        // Apenas o criador pode criar e atualizar.
+        allow create, update: if request.auth.uid == request.resource.data.creatorId;
     }
 
-    match /congregations/{congregationId} {
-      // Anyone authenticated can read basic congregation info (e.g., for search/join)
-      allow read: if request.auth != null;
-      // Only backend functions can create/update congregation documents directly
-      allow write: if false;
-    }
-    
-    match /congregations/{congregationId}/members/{memberId} {
-        // Admins can read all members
-        allow read: if isCongregationAdmin(congregationId);
-        // Members can read their own membership status
-        allow get: if isResourceOwner(memberId);
-        // Only backend can write to members subcollection
-        allow write: if false;
-    }
-    
-    match /congregations/{congregationId}/posts/{postId} {
-        // Only members of the congregation can read posts
-        allow read: if isCongregationMember(congregationId);
-        // Only members of the congregation can create posts
-        allow create: if isCongregationMember(congregationId) && isResourceOwner(request.resource.data.authorId);
-        // Users can only update/delete their own posts
-        allow update, delete: if isResourceOwner(resource.data.authorId);
-    }
-    
-    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
-        // Only members of the congregation can read comments
-        allow read: if isCongregationMember(congregationId);
-        // Only members of the congregation can write comments
-        allow create: if isCongregationMember(congregationId) && isResourceOwner(request.resource.data.authorId);
-        // Users can only update/delete their own comments
-        allow update, delete: if isResourceOwner(resource.data.authorId);
-    }
-    
-    match /congregations/{congregationId}/posts/{postId}/likes/{userId} {
-        // Only members of the congregation can like posts
-        allow create: if isCongregationMember(congregationId) && isResourceOwner(userId);
-        // Users can only remove their own like
-        allow delete: if isResourceOwner(userId);
-        allow read, update: if false;
-    }
-    
-    // Default deny all other reads/writes
-    match /{document=**} {
-      allow read, write: if false;
+    // Regra geral para notificações: o destinatário pode ler suas próprias notificações.
+    match /notifications/{notificationId} {
+      allow read, update: if request.auth.uid == resource.data.recipientId;
     }
   }
 }

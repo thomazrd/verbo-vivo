@@ -23,6 +23,7 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -77,7 +78,7 @@ function SortableWeaponItem({ weapon, onRemove }: { weapon: ArmorWeapon; onRemov
     );
 }
 
-function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapon, 'id'>) => void }) {
+function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapon, 'id' | 'bibleVersion'> & { bibleVersion?: string }) => void }) {
     const [battle, setBattle] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<Omit<ArmorWeapon, 'id'>[]>([]);
@@ -201,16 +202,13 @@ export function ForgeView({ armorId }: { armorId?: string }) {
             setWeapons((items) => {
                 const oldIndex = items.findIndex((item) => item.id === active.id);
                 const newIndex = items.findIndex((item) => item.id === over.id);
-                const newItems = [...items];
-                const [movedItem] = newItems.splice(oldIndex, 1);
-                newItems.splice(newIndex, 0, movedItem);
-                return newItems;
+                return arrayMove(items, oldIndex, newIndex);
             });
         }
     }
     
-    const addWeapon = (weapon: Omit<ArmorWeapon, 'id'>) => {
-        setWeapons(current => [...current, { ...weapon, id: uuidv4() }]);
+    const addWeapon = (weapon: Omit<ArmorWeapon, 'id' | 'bibleVersion'> & { bibleVersion?: string }) => {
+        setWeapons(current => [...current, { ...weapon, id: uuidv4(), bibleVersion: weapon.bibleVersion || 'NVI' }]);
     }
 
     const removeWeapon = (id: string) => {
@@ -220,7 +218,7 @@ export function ForgeView({ armorId }: { armorId?: string }) {
     const onSubmit = async (values: ArmorFormValues) => {
         if (!user) return;
         setIsSaving(true);
-        const armorData = {
+        const armorData: Omit<Armor, 'id' | 'createdAt'> = {
             ...values,
             userId: user.uid,
             weapons,

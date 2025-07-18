@@ -24,6 +24,7 @@ import {
   Home,
   Smile,
   Newspaper,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -54,6 +55,7 @@ export function Header() {
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
     { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
+    { href: "/armor", label: 'Minha Armadura', icon: Shield },
     { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
     { href: "/plans", label: t('nav_plans'), icon: BookOpen },
     { href: "/bible", label: t('nav_bible'), icon: BookMarked },

@@ -8,14 +8,12 @@ import {
   CarouselApi,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Share2, ArrowLeft, ArrowRight } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { X, ArrowLeft, ArrowRight, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 function BattleVerseCard({ weapon }: { weapon: ArmorWeapon }) {
   return (
@@ -28,14 +26,17 @@ function BattleVerseCard({ weapon }: { weapon: ArmorWeapon }) {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         className="w-full max-w-2xl"
       >
-        <Card className="bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg">
+        <Card className="bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg text-center">
           <CardHeader>
-            <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight text-primary">
-              {weapon.verseReference}
-            </CardTitle>
+            <div className="flex justify-center items-center gap-2">
+                <BookOpen className="h-6 w-6 text-primary/80" />
+                <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight text-primary">
+                {weapon.verseReference}
+                </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <blockquote className="text-xl md:text-2xl font-serif leading-relaxed text-foreground">
+          <CardContent className="px-6 pb-8">
+            <blockquote className="text-xl md:text-2xl font-serif leading-relaxed text-foreground border-t pt-6">
               <p>“{weapon.verseText}”</p>
             </blockquote>
           </CardContent>

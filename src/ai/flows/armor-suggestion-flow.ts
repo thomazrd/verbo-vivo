@@ -48,6 +48,9 @@ const suggestWeaponsFlow = ai.defineFlow(
       throw new Error('A IA não conseguiu gerar as armas. Tente novamente.');
     }
 
+    // Since the output schema expects IDs, and the AI won't generate them,
+    // we can add them here if necessary, though the frontend will likely handle it.
+    // For now, the schema on the frontend doesn't require an ID from the AI.
     return output;
   }
 );
@@ -63,6 +66,8 @@ const getSingleWeaponSuggestionFlow = ai.defineFlow(
         const prompt = ai.definePrompt({
             name: 'getSingleWeaponSuggestionPrompt',
             input: { schema: ArmorSuggestionInputSchema },
+            // The output is an array of weapons, but the prompt asks for 3.
+            // This is valid as the schema defines the structure of the items in the array.
             output: { schema: ArmorSuggestionOutputSchema },
             system: `Para um soldado lutando contra '{{battle}}', sugira 3 versículos bíblicos relevantes como objetos JSON. Cada objeto deve ter os campos: verseReference, verseText, e bibleVersion ('NVI').`,
             prompt: `Batalha: "{{battle}}"`,
@@ -79,7 +84,6 @@ const getSingleWeaponSuggestionFlow = ai.defineFlow(
         throw new Error('A IA não conseguiu gerar sugestões. Tente novamente.');
       }
       
-      // The prompt asks for 3 but the schema expects 7, so we just return the 3 in the expected wrapper
       return output;
     }
   );

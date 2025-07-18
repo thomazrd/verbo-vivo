@@ -492,7 +492,6 @@ export const ArmorSuggestionInputSchema = BaseAiInputSchema.extend({
 export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
 
 export const ArmorWeaponSchema = z.object({
-    id: z.string(),
     verseReference: z.string(),
     verseText: z.string(),
     bibleVersion: z.string(),
@@ -500,6 +499,6 @@ export const ArmorWeaponSchema = z.object({
 export type ArmorWeaponOutput = z.infer<typeof ArmorWeaponSchema>;
 
 export const ArmorSuggestionOutputSchema = z.object({
-    weapons: z.array(ArmorWeaponSchema).describe('An array of 7 bible verses to be used as spiritual weapons.'),
+    weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
 });
 export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;

@@ -2,87 +2,114 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      allow read: if request.auth.uid == userId;
-    }
-
-    match /users/{userId}/armors/{armorId} {
-      // Regra de Leitura: Permite que o usuário leia suas próprias armaduras.
-      // A condição `request.auth.uid == userId` verifica se o ID na rota corresponde ao usuário autenticado.
-      allow get, list: if request.auth.uid == userId;
-
-      // Regra de Escrita: Permite que o usuário crie/atualize/delete suas próprias armaduras.
-      // `request.auth.uid == userId` garante que o usuário está no caminho correto.
-      // `request.resource.data.userId == request.auth.uid` garante que o `userId` no documento também está correto.
-      allow create, update, delete: if request.auth.uid == userId && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth.uid == userId;
-    }
-
-    // Regras para Congregações e Posts
-    match /congregations/{congregationId} {
-      // Qualquer usuário autenticado pode ler os dados públicos da congregação.
-      allow get: if request.auth.uid != null;
-      // Admins podem atualizar dados da congregação (como nome, etc.)
-      allow update: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins;
-    }
-
-    match /congregations/{congregationId}/members/{memberId} {
-      // Membros da congregação podem ler a lista de membros.
-      // Qualquer usuário logado pode ler seu próprio status de membro.
-      allow get: if request.auth.uid == memberId || request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data;
-      allow list: if request.auth.uid != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-      
-      // Um usuário pode criar seu próprio registro de membro (solicitação para entrar).
-      allow create: if request.auth.uid == memberId;
-      // Admins podem atualizar o status dos membros (aprovar).
-      allow update: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins;
-      // Admins podem remover membros, e usuários podem remover a si mesmos.
-      allow delete: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins || request.auth.uid == memberId;
-    }
-
-    match /congregations/{congregationId}/posts/{postId} {
-       // Membros da congregação podem ler e listar posts.
-      allow get, list: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-      // Membros da congregação podem criar posts.
-      allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-      // O autor do post pode atualizá-lo ou excluí-lo.
-      allow update, delete: if resource.data.authorId == request.auth.uid;
-    }
-
-    match /congregations/{congregationId}/posts/{postId}/{subcollection}/{docId} {
-      // Qualquer membro da congregação pode ler likes e comentários.
-      allow get, list: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-      // Qualquer membro da congregação pode criar (curtir, comentar).
-      allow create: if get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-      // O autor do like/comentário pode excluí-lo.
-      allow delete: if resource.data.authorId == request.auth.uid;
-       // O autor do comentário pode atualizá-lo.
-      allow update: if resource.data.authorId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read, update: if isOwner(userId);
     }
     
-    match /articles/{articleId} {
-      // Permite leitura pública de artigos publicados.
-      allow get: if resource.data.status == 'published';
-      // Permite listagem apenas de artigos publicados.
-      allow list: if request.query.where.status == 'published';
-      // Permite que admins da congregação criem, atualizem e deletem artigos.
-      // Esta regra é permissiva. Idealmente, a verificação de admin seria mais granular.
-      allow create, update, delete: if request.auth != null;
+    match /users/{userId}/armors/{armorId} {
+      allow get, list: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth.uid == userId;
+    }
+
+    match /users/{userId}/plans/{planId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /feelingJourneys/{journeyId} {
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read: if isOwner(resource.data.userId);
+    }
+    
+    match /meditations/{meditationId} {
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read: if isOwner(resource.data.userId);
+    }
+
+    match /journals/{journalId} {
+      allow read, write: if isOwner(resource.data.userId);
+    }
+    
+    match /prayers/{prayerId} {
+      allow read, write: if isOwner(resource.data.userId);
     }
 
     match /sharedContent/{contentId} {
-        // Qualquer pessoa pode ler um conteúdo compartilhado.
-        allow get: true;
-        // Apenas o criador pode criar e atualizar.
-        allow create, update: if request.auth.uid == request.resource.data.creatorId;
+      allow read;
+      allow create: if request.auth.uid != null;
+      allow update: if isOwner(resource.data.creatorId);
     }
 
-    // Regra geral para notificações: o destinatário pode ler suas próprias notificações.
+    match /prayerCircles/{circleId} {
+      allow create: if request.auth.uid != null;
+      allow read: if request.auth.uid in resource.data.members;
+      allow update: if request.auth.uid in resource.data.members;
+    }
+    
+    match /prayerRequests/{requestId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
+      function isCircleMember(circleId) {
+          return request.auth.uid in get(/databases/$(database)/documents/prayerCircles/$(circleId)).data.members;
+      }
+      allow read: if isCircleMember(resource.data.circleId);
+      allow update: if isCircleMember(resource.data.circleId);
+    }
+    
+    match /congregations/{congregationId} {
+        allow read; 
+        allow create: if request.auth.uid != null;
+        
+        function isCongregationAdmin(congregationId) {
+            return get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+        }
+        allow update: if isCongregationAdmin(congregationId);
+        
+        match /members/{memberId} {
+            allow read: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins || request.auth.uid == memberId;
+            allow create: if request.auth.uid != null;
+            allow update, delete: if isCongregationAdmin(congregationId) || request.auth.uid == memberId;
+        }
+
+        match /posts/{postId} {
+            allow read: if request.auth.uid in resource.data.members || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+            allow create: if request.auth.uid == request.resource.data.authorId;
+            allow update, delete: if request.auth.uid == resource.data.authorId || isCongregationAdmin(congregationId);
+        
+            match /comments/{commentId} {
+                 allow read: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.members || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+                 allow create: if request.auth.uid == request.resource.data.authorId;
+                 allow update, delete: if request.auth.uid == resource.data.authorId;
+            }
+            
+            match /likes/{likeId} {
+                allow read: if request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.members || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+                allow create, delete: if request.auth.uid == likeId;
+            }
+        }
+    }
+    
+    match /articles/{articleId} {
+        allow read: if resource.data.status == 'published' || (request.auth.uid != null && request.auth.uid == resource.data.authorId);
+        allow create, update: if request.auth.uid == request.resource.data.authorId;
+        allow delete: if request.auth.uid == resource.data.authorId;
+    }
+    
+    match /userPushTokens/{userId} {
+        allow read, write: if request.auth.uid == userId;
+    }
+
     match /notifications/{notificationId} {
-      allow read, update: if request.auth.uid == resource.data.recipientId;
+        allow read, update: if request.auth.uid == resource.data.recipientId;
     }
   }
 }

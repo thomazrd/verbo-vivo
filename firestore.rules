@@ -1,95 +1,151 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- User Profiles ---
+    // Helper function to check if a user document exists and belongs to the user
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Helper function to check if user's ID matches the one in the resource
+    function isResourceOwner(resourceUserId) {
+      return request.auth.uid == resourceUserId;
+    }
+    
+    // User Profiles
     match /users/{userId} {
-      // Allow users to read their own profile
-      allow read: if request.auth.uid == userId;
-      // Allow users to create their own profile on signup
-      allow create: if request.auth.uid == userId;
-      // Allow users to update their own profile (displayName, photoURL, preferences etc.)
-      allow update: if request.auth.uid == userId;
+      // A user can only create their own profile document.
+      allow create: if isResourceOwner(userId);
+      // A user can only read and update their own profile document.
+      allow read, update: if isResourceOwner(userId);
+      // Users cannot delete their profiles through the client SDK.
+      allow delete: if false;
     }
 
-    // --- User Sub-collections ---
-    match /users/{userId}/{collection}/{docId} {
-        // Users can only access their own sub-collections (messages, plans, etc.)
-        allow read, write: if request.auth.uid == userId;
-    }
-    
-    // --- ARMORS (NEW) ---
+    // Armors (Private to each user)
     match /users/{userId}/armors/{armorId} {
-        // A user can only read, create, update, and delete their own armors.
-        allow read, write: if request.auth.uid == userId;
+      // A user can read, create, update, and delete their own armors.
+      // The `userId` in the resource must match the authenticated user's ID.
+      allow read, write: if isResourceOwner(userId) && request.resource.data.userId == request.auth.uid;
     }
 
-    // --- Congregations ---
-    match /congregations/{congregationId} {
-      // Anyone authenticated can find/read a congregation's public info
-      allow read: if request.auth != null;
-      // Only authenticated users can create a congregation (handled by a function)
-      allow create: if request.auth != null;
-      // Updates are restricted (e.g., only by admins, handled by functions)
-      allow update: if resource.data.admins[request.auth.uid] == true;
-      allow delete: if resource.data.admins[request.auth.uid] == true;
+    // Study Plans (Private to each user)
+    match /users/{userId}/plans/{planId} {
+      allow read, write: if isResourceOwner(userId) && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Chat Messages (Private to each user)
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if isResourceOwner(userId);
     }
     
-    match /congregations/{congregationId}/members/{memberId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null; // Creation and updates handled by Cloud Functions
-    }
-
-    // --- Posts, Comments, Likes ---
-    function isCongregationMember(congregationId) {
-      return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-    }
-
-    match /congregations/{congregationId}/posts/{postId} {
-      // Members of the congregation can read and create posts
-      allow read, create: if isCongregationMember(congregationId);
-      // Only the author of the post or an admin can update/delete it
-      allow update, delete: if isCongregationMember(congregationId) && (resource.data.authorId == request.auth.uid || get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true);
+    // Journal Entries (Private to each user)
+    match /journals/{journalId} {
+      allow read, write, delete: if request.auth.uid == resource.data.userId;
     }
     
-    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
-        // Any member of the congregation can create comments
-        allow create: if isCongregationMember(congregationId);
-        // Any member of the congregation can read comments
-        allow read: if isCongregationMember(congregationId);
-        // Only the author of the comment can update or delete it
-        allow update, delete: if isCongregationMember(congregationId) && resource.data.authorId == request.auth.uid;
+    // Prayer Sanctuary recordings (Private to each user)
+    match /prayers/{prayerId} {
+       allow read, create: if request.auth.uid == resource.data.userId;
+       allow update, delete: if false; // Users shouldn't edit their past prayers
     }
     
-    match /congregations/{congregationId}/posts/{postId}/likes/{userId} {
-        // A member can like a post (create their own like document)
-        allow create: if isCongregationMember(congregationId) && request.auth.uid == userId;
-        // A member can read likes
-        allow read: if isCongregationMember(congregationId);
-        // A member can only delete their own like
-        allow delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
+    // Feeling Journeys (Private to each user)
+    match /feelingJourneys/{journeyId} {
+        allow read, create: if request.auth.uid == resource.data.userId;
+        allow update, delete: if false;
+    }
+    
+    // Meditations (Private to each user)
+    match /meditations/{meditationId} {
+      allow create: if request.auth.uid == request.resource.data.userId;
+      // You might want a read rule if you decide to list past meditations
+      allow read, update, delete: if false; 
     }
 
-    // --- Articles (Blog) ---
+    // Notifications and Push Tokens
+    match /notifications/{notificationId} {
+        // Users can only read notifications intended for them
+        allow read: if request.auth.uid == resource.data.recipientId;
+        // Only backend can create/update notifications
+        allow write: if false;
+    }
+    match /userPushTokens/{userId} {
+        // Users can only manage their own push notification token
+        allow read, write: if isResourceOwner(userId);
+    }
+
+    // Publicly Readable Content
+    match /sharedContent/{contentId} {
+      // Anyone can read a shared content page
+      allow read: if true;
+      // Only the creator can create/update it
+      allow create, update: if request.auth.uid == request.resource.data.creatorId;
+      allow delete: if false;
+    }
+    
     match /articles/{articleId} {
         // Anyone can read published articles
         allow read: if resource.data.status == 'published';
-        // Only authenticated users (future: admins) can create/update/delete
-        allow write: if request.auth != null;
+        // Only admins of congregations can write/update/delete articles
+        allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
     }
 
-    // --- Publicly Shared Content (Ponte da Esperança) ---
-    match /sharedContent/{contentId} {
-        // Anyone can read the shared content
-        allow read: if true;
-        // Only the creator can update it (e.g., view count - handled by server)
-        // or an authenticated user can create new content.
-        allow write: if request.auth != null;
+
+    // Congregations (Complex Rules)
+    function isCongregationMember(congregationId) {
+        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+    }
+    function isCongregationAdmin(congregationId) {
+        return get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
     }
 
-    // Default deny all other access
-    match /{path=**} {
+    match /congregations/{congregationId} {
+      // Anyone authenticated can read basic congregation info (e.g., for search/join)
+      allow read: if request.auth != null;
+      // Only backend functions can create/update congregation documents directly
+      allow write: if false;
+    }
+    
+    match /congregations/{congregationId}/members/{memberId} {
+        // Admins can read all members
+        allow read: if isCongregationAdmin(congregationId);
+        // Members can read their own membership status
+        allow get: if isResourceOwner(memberId);
+        // Only backend can write to members subcollection
+        allow write: if false;
+    }
+    
+    match /congregations/{congregationId}/posts/{postId} {
+        // Only members of the congregation can read posts
+        allow read: if isCongregationMember(congregationId);
+        // Only members of the congregation can create posts
+        allow create: if isCongregationMember(congregationId) && isResourceOwner(request.resource.data.authorId);
+        // Users can only update/delete their own posts
+        allow update, delete: if isResourceOwner(resource.data.authorId);
+    }
+    
+    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
+        // Only members of the congregation can read comments
+        allow read: if isCongregationMember(congregationId);
+        // Only members of the congregation can write comments
+        allow create: if isCongregationMember(congregationId) && isResourceOwner(request.resource.data.authorId);
+        // Users can only update/delete their own comments
+        allow update, delete: if isResourceOwner(resource.data.authorId);
+    }
+    
+    match /congregations/{congregationId}/posts/{postId}/likes/{userId} {
+        // Only members of the congregation can like posts
+        allow create: if isCongregationMember(congregationId) && isResourceOwner(userId);
+        // Users can only remove their own like
+        allow delete: if isResourceOwner(userId);
+        allow read, update: if false;
+    }
+    
+    // Default deny all other reads/writes
+    match /{document=**} {
       allow read, write: if false;
     }
   }

@@ -47,6 +47,17 @@ export function OnboardingWizard() {
 
   const handleNext = () => api?.scrollNext();
 
+  const handleCompleteOnboarding = async (redirectPath: string) => {
+    if (!user) return;
+    try {
+        await setDoc(doc(db, `users/${user.uid}`), { armorOnboardingCompleted: true }, { merge: true });
+        router.push(redirectPath);
+    } catch(e) {
+        console.error("Failed to mark onboarding as complete:", e);
+        router.push(redirectPath); // Failsafe redirect
+    }
+  }
+
   const handleCreatePredefinedArmor = async (theme: string, battle: string) => {
     if (!user) return;
     setIsLoading(true);
@@ -69,14 +80,13 @@ export function OnboardingWizard() {
         };
 
         await addDoc(collection(db, `users/${user.uid}/armors`), newArmor);
-        await setDoc(doc(db, `users/${user.uid}`), { armorOnboardingCompleted: true }, { merge: true });
         
         toast({
             title: "Armadura Forjada!",
             description: "Sua primeira armadura está pronta no seu arsenal.",
         });
 
-        router.push('/armor');
+        await handleCompleteOnboarding('/armor');
 
     } catch (error) {
         console.error("Error creating predefined armor:", error);
@@ -132,7 +142,7 @@ export function OnboardingWizard() {
                     </Button>
                 ))}
              </div>
-              <Button variant="link" className="mt-8" onClick={() => router.push('/armor/forge')}>
+              <Button variant="link" className="mt-8" onClick={() => handleCompleteOnboarding('/armor/forge')}>
                   Quero forjar a minha do zero
               </Button>
           </CarouselItem>

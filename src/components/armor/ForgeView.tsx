@@ -223,8 +223,8 @@ export function ForgeView({ armorId }: { armorId?: string }) {
         const armorData = {
             ...values,
             userId: user.uid,
-            authorName: userProfile.displayName,
-            authorPhotoURL: userProfile.photoURL,
+            authorName: userProfile.displayName || null,
+            authorPhotoURL: userProfile.photoURL || null,
             weapons,
             updatedAt: serverTimestamp(),
         };

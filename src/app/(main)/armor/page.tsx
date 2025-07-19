@@ -1,21 +1,38 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, orderBy, where, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, getDocs, startAfter, limit } from 'firebase/firestore';
 import type { Armor } from '@/lib/types';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Shield } from 'lucide-react';
+import { Plus, Shield, Loader2 } from 'lucide-react';
 import { ArmorCard } from '@/components/armor/ArmorCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const ArmorsList = ({ armors, isLoading, userProfile }: { armors: Armor[], isLoading: boolean, userProfile: any }) => {
+const PAGE_SIZE = 10; // Number of users to fetch per batch
+
+const ArmorsList = ({ 
+    armors, 
+    isLoading, 
+    userProfile, 
+    loadMoreRef,
+    hasMore,
+    isLoadingMore
+}: { 
+    armors: Armor[], 
+    isLoading: boolean, 
+    userProfile: any,
+    loadMoreRef?: React.Ref<HTMLDivElement>,
+    hasMore?: boolean,
+    isLoadingMore?: boolean,
+}) => {
     if (isLoading) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -25,7 +42,7 @@ const ArmorsList = ({ armors, isLoading, userProfile }: { armors: Armor[], isLoa
         );
     }
     
-    if (armors.length === 0) {
+    if (armors.length === 0 && !isLoadingMore) {
         return (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center mt-6">
                 <Shield className="h-16 w-16 text-muted-foreground" />
@@ -43,18 +60,28 @@ const ArmorsList = ({ armors, isLoading, userProfile }: { armors: Armor[], isLoa
         const bIsFav = favoriteIds.includes(b.id);
         if (aIsFav && !bIsFav) return -1;
         if (!aIsFav && bIsFav) return 1;
-        return (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0);
+        const timeA = a.updatedAt?.toMillis() || a.createdAt?.toMillis() || 0;
+        const timeB = b.updatedAt?.toMillis() || b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
     });
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {sortedArmors.map(armor => (
-                <ArmorCard 
-                    key={armor.id} 
-                    armor={armor}
-                    isFavorited={favoriteIds.includes(armor.id)}
-                />
-            ))}
+        <div className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {sortedArmors.map(armor => (
+                    <ArmorCard 
+                        key={armor.id} 
+                        armor={armor}
+                        isFavorited={favoriteIds.includes(armor.id)}
+                    />
+                ))}
+            </div>
+            {isLoadingMore && (
+                <div className="flex justify-center items-center mt-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+            )}
+            <div ref={loadMoreRef} className="h-1"/>
         </div>
     )
 }
@@ -62,26 +89,103 @@ const ArmorsList = ({ armors, isLoading, userProfile }: { armors: Armor[], isLoa
 export default function MyArmorPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
+
   const [myArmors, setMyArmors] = useState<Armor[]>([]);
   const [communityArmors, setCommunityArmors] = useState<Armor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isLoadingMyArmors, setIsLoadingMyArmors] = useState(true);
+  const [isLoadingCommunity, setIsLoadingCommunity] = useState(true);
+
+  // --- State for lazy loading community armors ---
+  const [lastVisibleUser, setLastVisibleUser] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreCommunity, setHasMoreCommunity] = useState(true);
+  const [isLoadingMoreCommunity, setIsLoadingMoreCommunity] = useState(false);
+  const observerRef = useRef<IntersectionObserver>();
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoadingCommunity || isLoadingMoreCommunity) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreCommunity) {
+        fetchMoreCommunityArmors();
+      }
+    });
+
+    if (node) observerRef.current.observe(node);
+  }, [isLoadingCommunity, isLoadingMoreCommunity, hasMoreCommunity]);
+
+
+  const fetchMoreCommunityArmors = useCallback(async () => {
+    if (!user || isLoadingMoreCommunity || !hasMoreCommunity) return;
+
+    setIsLoadingMoreCommunity(true);
+    
+    let userQuery = query(
+        collection(db, "users"), 
+        orderBy('displayName'),
+        limit(PAGE_SIZE)
+    );
+    if(lastVisibleUser) {
+        userQuery = query(userQuery, startAfter(lastVisibleUser));
+    }
+    
+    try {
+        const usersSnapshot = await getDocs(userQuery);
+        
+        if (usersSnapshot.empty) {
+            setHasMoreCommunity(false);
+            return;
+        }
+
+        const newLastVisible = usersSnapshot.docs[usersSnapshot.docs.length - 1];
+        setLastVisibleUser(newLastVisible);
+
+        const newArmors: Armor[] = [];
+        for (const userDoc of usersSnapshot.docs) {
+            if (userDoc.id === user.uid) continue;
+
+            const sharedArmorsQuery = query(
+                collection(userDoc.ref, "armors"),
+                where("isShared", "==", true)
+            );
+            const armorsSnapshot = await getDocs(sharedArmorsQuery);
+            armorsSnapshot.forEach(armorDoc => {
+                newArmors.push({ id: armorDoc.id, ...armorDoc.data() } as Armor);
+            });
+        }
+        
+        setCommunityArmors(prev => [...prev, ...newArmors]);
+        
+        if (usersSnapshot.docs.length < PAGE_SIZE) {
+            setHasMoreCommunity(false);
+        }
+
+    } catch(error) {
+        console.error("Error fetching more community armors:", error);
+    } finally {
+        setIsLoadingMoreCommunity(false);
+        setIsLoadingCommunity(false); // Mark initial load as done
+    }
+
+  }, [user, lastVisibleUser, isLoadingMoreCommunity, hasMoreCommunity]);
+
 
   useEffect(() => {
     if (authLoading) return;
-
+    
     if (!user) {
-      router.push('/login');
-      return;
+        router.push('/login');
+        return;
     }
     
     if (userProfile && userProfile.armorOnboardingCompleted === false) {
         router.push('/armor/onboarding');
         return;
     }
-
+    
     // Listener for user's own armors
     const myArmorsQuery = query(
-      collection(db, `users/${user.uid}/armors`), 
+      collection(db, `users/${user.uid}/armors`),
       orderBy('updatedAt', 'desc')
     );
     const unsubMyArmors = onSnapshot(myArmorsQuery, (snapshot) => {
@@ -90,40 +194,21 @@ export default function MyArmorPage() {
         userArmors.push({ id: doc.id, ...doc.data() } as Armor);
       });
       setMyArmors(userArmors);
-      setIsLoading(false);
+      setIsLoadingMyArmors(false);
     }, (error) => {
       console.error("Error fetching user armors:", error);
-      setIsLoading(false);
+      setIsLoadingMyArmors(false);
     });
 
-    // Listener for community armors
-    const qCommunity = query(
-      collection(db, "users"),
-    );
-
-    const unsubCommunityArmors = onSnapshot(qCommunity, async (usersSnapshot) => {
-        const allSharedArmors : Armor[] = [];
-        for (const userDoc of usersSnapshot.docs) {
-            // Do not include the current user's armors in the community tab
-            if (userDoc.id === user.uid) {
-                continue;
-            }
-
-            const sharedArmorsQuery = query(collection(userDoc.ref, "armors"), where("isShared", "==", true));
-            const armorsSnapshot = await getDocs(sharedArmorsQuery);
-            armorsSnapshot.forEach(armorDoc => {
-                allSharedArmors.push({id: armorDoc.id, ...armorDoc.data()} as Armor);
-            });
-        }
-        // Remove duplicates in case of multiple listeners
-        const uniqueArmors = Array.from(new Map(allSharedArmors.map(a => [a.id, a])).values());
-        setCommunityArmors(uniqueArmors);
-    });
+    // Initial fetch for community armors
+    setCommunityArmors([]);
+    setLastVisibleUser(null);
+    setHasMoreCommunity(true);
+    fetchMoreCommunityArmors();
 
 
     return () => {
         unsubMyArmors();
-        unsubCommunityArmors();
     }
   }, [user, userProfile, authLoading, router]);
 
@@ -144,10 +229,17 @@ export default function MyArmorPage() {
           <TabsTrigger value="community-armors">Comunidade</TabsTrigger>
         </TabsList>
         <TabsContent value="my-armors">
-           <ArmorsList armors={myArmors} isLoading={isLoading} userProfile={userProfile} />
+           <ArmorsList armors={myArmors} isLoading={isLoadingMyArmors} userProfile={userProfile} />
         </TabsContent>
         <TabsContent value="community-armors">
-            <ArmorsList armors={communityArmors} isLoading={isLoading} userProfile={userProfile} />
+            <ArmorsList 
+                armors={communityArmors} 
+                isLoading={isLoadingCommunity} 
+                userProfile={userProfile} 
+                loadMoreRef={loadMoreRef}
+                hasMore={hasMoreCommunity}
+                isLoadingMore={isLoadingMoreCommunity}
+            />
         </TabsContent>
       </Tabs>
 

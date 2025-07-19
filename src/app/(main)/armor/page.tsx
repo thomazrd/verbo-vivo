@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, getDocs } from 'firebase/firestore';
 import type { Armor } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ const ArmorsList = ({ armors, isLoading, userProfile }: { armors: Armor[], isLoa
         const bIsFav = favoriteIds.includes(b.id);
         if (aIsFav && !bIsFav) return -1;
         if (!aIsFav && bIsFav) return 1;
-        return (b.updatedAt.toMillis() - a.updatedAt.toMillis());
+        return (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0);
     });
 
     return (
@@ -73,10 +73,10 @@ export default function MyArmorPage() {
       router.push('/login');
       return;
     }
-
+    
     if (userProfile && !userProfile.armorOnboardingCompleted) {
-      router.push('/armor/onboarding');
-      return;
+        router.push('/armor/onboarding');
+        return;
     }
 
     // Listener for user's own armors
@@ -97,15 +97,6 @@ export default function MyArmorPage() {
     });
 
     // Listener for community armors
-    const communityArmorsQuery = query(
-        collection(db, `armors`),
-        where("isShared", "==", true),
-        orderBy('updatedAt', 'desc')
-    );
-    
-    // This query is a bit more complex as it needs to listen to all users' subcollections.
-    // For a larger scale app, this would be a single top-level `armors` collection.
-    // Let's adapt to a top-level collection for community armors.
     const qCommunity = query(
       collection(db, "users"),
     );
@@ -119,7 +110,9 @@ export default function MyArmorPage() {
                 allSharedArmors.push({id: armorDoc.id, ...armorDoc.data()} as Armor);
             });
         }
-        setCommunityArmors(allSharedArmors);
+        // Remove duplicates in case of multiple listeners
+        const uniqueArmors = Array.from(new Map(allSharedArmors.map(a => [a.id, a])).values());
+        setCommunityArmors(uniqueArmors);
     });
 
 

@@ -74,7 +74,7 @@ export default function MyArmorPage() {
       return;
     }
     
-    if (userProfile && !userProfile.armorOnboardingCompleted) {
+    if (userProfile && userProfile.armorOnboardingCompleted === false) {
         router.push('/armor/onboarding');
         return;
     }
@@ -104,6 +104,11 @@ export default function MyArmorPage() {
     const unsubCommunityArmors = onSnapshot(qCommunity, async (usersSnapshot) => {
         const allSharedArmors : Armor[] = [];
         for (const userDoc of usersSnapshot.docs) {
+            // Do not include the current user's armors in the community tab
+            if (userDoc.id === user.uid) {
+                continue;
+            }
+
             const sharedArmorsQuery = query(collection(userDoc.ref, "armors"), where("isShared", "==", true));
             const armorsSnapshot = await getDocs(sharedArmorsQuery);
             armorsSnapshot.forEach(armorDoc => {

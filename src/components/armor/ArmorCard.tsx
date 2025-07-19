@@ -28,15 +28,24 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star, Plus, Check, Loader2 } from 'lucide-react';
+import { MoreVertical, Shield, Trash2, Pencil, Swords, Star, Plus, Check, Loader2, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useState } from 'react';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface ArmorCardProps {
   armor: Armor;
@@ -62,15 +71,17 @@ export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlrea
     try {
         const batch = writeBatch(db);
         const userArmorRef = doc(db, `users/${user.uid}/armors`, armor.id);
-        const sharedArmorRef = doc(db, 'sharedArmors', armor.id);
-
-        batch.delete(userArmorRef);
         
-        // Also delete from shared if it exists
-        const sharedDoc = await getDoc(sharedArmorRef);
-        if(sharedDoc.exists()) {
-            batch.delete(sharedArmorRef);
+        // If the armor is shared, also delete from the shared collection
+        if(armor.isShared) {
+            const sharedArmorRef = doc(db, 'sharedArmors', armor.id);
+            const sharedDoc = await getDoc(sharedArmorRef);
+            if(sharedDoc.exists()) {
+                batch.delete(sharedArmorRef);
+            }
         }
+        
+        batch.delete(userArmorRef);
 
         await batch.commit();
 
@@ -141,84 +152,114 @@ export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlrea
   const authorInitial = armor.authorName?.[0]?.toUpperCase() || '?';
 
   return (
-    <Card className="flex flex-col justify-between hover:shadow-md transition-shadow">
-        <CardHeader>
-            <div className="flex justify-between items-start gap-4">
-                <div className="flex items-center gap-4">
-                    <Shield className="h-8 w-8 text-primary" />
-                    <div>
-                        <CardTitle className="text-lg">{armor.name}</CardTitle>
-                        {armor.description && <CardDescription>{armor.description}</CardDescription>}
-                    </div>
-                </div>
-                {isOwner && !isCommunityView && (
-                    <AlertDialog>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem onClick={handleEdit}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Editar
-                                </DropdownMenuItem>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Desmontar
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                         <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Desmontar Armadura?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Esta ação é permanente e não pode ser desfeita. Você tem certeza que quer desmontar a armadura "{armor.name}"?
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                                    Desmontar
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
-            </div>
-             {!isOwner && armor.authorName && (
-                <div className="flex items-center gap-2 pt-3 text-xs text-muted-foreground">
-                    <Avatar className="h-5 w-5">
-                        <AvatarImage src={armor.authorPhotoURL || ''} />
-                        <AvatarFallback className="text-[10px]">{authorInitial}</AvatarFallback>
-                    </Avatar>
-                    <span>Forjada por {armor.authorName}</span>
-                </div>
-            )}
-        </CardHeader>
-        <CardFooter className="flex justify-between items-center bg-muted/50 p-4">
-            {isCommunityView ? (
-                 <Button onClick={handleAddCommunityArmor} disabled={isAlreadyAdded || isAdding} className="w-full">
-                    {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : (isAlreadyAdded ? <Check className="mr-2 h-4 w-4"/> : <Plus className="mr-2 h-4 w-4"/>)}
-                    {isAlreadyAdded ? 'Já Adicionada' : 'Adicionar às Minhas Armaduras'}
-                </Button>
-            ) : (
-                <>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
-                        <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", isFavorited && "fill-yellow-400 text-yellow-400")} />
-                    </Button>
-                    <Button asChild>
-                        <Link href={`/armor/battle/${armor.id}`}>
-                            <Swords className="mr-2 h-4 w-4" />
-                            Modo Batalha
-                        </Link>
-                    </Button>
-                </>
-            )}
-        </CardFooter>
-    </Card>
+    <Dialog>
+      <Card className="flex flex-col justify-between hover:shadow-md transition-shadow">
+          <CardHeader>
+              <div className="flex justify-between items-start gap-4">
+                  <div className="flex items-center gap-4">
+                      <Shield className="h-8 w-8 text-primary" />
+                      <div>
+                          <CardTitle className="text-lg">{armor.name}</CardTitle>
+                          {armor.description && <CardDescription>{armor.description}</CardDescription>}
+                      </div>
+                  </div>
+                  {isOwner && !isCommunityView && (
+                      <AlertDialog>
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                      <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenuItem onClick={handleEdit}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Editar
+                                  </DropdownMenuItem>
+                                  <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Desmontar
+                                      </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                           <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Desmontar Armadura?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      Esta ação é permanente e não pode ser desfeita. Você tem certeza que quer desmontar a armadura "{armor.name}"?
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                      Desmontar
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                  )}
+              </div>
+              
+              {isCommunityView && armor.weapons.length > 0 && (
+                <DialogTrigger asChild>
+                    <button className="text-xs font-semibold text-primary hover:underline mt-2 text-left flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        Visualizar versículos ({armor.weapons.length})
+                    </button>
+                </DialogTrigger>
+              )}
+
+               {!isOwner && armor.authorName && (
+                  <div className="flex items-center gap-2 pt-3 text-xs text-muted-foreground">
+                      <Avatar className="h-5 w-5">
+                          <AvatarImage src={armor.authorPhotoURL || ''} />
+                          <AvatarFallback className="text-[10px]">{authorInitial}</AvatarFallback>
+                      </Avatar>
+                      <span>Forjada por {armor.authorName}</span>
+                  </div>
+              )}
+          </CardHeader>
+          <CardFooter className="flex justify-between items-center bg-muted/50 p-4">
+              {isCommunityView ? (
+                   <Button onClick={handleAddCommunityArmor} disabled={isAlreadyAdded || isAdding} className="w-full">
+                      {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : (isAlreadyAdded ? <Check className="mr-2 h-4 w-4"/> : <Plus className="mr-2 h-4 w-4"/>)}
+                      {isAlreadyAdded ? 'Já Adicionada' : 'Adicionar às Minhas Armaduras'}
+                  </Button>
+              ) : (
+                  <>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
+                          <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", isFavorited && "fill-yellow-400 text-yellow-400")} />
+                      </Button>
+                      <Button asChild>
+                          <Link href={`/armor/battle/${armor.id}`}>
+                              <Swords className="mr-2 h-4 w-4" />
+                              Modo Batalha
+                          </Link>
+                      </Button>
+                  </>
+              )}
+          </CardFooter>
+      </Card>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+            <DialogTitle>{armor.name}</DialogTitle>
+            <DialogDescription>
+                Versículos desta armadura:
+            </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh] pr-4 -mr-4">
+          <div className="space-y-3">
+              {armor.weapons.map((weapon) => (
+                  <div key={weapon.id} className="p-3 border rounded-md bg-muted/50">
+                      <p className="font-semibold text-sm text-primary">{weapon.verseReference}</p>
+                      <p className="text-sm text-muted-foreground mt-1">"{weapon.verseText}"</p>
+                  </div>
+              ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }

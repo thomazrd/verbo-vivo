@@ -34,16 +34,18 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Wand2, BookOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Wand2, BookOpen, Share2 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { Checkbox } from "../ui/checkbox";
 
 const armorFormSchema = z.object({
   name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }).max(50),
   description: z.string().max(200, "A descrição não pode ter mais de 200 caracteres.").optional(),
+  isShared: z.boolean().default(false),
 });
 
 type ArmorFormValues = z.infer<typeof armorFormSchema>;
@@ -174,7 +176,7 @@ export function ForgeView({ armorId }: { armorId?: string }) {
 
     const form = useForm<ArmorFormValues>({
         resolver: zodResolver(armorFormSchema),
-        defaultValues: { name: "", description: "" },
+        defaultValues: { name: "", description: "", isShared: false },
     });
 
     useEffect(() => {
@@ -184,7 +186,7 @@ export function ForgeView({ armorId }: { armorId?: string }) {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data() as Armor;
-                    form.reset({ name: data.name, description: data.description });
+                    form.reset({ name: data.name, description: data.description, isShared: data.isShared });
                     setWeapons(data.weapons || []);
                 } else {
                     toast({ variant: 'destructive', title: 'Erro', description: 'Armadura não encontrada.' });
@@ -216,11 +218,13 @@ export function ForgeView({ armorId }: { armorId?: string }) {
     }
 
     const onSubmit = async (values: ArmorFormValues) => {
-        if (!user) return;
+        if (!user || !userProfile) return;
         setIsSaving(true);
-        const armorData: Omit<Armor, 'id' | 'createdAt'> = {
+        const armorData = {
             ...values,
             userId: user.uid,
+            authorName: userProfile.displayName,
+            authorPhotoURL: userProfile.photoURL,
             weapons,
             updatedAt: serverTimestamp(),
         };
@@ -330,6 +334,37 @@ export function ForgeView({ armorId }: { armorId?: string }) {
                                 </DialogTrigger>
                                 <AddWeaponModal onAddWeapon={addWeapon}/>
                             </Dialog>
+                        </CardContent>
+                    </Card>
+                    
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Visibilidade</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                control={form.control}
+                                name="isShared"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base flex items-center gap-2">
+                                            <Share2 className="h-4 w-4" />
+                                            Compartilhar com a Comunidade
+                                        </FormLabel>
+                                        <FormDescription>
+                                            Permita que outros usuários vejam e usem esta armadura.
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                            />
                         </CardContent>
                     </Card>
 

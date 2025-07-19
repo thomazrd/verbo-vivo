@@ -90,6 +90,7 @@ export interface UserProfile {
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
+  favoriteArmorIds?: string[];
 }
 
 export interface Congregation {
@@ -350,8 +351,12 @@ export interface Armor {
   name: string;
   description?: string;
   weapons: ArmorWeapon[];
+  isShared: boolean;
+  isFavorite?: boolean; // Client-side state
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  authorName?: string;
+  authorPhotoURL?: string | null;
 }
 
 

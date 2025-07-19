@@ -251,5 +251,4 @@ export default function CircleDetailPage() {
     </div>
   );
 }
-
     

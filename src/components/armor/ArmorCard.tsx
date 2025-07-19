@@ -29,7 +29,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star, Plus, Check } from 'lucide-react';
+import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star, Plus, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
@@ -67,7 +67,7 @@ export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlrea
         batch.delete(userArmorRef);
         
         // Also delete from shared if it exists
-        const sharedDoc = await doc(sharedArmorRef).get();
+        const sharedDoc = await getDoc(sharedArmorRef);
         if(sharedDoc.exists()) {
             batch.delete(sharedArmorRef);
         }

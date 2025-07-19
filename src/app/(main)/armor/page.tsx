@@ -24,7 +24,9 @@ const ArmorsList = ({
     userProfile, 
     loadMoreRef,
     hasMore,
-    isLoadingMore
+    isLoadingMore,
+    isCommunityView,
+    myArmors,
 }: { 
     armors: Armor[], 
     isLoading: boolean, 
@@ -32,6 +34,8 @@ const ArmorsList = ({
     loadMoreRef?: React.Ref<HTMLDivElement>,
     hasMore?: boolean,
     isLoadingMore?: boolean,
+    isCommunityView?: boolean;
+    myArmors?: Armor[];
 }) => {
     if (isLoading) {
         return (
@@ -48,7 +52,7 @@ const ArmorsList = ({
                 <Shield className="h-16 w-16 text-muted-foreground" />
                 <h3 className="mt-4 text-xl font-semibold">Nenhuma armadura encontrada.</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Seja o primeiro a forjar uma ou explore as da comunidade.
+                    {isCommunityView ? "Seja o primeiro a compartilhar uma armadura." : "Clique no botão '+' para forjar sua primeira armadura."}
                 </p>
             </div>
         )
@@ -65,6 +69,8 @@ const ArmorsList = ({
         return timeB - timeA;
     });
 
+    const myArmorOriginalIds = myArmors?.map(a => a.originalArmorId || a.id) || [];
+
     return (
         <div className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -73,6 +79,8 @@ const ArmorsList = ({
                         key={armor.id} 
                         armor={armor}
                         isFavorited={favoriteIds.includes(armor.id)}
+                        isCommunityView={isCommunityView}
+                        isAlreadyAdded={myArmorOriginalIds.includes(armor.id)}
                     />
                 ))}
             </div>
@@ -224,7 +232,11 @@ export default function MyArmorPage() {
           <TabsTrigger value="community-armors">Comunidade</TabsTrigger>
         </TabsList>
         <TabsContent value="my-armors">
-           <ArmorsList armors={myArmors} isLoading={isLoadingMyArmors} userProfile={userProfile} />
+           <ArmorsList 
+                armors={myArmors} 
+                isLoading={isLoadingMyArmors} 
+                userProfile={userProfile} 
+            />
         </TabsContent>
         <TabsContent value="community-armors">
             <ArmorsList 
@@ -234,6 +246,8 @@ export default function MyArmorPage() {
                 loadMoreRef={loadMoreRef}
                 hasMore={hasMoreCommunity}
                 isLoadingMore={isLoadingMoreCommunity}
+                isCommunityView={true}
+                myArmors={myArmors}
             />
         </TabsContent>
       </Tabs>

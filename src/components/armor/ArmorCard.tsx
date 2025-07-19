@@ -29,23 +29,27 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star } from 'lucide-react';
+import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star, Plus, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useState } from 'react';
 
 interface ArmorCardProps {
   armor: Armor;
   isFavorited: boolean;
+  isCommunityView?: boolean;
+  isAlreadyAdded?: boolean;
 }
 
-export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
+export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlreadyAdded = false }: ArmorCardProps) {
   const router = useRouter();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,7 +65,12 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
         const sharedArmorRef = doc(db, 'sharedArmors', armor.id);
 
         batch.delete(userArmorRef);
-        batch.delete(sharedArmorRef); // Attempt to delete from shared as well
+        
+        // Also delete from shared if it exists
+        const sharedDoc = await doc(sharedArmorRef).get();
+        if(sharedDoc.exists()) {
+            batch.delete(sharedArmorRef);
+        }
 
         await batch.commit();
 
@@ -97,6 +106,37 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
       }
   }
 
+  const handleAddCommunityArmor = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user || isAlreadyAdded || isAdding) return;
+    setIsAdding(true);
+
+    try {
+        const armorDataToAdd = {
+            ...armor,
+            originalArmorId: armor.id, // Keep track of the source
+            userId: user.uid, // Set owner to current user
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            isShared: false, // Default to not shared
+        };
+        // Remove the ID from the data to be added, Firestore will generate a new one
+        delete (armorDataToAdd as any).id;
+
+        await addDoc(collection(db, `users/${user.uid}/armors`), armorDataToAdd);
+
+        toast({
+            title: "Armadura Adicionada!",
+            description: `"${armor.name}" foi adicionada ao seu arsenal.`,
+        });
+    } catch(error) {
+        console.error("Error adding community armor", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível adicionar a armadura.'});
+    } finally {
+        setIsAdding(false);
+    }
+  }
+
   const isOwner = user?.uid === armor.userId;
   const authorInitial = armor.authorName?.[0]?.toUpperCase() || '?';
 
@@ -111,7 +151,7 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
                         {armor.description && <CardDescription>{armor.description}</CardDescription>}
                     </div>
                 </div>
-                {isOwner && (
+                {isOwner && !isCommunityView && (
                     <AlertDialog>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -123,10 +163,6 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
                                 <DropdownMenuItem onClick={handleEdit}>
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem disabled>
-                                    <BookCopy className="mr-2 h-4 w-4" />
-                                    Duplicar
                                 </DropdownMenuItem>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
@@ -164,15 +200,24 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
             )}
         </CardHeader>
         <CardFooter className="flex justify-between items-center bg-muted/50 p-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
-                <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", isFavorited && "fill-yellow-400 text-yellow-400")} />
-            </Button>
-            <Button asChild>
-                <Link href={`/armor/battle/${armor.id}`}>
-                    <Swords className="mr-2 h-4 w-4" />
-                    Modo Batalha
-                </Link>
-            </Button>
+            {isCommunityView ? (
+                 <Button onClick={handleAddCommunityArmor} disabled={isAlreadyAdded || isAdding} className="w-full">
+                    {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : (isAlreadyAdded ? <Check className="mr-2 h-4 w-4"/> : <Plus className="mr-2 h-4 w-4"/>)}
+                    {isAlreadyAdded ? 'Já Adicionada' : 'Adicionar às Minhas Armaduras'}
+                </Button>
+            ) : (
+                <>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
+                        <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", isFavorited && "fill-yellow-400 text-yellow-400")} />
+                    </Button>
+                    <Button asChild>
+                        <Link href={`/armor/battle/${armor.id}`}>
+                            <Swords className="mr-2 h-4 w-4" />
+                            Modo Batalha
+                        </Link>
+                    </Button>
+                </>
+            )}
         </CardFooter>
     </Card>
   );

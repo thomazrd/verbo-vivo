@@ -357,6 +357,7 @@ export interface Armor {
   updatedAt: Timestamp;
   authorName?: string;
   authorPhotoURL?: string | null;
+  originalArmorId?: string; // To track copied armors
 }
 
 

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, setDoc, writeBatch } from "firebase/firestore";
 import type { Armor, ArmorWeapon } from "@/lib/types";
 import { getBibleWeaponSuggestion } from "@/ai/flows/armor-suggestion-flow";
 
@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Wand2, BookOpen, Share2 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { Checkbox } from "../ui/checkbox";
+import { Separator } from "../ui/separator";
 
 const armorFormSchema = z.object({
   name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }).max(50),
@@ -84,6 +85,12 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
     const [battle, setBattle] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<Omit<ArmorWeapon, 'id'>[]>([]);
+    
+    // State for manual entry
+    const [manualReference, setManualReference] = useState('');
+    const [manualText, setManualText] = useState('');
+    const [manualVersion, setManualVersion] = useState('NVI');
+    
     const { toast } = useToast();
 
     const handleGenerateSuggestions = async () => {
@@ -104,54 +111,98 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
         }
     }
 
-    const handleAdd = (weapon: Omit<ArmorWeapon, 'id'>) => {
+    const handleAddSuggestion = (weapon: Omit<ArmorWeapon, 'id'>) => {
         onAddWeapon(weapon);
         toast({ title: 'Arma adicionada!', description: `${weapon.verseReference} foi adicionada à sua armadura.`});
-        // Remove the added suggestion from the list
         setSuggestions(current => current.filter(s => s.verseReference !== weapon.verseReference));
     }
 
+    const handleAddManual = () => {
+        if (!manualReference.trim() || !manualText.trim() || !manualVersion.trim()) {
+            toast({ variant: 'destructive', title: 'Campos obrigatórios', description: 'Preencha todos os campos para adicionar a arma manualmente.'});
+            return;
+        }
+        const newWeapon = {
+            verseReference: manualReference,
+            verseText: manualText,
+            bibleVersion: manualVersion
+        };
+        onAddWeapon(newWeapon);
+        toast({ title: 'Arma adicionada!', description: `${newWeapon.verseReference} foi adicionada à sua armadura.`});
+        setManualReference('');
+        setManualText('');
+    }
+
     return (
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>Adicionar Arma</DialogTitle>
                 <DialogDescription>
-                   Adicione um versículo à sua armadura. Use as sugestões da IA ou adicione manualmente (em breve).
+                   Adicione um versículo à sua armadura usando a sugestão da IA ou inserindo manualmente.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-                <div className="space-y-2">
-                    <FormLabel>Qual batalha esta arma irá combater?</FormLabel>
-                    <div className="flex gap-2">
-                        <Input 
-                            value={battle}
-                            onChange={(e) => setBattle(e.target.value)}
-                            placeholder="Ex: Insegurança, impaciência, tentação..."
-                        />
-                        <Button onClick={handleGenerateSuggestions} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                        </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                {/* AI Suggestion Section */}
+                <div className="space-y-4">
+                    <div className="text-center">
+                        <h3 className="font-semibold text-foreground">Sugestão da IA</h3>
+                        <p className="text-xs text-muted-foreground">Descreva uma batalha e receba versículos.</p>
                     </div>
-                </div>
-                {suggestions.length > 0 && (
-                    <div className="space-y-3 pt-4 border-t">
-                         <h4 className="font-semibold text-center">Sugestões do General</h4>
-                        {suggestions.map(s => (
-                            <div key={s.verseReference} className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
-                                <div className="flex-1">
-                                    <p className="font-semibold text-sm">{s.verseReference}</p>
-                                    <p className="text-sm text-muted-foreground">{s.verseText}</p>
+                    <div className="space-y-2">
+                        <FormLabel>Qual batalha esta arma irá combater?</FormLabel>
+                        <div className="flex gap-2">
+                            <Input 
+                                value={battle}
+                                onChange={(e) => setBattle(e.target.value)}
+                                placeholder="Ex: Insegurança, impaciência..."
+                            />
+                            <Button onClick={handleGenerateSuggestions} disabled={isLoading}>
+                                {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                            </Button>
+                        </div>
+                    </div>
+                    {suggestions.length > 0 && (
+                        <div className="space-y-3 pt-2">
+                            {suggestions.map(s => (
+                                <div key={s.verseReference} className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-sm">{s.verseReference}</p>
+                                        <p className="text-sm text-muted-foreground">{s.verseText}</p>
+                                    </div>
+                                    <Button size="sm" onClick={() => handleAddSuggestion(s)}>
+                                        <Plus className="h-4 w-4"/>
+                                    </Button>
                                 </div>
-                                <Button size="sm" onClick={() => handleAdd(s)}>
-                                    <Plus className="h-4 w-4 mr-2"/>
-                                    Adicionar
-                                </Button>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Manual Entry Section */}
+                <div className="space-y-4">
+                     <div className="text-center">
+                        <h3 className="font-semibold text-foreground">Adicionar Manualmente</h3>
+                        <p className="text-xs text-muted-foreground">Insira um versículo de sua escolha.</p>
                     </div>
-                )}
+                    <div className="space-y-2">
+                        <FormLabel>Referência</FormLabel>
+                        <Input value={manualReference} onChange={(e) => setManualReference(e.target.value)} placeholder="Ex: João 3:16" />
+                    </div>
+                     <div className="space-y-2">
+                        <FormLabel>Texto do Versículo</FormLabel>
+                        <Textarea value={manualText} onChange={(e) => setManualText(e.target.value)} placeholder="Porque Deus amou o mundo..." />
+                    </div>
+                     <div className="space-y-2">
+                        <FormLabel>Versão da Bíblia</FormLabel>
+                        <Input value={manualVersion} onChange={(e) => setManualVersion(e.target.value)} placeholder="Ex: NVI" />
+                    </div>
+                    <Button className="w-full" onClick={handleAddManual}>
+                         <Plus className="h-4 w-4 mr-2"/>
+                        Adicionar Arma
+                    </Button>
+                </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="mt-4">
                 <DialogTrigger asChild><Button variant="outline">Fechar</Button></DialogTrigger>
             </DialogFooter>
         </DialogContent>
@@ -241,7 +292,11 @@ export function ForgeView({ armorId }: { armorId?: string }) {
                 if (values.isShared) {
                     batch.set(sharedArmorRef, armorData); // Use set to create or overwrite
                 } else {
-                    batch.delete(sharedArmorRef); // Remove from public if it's no longer shared
+                    // Check if doc exists before trying to delete
+                    const sharedDoc = await getDoc(sharedArmorRef);
+                    if (sharedDoc.exists()) {
+                       batch.delete(sharedArmorRef);
+                    }
                 }
                 await batch.commit();
             } else {

@@ -231,26 +231,28 @@ export function ForgeView({ armorId }: { armorId?: string }) {
 
         try {
             if (armorId) {
+                // Editing an existing armor
                 const batch = writeBatch(db);
                 const userArmorRef = doc(db, `users/${user.uid}/armors`, armorId);
-                const sharedArmorRef = doc(db, `sharedArmors`, armorId);
+                const sharedArmorRef = doc(db, 'sharedArmors', armorId);
 
                 batch.update(userArmorRef, armorData);
 
                 if (values.isShared) {
-                    batch.set(sharedArmorRef, armorData);
+                    batch.set(sharedArmorRef, armorData); // Use set to create or overwrite
                 } else {
-                    batch.delete(sharedArmorRef);
+                    batch.delete(sharedArmorRef); // Remove from public if it's no longer shared
                 }
                 await batch.commit();
-
             } else {
+                // Creating a new armor
                 const userArmorRef = await addDoc(collection(db, `users/${user.uid}/armors`), {
                     ...armorData,
                     createdAt: serverTimestamp(),
                 });
 
                 if (values.isShared) {
+                    // Create the shared version with the same ID
                     const sharedArmorRef = doc(db, 'sharedArmors', userArmorRef.id);
                     await setDoc(sharedArmorRef, {
                         ...armorData,

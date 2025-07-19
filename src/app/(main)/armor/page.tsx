@@ -101,44 +101,33 @@ export default function MyArmorPage() {
   const [hasMoreCommunity, setHasMoreCommunity] = useState(true);
   const [isLoadingMoreCommunity, setIsLoadingMoreCommunity] = useState(false);
   const observerRef = useRef<IntersectionObserver>();
-  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoadingCommunity || isLoadingMoreCommunity) return;
-    if (observerRef.current) observerRef.current.disconnect();
 
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMoreCommunity) {
-        fetchMoreCommunityArmors();
-      }
-    });
-
-    if (node) observerRef.current.observe(node);
-  }, [isLoadingCommunity, isLoadingMoreCommunity, hasMoreCommunity]);
-
-
-  const fetchMoreCommunityArmors = useCallback(async () => {
+  const fetchMoreCommunityArmors = useCallback(async (isInitialFetch = false) => {
     if (!user || isLoadingMoreCommunity || !hasMoreCommunity) return;
 
-    setIsLoadingMoreCommunity(true);
+    if (isInitialFetch) {
+        setIsLoadingCommunity(true);
+    } else {
+        setIsLoadingMoreCommunity(true);
+    }
     
     let userQuery = query(
         collection(db, "users"), 
         orderBy('displayName'),
         limit(PAGE_SIZE)
     );
-    if(lastVisibleUser) {
+    if (lastVisibleUser && !isInitialFetch) {
         userQuery = query(userQuery, startAfter(lastVisibleUser));
     }
     
     try {
         const usersSnapshot = await getDocs(userQuery);
-        
-        if (usersSnapshot.empty) {
-            setHasMoreCommunity(false);
-            return;
-        }
+        const lastDoc = usersSnapshot.docs[usersSnapshot.docs.length - 1];
+        setLastVisibleUser(lastDoc);
 
-        const newLastVisible = usersSnapshot.docs[usersSnapshot.docs.length - 1];
-        setLastVisibleUser(newLastVisible);
+        if (usersSnapshot.empty || usersSnapshot.docs.length < PAGE_SIZE) {
+            setHasMoreCommunity(false);
+        }
 
         const newArmors: Armor[] = [];
         for (const userDoc of usersSnapshot.docs) {
@@ -154,20 +143,32 @@ export default function MyArmorPage() {
             });
         }
         
-        setCommunityArmors(prev => [...prev, ...newArmors]);
-        
-        if (usersSnapshot.docs.length < PAGE_SIZE) {
-            setHasMoreCommunity(false);
+        if (newArmors.length > 0) {
+           setCommunityArmors(prev => isInitialFetch ? newArmors : [...prev, ...newArmors]);
         }
 
     } catch(error) {
         console.error("Error fetching more community armors:", error);
     } finally {
+        setIsLoadingCommunity(false);
         setIsLoadingMoreCommunity(false);
-        setIsLoadingCommunity(false); // Mark initial load as done
     }
 
   }, [user, lastVisibleUser, isLoadingMoreCommunity, hasMoreCommunity]);
+
+
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoadingCommunity || isLoadingMoreCommunity) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreCommunity) {
+        fetchMoreCommunityArmors();
+      }
+    });
+
+    if (node) observerRef.current.observe(node);
+  }, [isLoadingCommunity, isLoadingMoreCommunity, hasMoreCommunity, fetchMoreCommunityArmors]);
 
 
   useEffect(() => {
@@ -178,9 +179,10 @@ export default function MyArmorPage() {
         return;
     }
     
-    if (userProfile && userProfile.armorOnboardingCompleted === false) {
-        router.push('/armor/onboarding');
-        return;
+    // Check for onboarding completion only after user and profile are loaded
+    if (!authLoading && userProfile && userProfile.armorOnboardingCompleted === false) {
+      router.push('/armor/onboarding');
+      return;
     }
     
     // Listener for user's own armors
@@ -204,8 +206,7 @@ export default function MyArmorPage() {
     setCommunityArmors([]);
     setLastVisibleUser(null);
     setHasMoreCommunity(true);
-    fetchMoreCommunityArmors();
-
+    fetchMoreCommunityArmors(true);
 
     return () => {
         unsubMyArmors();

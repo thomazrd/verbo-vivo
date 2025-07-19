@@ -97,6 +97,7 @@ export default function MyArmorPage() {
   const [isLoadingCommunity, setIsLoadingCommunity] = useState(true);
 
   // --- State for lazy loading community armors ---
+  const [communityArmorsFetched, setCommunityArmorsFetched] = useState(false);
   const [lastVisibleUser, setLastVisibleUser] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreCommunity, setHasMoreCommunity] = useState(true);
   const [isLoadingMoreCommunity, setIsLoadingMoreCommunity] = useState(false);
@@ -202,16 +203,17 @@ export default function MyArmorPage() {
       setIsLoadingMyArmors(false);
     });
 
-    // Initial fetch for community armors
-    setCommunityArmors([]);
-    setLastVisibleUser(null);
-    setHasMoreCommunity(true);
-    fetchMoreCommunityArmors(true);
-
     return () => {
         unsubMyArmors();
     }
   }, [user, userProfile, authLoading, router]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'community-armors' && !communityArmorsFetched) {
+        fetchMoreCommunityArmors(true); // Initial fetch for community armors
+        setCommunityArmorsFetched(true);
+    }
+  };
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 h-full">
@@ -224,7 +226,7 @@ export default function MyArmorPage() {
         </div>
       </div>
 
-       <Tabs defaultValue="my-armors">
+       <Tabs defaultValue="my-armors" onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="my-armors">Minhas Armaduras</TabsTrigger>
           <TabsTrigger value="community-armors">Comunidade</TabsTrigger>

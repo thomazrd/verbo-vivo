@@ -16,7 +16,7 @@ import { Plus, Shield, Loader2 } from 'lucide-react';
 import { ArmorCard } from '@/components/armor/ArmorCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const PAGE_SIZE = 10; // Number of users to fetch per batch
+const PAGE_SIZE = 10; // Number of armors to fetch per batch
 
 const ArmorsList = ({ 
     armors, 
@@ -98,13 +98,13 @@ export default function MyArmorPage() {
 
   // --- State for lazy loading community armors ---
   const [communityArmorsFetched, setCommunityArmorsFetched] = useState(false);
-  const [lastVisibleUser, setLastVisibleUser] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [lastVisibleArmor, setLastVisibleArmor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreCommunity, setHasMoreCommunity] = useState(true);
   const [isLoadingMoreCommunity, setIsLoadingMoreCommunity] = useState(false);
   const observerRef = useRef<IntersectionObserver>();
 
   const fetchMoreCommunityArmors = useCallback(async (isInitialFetch = false) => {
-    if (!user || isLoadingMoreCommunity || !hasMoreCommunity) return;
+    if (isLoadingMoreCommunity || !hasMoreCommunity) return;
 
     if (isInitialFetch) {
         setIsLoadingCommunity(true);
@@ -112,37 +112,31 @@ export default function MyArmorPage() {
         setIsLoadingMoreCommunity(true);
     }
     
-    let userQuery = query(
-        collection(db, "users"), 
-        orderBy('displayName'),
+    let armorQuery = query(
+        collection(db, "sharedArmors"), 
+        orderBy('updatedAt', 'desc'),
         limit(PAGE_SIZE)
     );
-    if (lastVisibleUser && !isInitialFetch) {
-        userQuery = query(userQuery, startAfter(lastVisibleUser));
+    if (lastVisibleArmor && !isInitialFetch) {
+        armorQuery = query(armorQuery, startAfter(lastVisibleArmor));
     }
     
     try {
-        const usersSnapshot = await getDocs(userQuery);
-        const lastDoc = usersSnapshot.docs[usersSnapshot.docs.length - 1];
-        setLastVisibleUser(lastDoc);
+        const armorsSnapshot = await getDocs(armorQuery);
+        const lastDoc = armorsSnapshot.docs[armorsSnapshot.docs.length - 1];
+        setLastVisibleArmor(lastDoc);
 
-        if (usersSnapshot.empty || usersSnapshot.docs.length < PAGE_SIZE) {
+        if (armorsSnapshot.empty || armorsSnapshot.docs.length < PAGE_SIZE) {
             setHasMoreCommunity(false);
         }
 
         const newArmors: Armor[] = [];
-        for (const userDoc of usersSnapshot.docs) {
-            if (userDoc.id === user.uid) continue;
-
-            const sharedArmorsQuery = query(
-                collection(userDoc.ref, "armors"),
-                where("isShared", "==", true)
-            );
-            const armorsSnapshot = await getDocs(sharedArmorsQuery);
-            armorsSnapshot.forEach(armorDoc => {
-                newArmors.push({ id: armorDoc.id, ...armorDoc.data() } as Armor);
-            });
-        }
+        armorsSnapshot.forEach(doc => {
+            // Exclude user's own armors from community feed
+            if (doc.data().userId !== user?.uid) {
+                newArmors.push({ id: doc.id, ...doc.data() } as Armor);
+            }
+        });
         
         if (newArmors.length > 0) {
            setCommunityArmors(prev => isInitialFetch ? newArmors : [...prev, ...newArmors]);
@@ -155,7 +149,7 @@ export default function MyArmorPage() {
         setIsLoadingMoreCommunity(false);
     }
 
-  }, [user, lastVisibleUser, isLoadingMoreCommunity, hasMoreCommunity]);
+  }, [user?.uid, lastVisibleArmor, isLoadingMoreCommunity, hasMoreCommunity]);
 
 
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
@@ -180,13 +174,11 @@ export default function MyArmorPage() {
         return;
     }
     
-    // Check for onboarding completion only after user and profile are loaded
-    if (!authLoading && userProfile && userProfile.armorOnboardingCompleted === false) {
+    if (userProfile && userProfile.armorOnboardingCompleted === false) {
       router.push('/armor/onboarding');
       return;
     }
     
-    // Listener for user's own armors
     const myArmorsQuery = query(
       collection(db, `users/${user.uid}/armors`),
       orderBy('updatedAt', 'desc')

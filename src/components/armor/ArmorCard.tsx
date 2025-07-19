@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { MoreVertical, Shield, BookCopy, Trash2, Pencil, Swords, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -56,7 +56,15 @@ export function ArmorCard({ armor, isFavorited }: ArmorCardProps) {
     e.stopPropagation();
     if (!user) return;
     try {
-        await deleteDoc(doc(db, `users/${user.uid}/armors`, armor.id));
+        const batch = writeBatch(db);
+        const userArmorRef = doc(db, `users/${user.uid}/armors`, armor.id);
+        const sharedArmorRef = doc(db, 'sharedArmors', armor.id);
+
+        batch.delete(userArmorRef);
+        batch.delete(sharedArmorRef); // Attempt to delete from shared as well
+
+        await batch.commit();
+
         toast({
             title: "Armadura Desmontada",
             description: `A armadura "${armor.name}" foi removida.`,

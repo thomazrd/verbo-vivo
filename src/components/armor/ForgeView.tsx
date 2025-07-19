@@ -9,7 +9,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import type { Armor, ArmorWeapon } from "@/lib/types";
 import { getBibleWeaponSuggestion } from "@/ai/flows/armor-suggestion-flow";
 
@@ -231,12 +231,32 @@ export function ForgeView({ armorId }: { armorId?: string }) {
 
         try {
             if (armorId) {
-                await updateDoc(doc(db, `users/${user.uid}/armors`, armorId), armorData);
+                const batch = writeBatch(db);
+                const userArmorRef = doc(db, `users/${user.uid}/armors`, armorId);
+                const sharedArmorRef = doc(db, `sharedArmors`, armorId);
+
+                batch.update(userArmorRef, armorData);
+
+                if (values.isShared) {
+                    batch.set(sharedArmorRef, armorData);
+                } else {
+                    batch.delete(sharedArmorRef);
+                }
+                await batch.commit();
+
             } else {
-                await addDoc(collection(db, `users/${user.uid}/armors`), {
+                const userArmorRef = await addDoc(collection(db, `users/${user.uid}/armors`), {
                     ...armorData,
                     createdAt: serverTimestamp(),
                 });
+
+                if (values.isShared) {
+                    const sharedArmorRef = doc(db, 'sharedArmors', userArmorRef.id);
+                    await setDoc(sharedArmorRef, {
+                        ...armorData,
+                        createdAt: serverTimestamp()
+                    });
+                }
             }
             toast({ title: 'Armadura salva!', description: 'Seu arsenal foi atualizado.'});
             router.push('/armor');

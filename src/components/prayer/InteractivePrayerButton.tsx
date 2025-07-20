@@ -21,8 +21,13 @@ export function InteractivePrayerButton({ isPraying, onPray }: InteractivePrayer
   const controls = useAnimation();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMouseDown = () => {
-    if (isPraying) return;
+  const handleInteractionStart = () => {
+    if (isPraying) {
+        // If already praying, a simple click/tap is enough to exit.
+        onPray();
+        return;
+    }
+
     setIsHolding(true);
     controls.start({
       pathLength: 1,
@@ -43,7 +48,8 @@ export function InteractivePrayerButton({ isPraying, onPray }: InteractivePrayer
     }, HOLD_DURATION);
   };
 
-  const handleMouseUp = () => {
+  const handleInteractionEnd = () => {
+    if (isPraying) return; // Don't do anything on release if already praying
     setIsHolding(false);
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -55,49 +61,51 @@ export function InteractivePrayerButton({ isPraying, onPray }: InteractivePrayer
   // Use onMouseLeave as well to cancel if the user drags off the button
   const handleMouseLeave = () => {
     if (isHolding) {
-        handleMouseUp();
+        handleInteractionEnd();
     }
   }
 
   return (
     <div className="relative flex flex-col items-center justify-center">
       <div 
-        className="relative w-40 h-40 flex items-center justify-center select-none"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
+        className="relative w-40 h-40 flex items-center justify-center select-none cursor-pointer"
+        onMouseDown={handleInteractionStart}
+        onMouseUp={handleInteractionEnd}
         onMouseLeave={handleMouseLeave}
-        onTouchStart={handleMouseDown}
-        onTouchEnd={handleMouseUp}
+        onTouchStart={handleInteractionStart}
+        onTouchEnd={handleInteractionEnd}
       >
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="45" stroke="hsl(var(--primary) / 0.2)" strokeWidth="5" fill="none" />
-          <motion.circle
-            cx="50"
-            cy="50"
-            r="45"
-            stroke="hsl(var(--primary))"
-            strokeWidth="5"
-            fill="none"
-            strokeLinecap="round"
-            transform="rotate(-90 50 50)"
-            style={{ pathLength: 0 }}
-            animate={controls}
-          />
+          {!isPraying && (
+            <motion.circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="hsl(var(--primary))"
+                strokeWidth="5"
+                fill="none"
+                strokeLinecap="round"
+                transform="rotate(-90 50 50)"
+                style={{ pathLength: 0 }}
+                animate={controls}
+            />
+          )}
         </svg>
-        <Button
-            variant={isPraying ? 'default' : 'secondary'}
+        <div // Changed from Button to div to avoid nested button warnings and have more control
             className={cn(
                 "w-32 h-32 rounded-full flex flex-col items-center justify-center text-center shadow-lg transition-all duration-300",
+                "text-primary-foreground",
                 isHolding && !isPraying && "bg-primary/20 scale-105",
-                isPraying && "bg-primary text-primary-foreground"
+                isPraying ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
             )}
-            style={{ pointerEvents: 'none' }} // Button is just for visuals
+            style={{ pointerEvents: 'none' }} // Div is just for visuals, interaction is on parent
         >
           <HeartHandshake className="h-8 w-8 mb-1" />
           <span className="text-sm font-semibold whitespace-normal leading-tight">
-            {isPraying ? t('praying_status') : t('start_prayer_button')}
+            {isPraying ? t('exit_prayer_button') : t('start_prayer_button')}
           </span>
-        </Button>
+        </div>
       </div>
     </div>
   );

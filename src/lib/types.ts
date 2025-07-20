@@ -183,6 +183,7 @@ export interface Prayer {
 export interface PrayerCircle {
   id: string;
   name: string;
+  isPublic: boolean;
   authorName: string;
   members: string[];
   inviteCode: string;

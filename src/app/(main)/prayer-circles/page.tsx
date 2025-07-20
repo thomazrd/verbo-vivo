@@ -6,54 +6,93 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, getDocs, updateDoc, doc, arrayUnion, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { PrayerCircle } from '@/lib/types';
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Plus, LogIn, ChevronRight, Loader2 } from 'lucide-react';
+import { Users, Plus, LogIn, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PrayerCircleOnboarding } from '@/components/prayer/PrayerCircleOnboarding';
 import { CircleCard } from '@/components/prayer/CircleCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+const CircleList = ({ circles, isLoading, emptyStateMessage }: { circles: PrayerCircle[], isLoading: boolean, emptyStateMessage: string }) => {
+    if (isLoading) {
+        return (
+             <div className="mt-8 space-y-4">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+             </div>
+        );
+    }
+    
+    if (circles.length === 0) {
+        return (
+            <div className="mt-8 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
+                <Users className="h-12 w-12 text-muted-foreground" />
+                <p className="mt-4 text-sm text-muted-foreground">
+                    {emptyStateMessage}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-8 space-y-4">
+            {circles.map((circle) => (
+                <CircleCard key={circle.id} circle={circle} />
+            ))}
+        </div>
+    );
+};
+
+
 export default function PrayerCirclesPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [circles, setCircles] = useState<PrayerCircle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
-  const [newCircleName, setNewCircleName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
+  
+  const [myCircles, setMyCircles] = useState<PrayerCircle[]>([]);
+  const [publicCircles, setPublicCircles] = useState<PrayerCircle[]>([]);
+  
+  const [isLoadingMyCircles, setIsLoadingMyCircles] = useState(true);
+  const [isLoadingPublicCircles, setIsLoadingPublicCircles] = useState(false);
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  
+  const [newCircleName, setNewCircleName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  
+  const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    if (userProfile === null && !isLoading) {
+    if (userProfile === null && !authLoading) {
       setShowOnboarding(false);
       return;
     }
     if (userProfile && userProfile.prayerCircleOnboardingCompleted === false) {
       setShowOnboarding(true);
     }
-  }, [userProfile, isLoading]);
+  }, [userProfile, authLoading]);
 
 
   useEffect(() => {
     if (!user) {
-        setIsLoading(false);
+        setIsLoadingMyCircles(false);
         return;
     };
 
-    setIsLoading(true);
+    setIsLoadingMyCircles(true);
     const q = query(collection(db, "prayerCircles"), where("members", "array-contains", user.uid));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -61,15 +100,45 @@ export default function PrayerCirclesPage() {
       snapshot.forEach((doc) => {
         userCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
       });
-      setCircles(userCircles.sort((a,b) => a.name.localeCompare(b.name)));
-      setIsLoading(false);
+      setMyCircles(userCircles.sort((a,b) => a.name.localeCompare(b.name)));
+      setIsLoadingMyCircles(false);
     }, () => {
-      setIsLoading(false);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar os círculos de oração." });
+      setIsLoadingMyCircles(false);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar seus círculos de oração." });
     });
 
     return () => unsubscribe();
   }, [user, toast]);
+
+  const fetchPublicCircles = () => {
+    if (!user) return;
+    setIsLoadingPublicCircles(true);
+    
+    const q = query(collection(db, "prayerCircles"), where("isPublic", "==", true));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedCircles: PrayerCircle[] = [];
+      snapshot.forEach((doc) => {
+        // Exclude circles the user is already a member of from the public list
+        if (!doc.data().members.includes(user.uid)) {
+            fetchedCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
+        }
+      });
+      setPublicCircles(fetchedCircles.sort((a,b) => a.name.localeCompare(b.name)));
+      setIsLoadingPublicCircles(false);
+    }, () => {
+        setIsLoadingPublicCircles(false);
+        toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar os círculos públicos." });
+    });
+    
+    return unsubscribe;
+  }
+
+  const handleTabChange = (value: string) => {
+    if (value === 'public' && publicCircles.length === 0) {
+        fetchPublicCircles();
+    }
+  }
 
   const handleCreateCircle = async () => {
     if (!user || !userProfile || !newCircleName.trim()) return;
@@ -82,6 +151,7 @@ export default function PrayerCirclesPage() {
         createdAt: serverTimestamp(),
         members: [user.uid],
         inviteCode: generateInviteCode(),
+        isPublic: false, // Default to private
       });
       toast({ title: "Sucesso!", description: "Círculo de oração criado." });
       setNewCircleName("");
@@ -135,6 +205,24 @@ export default function PrayerCirclesPage() {
     }
   }
 
+  if (authLoading) {
+     return (
+      <div className="container mx-auto max-w-4xl py-8 px-4 space-y-4">
+        <div className="flex items-center justify-between mb-8">
+            <div className="space-y-2">
+                <Skeleton className="h-9 w-64" />
+                <Skeleton className="h-5 w-80" />
+            </div>
+        </div>
+         <Skeleton className="h-10 w-full" />
+        <div className="mt-8 space-y-4">
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   if (showOnboarding) {
       return <PrayerCircleOnboarding onComplete={handleOnboardingComplete} />;
   }
@@ -150,27 +238,28 @@ export default function PrayerCirclesPage() {
           </p>
         </div>
       </div>
+      
+       <Tabs defaultValue="mine" onValueChange={handleTabChange}>
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="mine">Minhas Salas</TabsTrigger>
+                <TabsTrigger value="public">Salas Públicas</TabsTrigger>
+            </TabsList>
+            <TabsContent value="mine">
+                <CircleList
+                    circles={myCircles}
+                    isLoading={isLoadingMyCircles}
+                    emptyStateMessage="Você ainda não faz parte de nenhum círculo. Crie um ou entre com um código de convite."
+                />
+            </TabsContent>
+            <TabsContent value="public">
+                <CircleList
+                    circles={publicCircles}
+                    isLoading={isLoadingPublicCircles}
+                    emptyStateMessage="Nenhuma sala pública disponível no momento."
+                />
+            </TabsContent>
+        </Tabs>
 
-      <div className="mt-8 space-y-4">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </>
-        ) : circles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-xl font-semibold">Você não está em nenhum círculo</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Crie um novo círculo para seus amigos e família ou peça um código de convite para entrar em um existente.
-            </p>
-          </div>
-        ) : (
-          circles.map((circle) => (
-            <CircleCard key={circle.id} circle={circle} />
-          ))
-        )}
-      </div>
     </div>
     
     {/* Floating Action Button */}

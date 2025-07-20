@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PrayerCircleOnboarding } from '@/components/prayer/PrayerCircleOnboarding';
 import { CircleCard } from '@/components/prayer/CircleCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -68,6 +69,7 @@ export default function PrayerCirclesPage() {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   
   const [newCircleName, setNewCircleName] = useState("");
+  const [newCircleIsPublic, setNewCircleIsPublic] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   
   const [isCreating, setIsCreating] = useState(false);
@@ -151,10 +153,11 @@ export default function PrayerCirclesPage() {
         createdAt: serverTimestamp(),
         members: [user.uid],
         inviteCode: generateInviteCode(),
-        isPublic: false, // Default to private
+        isPublic: newCircleIsPublic,
       });
       toast({ title: "Sucesso!", description: "Círculo de oração criado." });
       setNewCircleName("");
+      setNewCircleIsPublic(false);
       setIsCreateDialogOpen(false);
     } catch (error) {
       console.error("Error creating circle:", error);
@@ -280,12 +283,16 @@ export default function PrayerCirclesPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Criar Novo Círculo</DialogTitle>
-                            <DialogDescription>Dê um nome para o seu novo círculo de oração.</DialogDescription>
+                            <DialogDescription>Dê um nome e defina a visibilidade do seu novo círculo de oração.</DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="circle-name" className="text-right">Nome</Label>
-                            <Input id="circle-name" value={newCircleName} onChange={(e) => setNewCircleName(e.target.value)} className="col-span-3" placeholder="Ex: Grupo de Estudo Bíblico" />
+                            <div className="space-y-2">
+                                <Label htmlFor="circle-name">Nome do Círculo</Label>
+                                <Input id="circle-name" value={newCircleName} onChange={(e) => setNewCircleName(e.target.value)} placeholder="Ex: Grupo de Estudo Bíblico" />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch id="public-switch" checked={newCircleIsPublic} onCheckedChange={setNewCircleIsPublic} />
+                                <Label htmlFor="public-switch">Deixar esta sala pública?</Label>
                             </div>
                         </div>
                         <DialogFooter>

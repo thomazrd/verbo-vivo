@@ -183,12 +183,15 @@ export interface Prayer {
 export interface PrayerCircle {
   id: string;
   name: string;
+  description: string;
   isPublic: boolean;
   authorName: string;
   members: string[];
+  prayingUsers?: string[];
   inviteCode: string;
   createdAt: Timestamp;
   createdBy: string;
+  baseVerse?: string;
 }
 
 export interface PrayerRequest {

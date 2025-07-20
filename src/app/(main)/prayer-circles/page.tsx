@@ -63,7 +63,8 @@ export default function PrayerCirclesPage() {
   const [publicCircles, setPublicCircles] = useState<PrayerCircle[]>([]);
   
   const [isLoadingMyCircles, setIsLoadingMyCircles] = useState(true);
-  const [isLoadingPublicCircles, setIsLoadingPublicCircles] = useState(false);
+  const [isLoadingPublicCircles, setIsLoadingPublicCircles] = useState(true);
+  const [publicCirclesFetched, setPublicCirclesFetched] = useState(false);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -112,10 +113,13 @@ export default function PrayerCirclesPage() {
     return () => unsubscribe();
   }, [user, toast]);
 
-  const fetchPublicCircles = () => {
-    if (!user) return;
-    setIsLoadingPublicCircles(true);
+  useEffect(() => {
+    if (!user || !publicCirclesFetched) {
+      setIsLoadingPublicCircles(false);
+      return;
+    };
     
+    setIsLoadingPublicCircles(true);
     const q = query(collection(db, "prayerCircles"), where("isPublic", "==", true));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -130,12 +134,12 @@ export default function PrayerCirclesPage() {
         toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar os círculos públicos." });
     });
     
-    return unsubscribe;
-  }
+    return () => unsubscribe;
+  }, [user, publicCirclesFetched, toast]);
 
   const handleTabChange = (value: string) => {
-    if (value === 'public' && publicCircles.length === 0) {
-        fetchPublicCircles();
+    if (value === 'public' && !publicCirclesFetched) {
+        setPublicCirclesFetched(true);
     }
   }
 

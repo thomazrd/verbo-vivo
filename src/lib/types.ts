@@ -86,6 +86,7 @@ export interface UserProfile {
   createdAt: Timestamp;
   onboardingCompleted: boolean;
   armorOnboardingCompleted?: boolean;
+  prayerCircleOnboardingCompleted?: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
   preferredLanguage?: string | null;
@@ -182,6 +183,7 @@ export interface Prayer {
 export interface PrayerCircle {
   id: string;
   name: string;
+  authorName: string;
   members: string[];
   inviteCode: string;
   createdAt: Timestamp;

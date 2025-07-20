@@ -14,19 +14,19 @@ interface PrayerCircleOnboardingProps {
 const onboardingSteps = [
   {
     title: "Você não luta sozinho.",
-    description: "Crie ou participe de Círculos de Oração para batalhas específicas e convide sua comunidade para lutar com você em oração.",
+    description: "(Mateus 18:20)",
     imageSrc: "https://placehold.co/600x400.png",
     imageHint: "community prayer circle"
   },
   {
     title: "Um lugar para pedir reforços.",
-    description: "Cada círculo é um espaço focado para compartilhar seus pedidos e interceder uns pelos outros, fortalecendo a fé do grupo.",
+    description: "Crie salas de oração para suas batalhas e convide a comunidade para lutar com você.",
     imageSrc: "https://placehold.co/600x400.png",
     imageHint: "reinforcements helping hand"
   },
   {
     title: "Celebre cada vitória.",
-    description: "Quando Deus responder, compartilhe o testemunho para edificar e fortalecer a fé de todos no círculo de oração.",
+    description: "Quando Deus responder, compartilhe o testemunho para fortalecer a fé de todos.",
     imageSrc: "https://placehold.co/600x400.png",
     imageHint: "celebration victory flag"
   }
@@ -63,7 +63,7 @@ export function PrayerCircleOnboarding({ onComplete }: PrayerCircleOnboardingPro
         </CarouselContent>
       </Carousel>
       <div className="mt-8 flex gap-4">
-        <Button size="lg" onClick={() => api?.canScrollNext ? api.scrollNext() : onComplete()}>
+        <Button size="lg" onClick={api?.canScrollNext ? api.scrollNext : onComplete}>
             {api?.canScrollNext ? "Próximo" : "Entendido, vamos começar"}
         </Button>
       </div>

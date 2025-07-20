@@ -33,11 +33,11 @@ export default function NewPrayerCirclePage() {
 
   const handleSave = async () => {
     if (!user || !userProfile) {
-        toast({ variant: 'destructive', title: t('toast_not_authenticated') });
+        toast({ variant: 'destructive', title: t('toast_error'), description: t('toast_not_authenticated') });
         return;
     }
     if (!title.trim()) {
-        toast({ variant: 'destructive', title: t('toast_title_required') });
+        toast({ variant: 'destructive', title: t('toast_error'), description: t('toast_title_required') });
         return;
     }
     setIsSaving(true);

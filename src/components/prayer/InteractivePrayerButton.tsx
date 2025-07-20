@@ -30,6 +30,12 @@ export function InteractivePrayerButton({ isPraying, onPray }: InteractivePrayer
     });
     timerRef.current = setTimeout(() => {
       onPray();
+      
+      // Haptic Feedback
+      if (typeof navigator.vibrate === 'function') {
+        navigator.vibrate(50); // A short, gentle pulse
+      }
+
       controls.start({
         scale: [1, 1.2, 1],
         transition: { duration: 0.3 }

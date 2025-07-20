@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -101,6 +102,7 @@ export function LoginForm() {
             photoURL: user.photoURL || `https://placehold.co/100x100.png`,
             createdAt: serverTimestamp(),
             onboardingCompleted: false,
+            prayerCircleOnboardingCompleted: false,
             congregationId: null,
             congregationStatus: 'NONE',
           });

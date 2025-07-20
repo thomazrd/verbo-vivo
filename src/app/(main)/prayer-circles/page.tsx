@@ -121,10 +121,7 @@ export default function PrayerCirclesPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedCircles: PrayerCircle[] = [];
       snapshot.forEach((doc) => {
-        // Exclude circles the user is already a member of from the public list
-        if (!doc.data().members.includes(user.uid)) {
-            fetchedCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
-        }
+        fetchedCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
       });
       setPublicCircles(fetchedCircles.sort((a,b) => a.name.localeCompare(b.name)));
       setIsLoadingPublicCircles(false);
@@ -148,12 +145,12 @@ export default function PrayerCirclesPage() {
     try {
       await addDoc(collection(db, "prayerCircles"), {
         name: newCircleName,
+        isPublic: newCircleIsPublic,
         createdBy: user.uid,
         authorName: userProfile.displayName || 'Anônimo',
         createdAt: serverTimestamp(),
         members: [user.uid],
         inviteCode: generateInviteCode(),
-        isPublic: newCircleIsPublic,
       });
       toast({ title: "Sucesso!", description: "Círculo de oração criado." });
       setNewCircleName("");

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, getDocs, updateDoc, doc, arrayUnion, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, arrayUnion, getDocs } from 'firebase/firestore';
 import type { PrayerCircle } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Plus, LogIn, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PrayerCircleOnboarding } from '@/components/prayer/PrayerCircleOnboarding';
 import { CircleCard } from '@/components/prayer/CircleCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-
-function generateInviteCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+import { useRouter } from 'next/navigation';
 
 const CircleList = ({ circles, isLoading, emptyStateMessage }: { circles: PrayerCircle[], isLoading: boolean, emptyStateMessage: string }) => {
     if (isLoading) {
@@ -57,37 +52,22 @@ const CircleList = ({ circles, isLoading, emptyStateMessage }: { circles: Prayer
 
 export default function PrayerCirclesPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   
   const [myCircles, setMyCircles] = useState<PrayerCircle[]>([]);
   const [publicCircles, setPublicCircles] = useState<PrayerCircle[]>([]);
   
   const [isLoadingMyCircles, setIsLoadingMyCircles] = useState(true);
-  const [isLoadingPublicCircles, setIsLoadingPublicCircles] = useState(true);
+  const [isLoadingPublicCircles, setIsLoadingPublicCircles] = useState(false);
   const [publicCirclesFetched, setPublicCirclesFetched] = useState(false);
   
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   
-  const [newCircleName, setNewCircleName] = useState("");
-  const [newCircleIsPublic, setNewCircleIsPublic] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   
-  const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  useEffect(() => {
-    if (userProfile === null && !authLoading) {
-      setShowOnboarding(false);
-      return;
-    }
-    if (userProfile && userProfile.prayerCircleOnboardingCompleted === false) {
-      setShowOnboarding(true);
-    }
-  }, [userProfile, authLoading]);
-
 
   useEffect(() => {
     if (!user) {
@@ -115,26 +95,29 @@ export default function PrayerCirclesPage() {
 
   useEffect(() => {
     if (!user || !publicCirclesFetched) {
-      setIsLoadingPublicCircles(false);
       return;
     };
     
-    setIsLoadingPublicCircles(true);
-    const q = query(collection(db, "prayerCircles"), where("isPublic", "==", true));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedCircles: PrayerCircle[] = [];
-      snapshot.forEach((doc) => {
-        fetchedCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
-      });
-      setPublicCircles(fetchedCircles.sort((a,b) => a.name.localeCompare(b.name)));
-      setIsLoadingPublicCircles(false);
-    }, () => {
+    const fetchPublicCircles = () => {
+      setIsLoadingPublicCircles(true);
+      const q = query(collection(db, "prayerCircles"), where("isPublic", "==", true));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedCircles: PrayerCircle[] = [];
+        snapshot.forEach((doc) => {
+          fetchedCircles.push({ id: doc.id, ...doc.data() } as PrayerCircle);
+        });
+        setPublicCircles(fetchedCircles.sort((a,b) => a.name.localeCompare(b.name)));
         setIsLoadingPublicCircles(false);
-        toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar os círculos públicos." });
-    });
+      }, () => {
+          setIsLoadingPublicCircles(false);
+          toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar os círculos públicos." });
+      });
+      return unsubscribe;
+    }
     
-    return () => unsubscribe;
+    const unsubscribe = fetchPublicCircles();
+    return () => unsubscribe();
   }, [user, publicCirclesFetched, toast]);
 
   const handleTabChange = (value: string) => {
@@ -142,31 +125,6 @@ export default function PrayerCirclesPage() {
         setPublicCirclesFetched(true);
     }
   }
-
-  const handleCreateCircle = async () => {
-    if (!user || !userProfile || !newCircleName.trim()) return;
-    setIsCreating(true);
-    try {
-      await addDoc(collection(db, "prayerCircles"), {
-        name: newCircleName,
-        isPublic: newCircleIsPublic,
-        createdBy: user.uid,
-        authorName: userProfile.displayName || 'Anônimo',
-        createdAt: serverTimestamp(),
-        members: [user.uid],
-        inviteCode: generateInviteCode(),
-      });
-      toast({ title: "Sucesso!", description: "Círculo de oração criado." });
-      setNewCircleName("");
-      setNewCircleIsPublic(false);
-      setIsCreateDialogOpen(false);
-    } catch (error) {
-      console.error("Error creating circle:", error);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar o círculo." });
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const handleJoinCircle = async () => {
     if (!user || !inviteCode.trim()) return;
@@ -198,16 +156,6 @@ export default function PrayerCirclesPage() {
     }
   };
 
-  const handleOnboardingComplete = async () => {
-    if (!user) return;
-    try {
-        await setDoc(doc(db, 'users', user.uid), { prayerCircleOnboardingCompleted: true }, { merge: true });
-        setShowOnboarding(false);
-    } catch (error) {
-        console.error("Failed to update onboarding status", error);
-        setShowOnboarding(false); // still hide it to not block the user
-    }
-  }
 
   if (authLoading) {
      return (
@@ -225,10 +173,6 @@ export default function PrayerCirclesPage() {
         </div>
       </div>
     );
-  }
-
-  if (showOnboarding) {
-      return <PrayerCircleOnboarding onComplete={handleOnboardingComplete} />;
   }
 
   return (
@@ -266,7 +210,6 @@ export default function PrayerCirclesPage() {
 
     </div>
     
-    {/* Floating Action Button */}
     <Popover>
         <PopoverTrigger asChild>
             <Button className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-10">
@@ -275,35 +218,9 @@ export default function PrayerCirclesPage() {
         </PopoverTrigger>
         <PopoverContent className="w-auto p-2" align="end" side="top" sideOffset={12}>
             <div className="flex flex-col gap-1">
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" className="justify-start">
-                            <Plus className="mr-2 h-4 w-4" /> Criar Círculo
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Criar Novo Círculo</DialogTitle>
-                            <DialogDescription>Dê um nome e defina a visibilidade do seu novo círculo de oração.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="circle-name">Nome do Círculo</Label>
-                                <Input id="circle-name" value={newCircleName} onChange={(e) => setNewCircleName(e.target.value)} placeholder="Ex: Grupo de Estudo Bíblico" />
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Switch id="public-switch" checked={newCircleIsPublic} onCheckedChange={setNewCircleIsPublic} />
-                                <Label htmlFor="public-switch">Deixar esta sala pública?</Label>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={handleCreateCircle} disabled={isCreating || !newCircleName.trim()}>
-                            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Criar Círculo
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Button variant="ghost" className="justify-start" onClick={() => router.push('/prayer-circles/new')}>
+                    <Plus className="mr-2 h-4 w-4" /> Criar Círculo
+                </Button>
                 
                 <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                     <DialogTrigger asChild>

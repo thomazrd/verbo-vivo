@@ -44,6 +44,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { href: "/bible", label: t('nav_bible'), icon: BookMarked },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
     { href: "/prayer-circles", label: "Círculos de Oração", icon: HeartHandshake },
+    { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
     { href: "/community", label: t('nav_community'), icon: Users },
     { href: "/blog", label: "Artigos", icon: Newspaper },
     { href: "/characters", label: t('nav_characters'), icon: BookUser },

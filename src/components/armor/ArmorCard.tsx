@@ -167,7 +167,7 @@ export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlrea
                       <AlertDialog>
                           <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()} data-testid={`more-button-${armor.id}`}>
                                       <MoreVertical className="h-4 w-4" />
                                   </Button>
                               </DropdownMenuTrigger>
@@ -229,7 +229,7 @@ export function ArmorCard({ armor, isFavorited, isCommunityView = false, isAlrea
                   </Button>
               ) : (
                   <>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleFavorite} data-testid={`favorite-button-${armor.id}`}>
                           <Star className={cn("h-5 w-5 text-muted-foreground transition-colors", isFavorited && "fill-yellow-400 text-yellow-400")} />
                       </Button>
                       <Button asChild>

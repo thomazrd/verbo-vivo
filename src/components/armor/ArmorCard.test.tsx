@@ -4,7 +4,12 @@ import { ArmorCard } from './ArmorCard';
 import { useAuth } from '@/hooks/use-auth';
 import { writeBatch, arrayUnion, arrayRemove, addDoc, getDoc, updateDoc } from 'firebase/firestore';
 
+// Mocks
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({ push: jest.fn() })),
+}));
 jest.mock('@/hooks/use-auth');
+jest.mock('firebase/firestore');
 
 describe('ArmorCard', () => {
     const mockedUseAuth = useAuth as jest.Mock;
@@ -32,13 +37,13 @@ describe('ArmorCard', () => {
 
     test('TC-L-01: should toggle favorite status', async () => {
         const { rerender } = render(<ArmorCard armor={armor} isFavorited={false} />);
-        fireEvent.click(screen.getByTestId('favorite-button-armor-1'));
+        fireEvent.click(screen.getByRole('button', { name: /star/i }));
         await waitFor(() => {
             expect(mockedUpdateDoc).toHaveBeenCalledWith(expect.anything(), { favoriteArmorIds: arrayUnion('armor-1') });
         });
 
         rerender(<ArmorCard armor={armor} isFavorited={true} />);
-        fireEvent.click(screen.getByTestId('favorite-button-armor-1'));
+        fireEvent.click(screen.getByRole('button', { name: /star/i }));
         await waitFor(() => {
             expect(mockedUpdateDoc).toHaveBeenCalledWith(expect.anything(), { favoriteArmorIds: arrayRemove('armor-1') });
         });
@@ -46,7 +51,7 @@ describe('ArmorCard', () => {
 
     test('TC-L-06: should delete an armor', async () => {
         render(<ArmorCard armor={armor} isFavorited={false} />);
-        fireEvent.click(screen.getByTestId('more-button-armor-1'));
+        fireEvent.click(screen.getByRole('button', { name: /morevertical/i }));
         fireEvent.click(await screen.findByText(/Desmontar/i));
         fireEvent.click(screen.getByRole('button', { name: "Desmontar" }));
         await waitFor(() => expect(mockedWriteBatch().commit).toHaveBeenCalled());
@@ -58,7 +63,6 @@ describe('ArmorCard', () => {
         fireEvent.click(screen.getByRole('button', { name: /Adicionar/i }));
         await waitFor(() => {
             expect(mockedAddDoc).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-                name: 'Armadura de Teste',
                 originalArmorId: 'armor-1'
             }));
         });

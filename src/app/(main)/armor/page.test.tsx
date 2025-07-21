@@ -1,73 +1,58 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MyArmorPage from './page';
+import { useAuth } from '@/hooks/use-auth';
+import { onSnapshot, getDocs } from 'firebase/firestore';
 
 // Mocks
-jest.mock('@/hooks/use-auth', () => ({
-  useAuth: jest.fn(() => ({
-    user: { uid: 'user-1' },
-    userProfile: { armorOnboardingCompleted: true, favoriteArmorIds: [] },
-  })),
-}));
-
-const mockOnSnapshot = jest.fn();
-const mockGetDocs = jest.fn();
-
-jest.mock('firebase/firestore', () => ({
-  collection: jest.fn(),
-  query: jest.fn(),
-  orderBy: jest.fn(),
-  onSnapshot: mockOnSnapshot,
-  getDocs: mockGetDocs,
-}));
-
+jest.mock('@/hooks/use-auth');
+jest.mock('firebase/firestore');
 jest.mock('@/components/armor/ArmorCard', () => ({
   ArmorCard: ({ armor }) => <div data-testid="armor-card">{armor.name}</div>,
 }));
 
 describe('MyArmorPage', () => {
-  const userArmors = [
-    { id: 'armor-1', name: 'Minha Armadura Pessoal', userId: 'user-1' },
-    { id: 'armor-2', name: 'Minha Armadura Compartilhada', userId: 'user-1' },
-  ];
-  const communityArmors = [
-    { id: 'armor-3', name: 'Armadura da Comunidade', userId: 'user-2' },
-  ];
+  const mockedUseAuth = useAuth as jest.Mock;
+  const mockedOnSnapshot = onSnapshot as jest.Mock;
+  const mockedGetDocs = getDocs as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock correto para onSnapshot
-    mockOnSnapshot.mockImplementation((query, callback) => {
-      const snapshot = {
-        docs: userArmors.map(doc => ({ id: doc.id, data: () => doc })),
-        forEach: (cb) => userArmors.forEach(doc => cb({ id: doc.id, data: () => doc })),
-      };
-      callback(snapshot);
-      return jest.fn(); // unsubscribe
+    mockedUseAuth.mockReturnValue({
+      user: { uid: 'user-1' },
+      userProfile: { armorOnboardingCompleted: true, favoriteArmorIds: [] },
     });
   });
 
   test('TC-L-04: should display user armors and filter community armors', async () => {
-    mockGetDocs.mockResolvedValue({
-      docs: [
-        ...communityArmors.map(doc => ({ id: doc.id, data: () => doc })),
-        { id: userArmors[1].id, data: () => userArmors[1] }
-      ],
+    const userArmors = [{ id: 'armor-1', name: 'Minha Armadura Pessoal', userId: 'user-1' }];
+    const communityArmors = [
+        { id: 'armor-2', name: 'Armadura da Comunidade', userId: 'user-2' },
+        { id: 'armor-1', name: 'Minha Armadura Pessoal', userId: 'user-1' } // Deve ser filtrado
+    ];
+
+    mockedOnSnapshot.mockImplementation((query, callback) => {
+      const snapshot = { docs: userArmors.map(doc => ({ id: doc.id, data: () => doc })) };
+      callback(snapshot);
+      return jest.fn(); // unsubscribe
+    });
+
+    mockedGetDocs.mockResolvedValue({
+      docs: communityArmors.map(doc => ({ id: doc.id, data: () => doc })),
     });
 
     render(<MyArmorPage />);
 
-    // Aba "Minhas Armaduras"
     await waitFor(() => {
       expect(screen.getByText('Minha Armadura Pessoal')).toBeInTheDocument();
     });
 
-    // Mudar para a aba "Comunidade"
     fireEvent.click(screen.getByRole('tab', { name: /Comunidade/i }));
 
     await waitFor(() => {
+      expect(mockedGetDocs).toHaveBeenCalled();
       expect(screen.getByText('Armadura da Comunidade')).toBeInTheDocument();
-      expect(screen.queryByText('Minha Armadura Compartilhada')).not.toBeInTheDocument();
+      expect(screen.queryByText('Minha Armadura Pessoal')).not.toBeInTheDocument();
     });
   });
 });

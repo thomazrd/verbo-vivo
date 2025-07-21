@@ -179,13 +179,13 @@ export default function NewPrayerCirclePage() {
                                 <span className="font-semibold">Explorar por Tema</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-h-[90vh] flex flex-col">
+                         <DialogContent className="max-h-[90vh] flex flex-col">
                             <DialogHeader>
                                 <DialogTitle>Explorar por Tema</DialogTitle>
                                 <DialogDescription>Selecione um tema para ver versículos relacionados.</DialogDescription>
                             </DialogHeader>
-                            <ScrollArea className="flex-1 -mx-6 px-6">
-                              <div className="space-y-4 py-4">
+                            <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4">
+                              <div className="space-y-4">
                                   {Object.keys(prayerThemes).map(theme => {
                                       const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
                                       return (
@@ -203,7 +203,7 @@ export default function NewPrayerCirclePage() {
                                       )
                                   })}
                               </div>
-                            </ScrollArea>
+                            </div>
                         </DialogContent>
                     </Dialog>
                      <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => { setSelectionMode('ai'); handleAiSuggest();}}>

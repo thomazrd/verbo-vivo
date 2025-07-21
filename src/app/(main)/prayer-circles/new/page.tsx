@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { getPrayerCircleSuggestions } from '@/ai/flows/prayer-circle-suggestion-flow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -237,16 +236,26 @@ export default function NewPrayerCirclePage() {
                         ) : (
                              <div className="space-y-3">
                                 {aiSuggestions.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma sugestão encontrada.</p>}
-                                {aiSuggestions.map(suggestion => (
-                                    <Card key={suggestion.verse} className="p-4">
-                                        <p className="font-bold text-primary">{suggestion.verse}</p>
-                                        <blockquote className="text-muted-foreground italic mt-1">"{suggestion.text}"</blockquote>
-                                        <p className="text-xs mt-2"><strong className="text-primary/80">Por que esta Palavra?</strong> {suggestion.justification}</p>
-                                        <div className="text-right mt-2">
-                                            <Button size="sm" onClick={() => handleAddVerse(suggestion.verse)}><Plus className="h-4 w-4 mr-2"/> Adicionar à Sala</Button>
-                                        </div>
-                                    </Card>
-                                ))}
+                                {aiSuggestions.map(suggestion => {
+                                    const isAdded = selectedWeapons.includes(suggestion.verse);
+                                    return (
+                                        <Card key={suggestion.verse} className="p-4">
+                                            <p className="font-bold text-primary">{suggestion.verse}</p>
+                                            <blockquote className="text-muted-foreground italic mt-1">"{suggestion.text}"</blockquote>
+                                            <p className="text-xs mt-2"><strong className="text-primary/80">Por que esta Palavra?</strong> {suggestion.justification}</p>
+                                            <div className="text-right mt-2">
+                                                <Button 
+                                                    size="sm"
+                                                    variant={isAdded ? "destructive" : "default"}
+                                                    onClick={() => isAdded ? handleRemoveVerse(suggestion.verse) : handleAddVerse(suggestion.verse)}
+                                                >
+                                                    {isAdded ? <X className="h-4 w-4 mr-2"/> : <Plus className="h-4 w-4 mr-2"/>}
+                                                    {isAdded ? 'Remover' : 'Adicionar à Sala'}
+                                                </Button>
+                                            </div>
+                                        </Card>
+                                    )
+                                })}
                              </div>
                         )}
                     </div>

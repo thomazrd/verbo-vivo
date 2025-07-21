@@ -194,6 +194,19 @@ export interface PrayerCircle {
   baseVerse?: string;
 }
 
+export interface Victory {
+  id: string;
+  circleId: string;
+  circleName: string;
+  testimony: string;
+  recordedBy: string; // userId of moderator
+  recordedByName: string;
+  recordedAt: Timestamp;
+  amenCount: number;
+  usersWhoSaidAmen?: string[];
+}
+
+
 export interface PrayerRequest {
   id: string;
   circleId: string;

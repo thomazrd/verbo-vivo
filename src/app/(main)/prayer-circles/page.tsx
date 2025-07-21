@@ -6,21 +6,20 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, arrayUnion, getDocs } from 'firebase/firestore';
 import type { PrayerCircle } from '@/lib/types';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Plus, LogIn, Loader2, Globe, Lock } from 'lucide-react';
+import { Users, Plus, LogIn, Loader2, Globe, Lock, Trophy } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CircleCard } from '@/components/prayer/CircleCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { Switch } from '@/components/ui/switch';
 import { PrayerCircleOnboarding } from '@/components/prayer/PrayerCircleOnboarding';
+import Link from 'next/link';
 
 const CircleList = ({ circles, isLoading, emptyStateMessage }: { circles: PrayerCircle[], isLoading: boolean, emptyStateMessage: string }) => {
     if (isLoading) {
@@ -69,7 +68,6 @@ export default function PrayerCirclesPage() {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   
   const [inviteCode, setInviteCode] = useState("");
-  const [newCircleIsPublic, setNewCircleIsPublic] = useState(false);
   
   const [isJoining, setIsJoining] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -215,6 +213,12 @@ export default function PrayerCirclesPage() {
             {t('prayer_circles_subtitle')}
           </p>
         </div>
+        <Button variant="outline" asChild className="border-amber-400 text-amber-800 hover:bg-amber-100 hover:text-amber-900">
+          <Link href="/prayer-circles/victories">
+            <Trophy className="mr-2 h-4 w-4" />
+            Hall da Honra
+          </Link>
+        </Button>
       </div>
       
        <Tabs defaultValue="mine" onValueChange={handleTabChange}>

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { getPrayerCircleSuggestions } from '@/ai/flows/prayer-circle-suggestion-flow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -178,29 +179,31 @@ export default function NewPrayerCirclePage() {
                                 <span className="font-semibold">Explorar por Tema</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-h-[90vh] flex flex-col">
                             <DialogHeader>
                                 <DialogTitle>Explorar por Tema</DialogTitle>
                                 <DialogDescription>Selecione um tema para ver versículos relacionados.</DialogDescription>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                {Object.keys(prayerThemes).map(theme => {
-                                    const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
-                                    return (
-                                        <div key={theme}>
-                                            <h4 className="font-semibold text-md mb-2 flex items-center gap-2"><ThemeIcon className="h-4 w-4"/> {theme}</h4>
-                                            <div className="space-y-2">
-                                                {prayerThemes[theme as PrayerTheme].verses.map(verse => (
-                                                    <div key={verse} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
-                                                        <p className="text-sm font-mono">{verse}</p>
-                                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleAddVerse(verse)}><Plus className="h-4 w-4"/></Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                            <ScrollArea className="flex-1 -mx-6 px-6">
+                              <div className="space-y-4 py-4">
+                                  {Object.keys(prayerThemes).map(theme => {
+                                      const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
+                                      return (
+                                          <div key={theme}>
+                                              <h4 className="font-semibold text-md mb-2 flex items-center gap-2"><ThemeIcon className="h-4 w-4"/> {theme}</h4>
+                                              <div className="space-y-2">
+                                                  {prayerThemes[theme as PrayerTheme].verses.map(verse => (
+                                                      <div key={verse} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                                          <p className="text-sm font-mono">{verse}</p>
+                                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleAddVerse(verse)}><Plus className="h-4 w-4"/></Button>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          </div>
+                                      )
+                                  })}
+                              </div>
+                            </ScrollArea>
                         </DialogContent>
                     </Dialog>
                      <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => { setSelectionMode('ai'); handleAiSuggest();}}>

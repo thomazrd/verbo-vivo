@@ -3,6 +3,7 @@
 
 import { Inter as FontSans, JetBrains_Mono as FontMono } from "next/font/google";
 import "./globals.css";
+import "@/i18n"; // Import to initialize i18next
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";

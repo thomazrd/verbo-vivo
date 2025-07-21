@@ -1,0 +1,264 @@
+
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, onSnapshot, orderBy, where, getDocs, startAfter, limit } from 'firebase/firestore';
+import type { Armor } from '@/lib/types';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Shield, Loader2 } from 'lucide-react';
+import { ArmorCard } from '@/components/armor/ArmorCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const PAGE_SIZE = 10; // Number of armors to fetch per batch
+
+const ArmorsList = ({ 
+    armors, 
+    isLoading, 
+    userProfile, 
+    loadMoreRef,
+    hasMore,
+    isLoadingMore,
+    isCommunityView,
+    myArmors,
+}: { 
+    armors: Armor[], 
+    isLoading: boolean, 
+    userProfile: any,
+    loadMoreRef?: React.Ref<HTMLDivElement>,
+    hasMore?: boolean,
+    isLoadingMore?: boolean,
+    isCommunityView?: boolean;
+    myArmors?: Armor[];
+}) => {
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <Skeleton className="h-36 w-full" />
+                <Skeleton className="h-36 w-full" />
+            </div>
+        );
+    }
+    
+    if (armors.length === 0 && !isLoadingMore) {
+        return (
+            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center mt-6">
+                <Shield className="h-16 w-16 text-muted-foreground" />
+                <h3 className="mt-4 text-xl font-semibold">Nenhuma armadura encontrada.</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    {isCommunityView ? "Seja o primeiro a compartilhar uma armadura." : "Clique no botão '+' para forjar sua primeira armadura."}
+                </p>
+            </div>
+        )
+    }
+
+    const favoriteIds = userProfile?.favoriteArmorIds || [];
+    const sortedArmors = [...armors].sort((a, b) => {
+        const aIsFav = favoriteIds.includes(a.id);
+        const bIsFav = favoriteIds.includes(b.id);
+        if (aIsFav && !bIsFav) return -1;
+        if (!aIsFav && bIsFav) return 1;
+        const timeA = a.updatedAt?.toMillis() || a.createdAt?.toMillis() || 0;
+        const timeB = b.updatedAt?.toMillis() || b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+    });
+
+    const myArmorOriginalIds = myArmors?.map(a => a.originalArmorId || a.id) || [];
+
+    return (
+        <div className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {sortedArmors.map(armor => (
+                    <ArmorCard 
+                        key={armor.id} 
+                        armor={armor}
+                        isFavorited={favoriteIds.includes(armor.id)}
+                        isCommunityView={isCommunityView}
+                        isAlreadyAdded={myArmorOriginalIds.includes(armor.id)}
+                    />
+                ))}
+            </div>
+            {isLoadingMore && (
+                <div className="flex justify-center items-center mt-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+            )}
+            <div ref={loadMoreRef} className="h-1"/>
+        </div>
+    )
+}
+
+export default function MyArmorPage() {
+  const { user, userProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  const [myArmors, setMyArmors] = useState<Armor[]>([]);
+  const [communityArmors, setCommunityArmors] = useState<Armor[]>([]);
+  
+  const [isLoadingMyArmors, setIsLoadingMyArmors] = useState(true);
+  const [isLoadingCommunity, setIsLoadingCommunity] = useState(true);
+
+  // --- State for lazy loading community armors ---
+  const [communityArmorsFetched, setCommunityArmorsFetched] = useState(false);
+  const [lastVisibleArmor, setLastVisibleArmor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreCommunity, setHasMoreCommunity] = useState(true);
+  const [isLoadingMoreCommunity, setIsLoadingMoreCommunity] = useState(false);
+  const observerRef = useRef<IntersectionObserver>();
+
+  const fetchMoreCommunityArmors = useCallback(async (isInitialFetch = false) => {
+    if (isLoadingMoreCommunity || !hasMoreCommunity) return;
+
+    if (isInitialFetch) {
+        setIsLoadingCommunity(true);
+    } else {
+        setIsLoadingMoreCommunity(true);
+    }
+    
+    let armorQuery = query(
+        collection(db, "sharedArmors"), 
+        orderBy('updatedAt', 'desc'),
+        limit(PAGE_SIZE)
+    );
+    if (lastVisibleArmor && !isInitialFetch) {
+        armorQuery = query(armorQuery, startAfter(lastVisibleArmor));
+    }
+    
+    try {
+        const armorsSnapshot = await getDocs(armorQuery);
+        const lastDoc = armorsSnapshot.docs[armorsSnapshot.docs.length - 1];
+        setLastVisibleArmor(lastDoc);
+
+        if (armorsSnapshot.empty || armorsSnapshot.docs.length < PAGE_SIZE) {
+            setHasMoreCommunity(false);
+        }
+
+        const newArmors: Armor[] = [];
+        armorsSnapshot.forEach(doc => {
+            // Exclude user's own armors from community feed
+            if (doc.data().userId !== user?.uid) {
+                newArmors.push({ id: doc.id, ...doc.data() } as Armor);
+            }
+        });
+        
+        if (newArmors.length > 0) {
+           setCommunityArmors(prev => isInitialFetch ? newArmors : [...prev, ...newArmors]);
+        }
+
+    } catch(error) {
+        console.error("Error fetching more community armors:", error);
+    } finally {
+        setIsLoadingCommunity(false);
+        setIsLoadingMoreCommunity(false);
+    }
+
+  }, [user?.uid, lastVisibleArmor, isLoadingMoreCommunity, hasMoreCommunity]);
+
+
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoadingCommunity || isLoadingMoreCommunity) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreCommunity) {
+        fetchMoreCommunityArmors();
+      }
+    });
+
+    if (node) observerRef.current.observe(node);
+  }, [isLoadingCommunity, isLoadingMoreCommunity, hasMoreCommunity, fetchMoreCommunityArmors]);
+
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+        router.push('/login');
+        return;
+    }
+    
+    if (userProfile && userProfile.armorOnboardingCompleted === false) {
+      router.push('/armor/onboarding');
+      return;
+    }
+    
+    const myArmorsQuery = query(
+      collection(db, `users/${user.uid}/armors`),
+      orderBy('updatedAt', 'desc')
+    );
+    const unsubMyArmors = onSnapshot(myArmorsQuery, (snapshot) => {
+      const userArmors: Armor[] = [];
+      snapshot.forEach(doc => {
+        userArmors.push({ id: doc.id, ...doc.data() } as Armor);
+      });
+      setMyArmors(userArmors);
+      setIsLoadingMyArmors(false);
+    }, (error) => {
+      console.error("Error fetching user armors:", error);
+      setIsLoadingMyArmors(false);
+    });
+
+    return () => {
+        unsubMyArmors();
+    }
+  }, [user, userProfile, authLoading, router]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'community-armors' && !communityArmorsFetched) {
+        fetchMoreCommunityArmors(true); // Initial fetch for community armors
+        setCommunityArmorsFetched(true);
+    }
+  };
+
+  return (
+    <div className="container mx-auto max-w-4xl py-8 px-4 h-full">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Meu Arsenal</h1>
+          <p className="mt-1 text-muted-foreground">
+            Suas armaduras espirituais para as batalhas da vida.
+          </p>
+        </div>
+      </div>
+
+       <Tabs defaultValue="my-armors" onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="my-armors">Minhas Armaduras</TabsTrigger>
+          <TabsTrigger value="community-armors">Comunidade</TabsTrigger>
+        </TabsList>
+        <TabsContent value="my-armors">
+           <ArmorsList 
+                armors={myArmors} 
+                isLoading={isLoadingMyArmors} 
+                userProfile={userProfile} 
+            />
+        </TabsContent>
+        <TabsContent value="community-armors">
+            <ArmorsList 
+                armors={communityArmors} 
+                isLoading={isLoadingCommunity} 
+                userProfile={userProfile} 
+                loadMoreRef={loadMoreRef}
+                hasMore={hasMoreCommunity}
+                isLoadingMore={isLoadingMoreCommunity}
+                isCommunityView={true}
+                myArmors={myArmors}
+            />
+        </TabsContent>
+      </Tabs>
+
+
+      <Button asChild className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg">
+          <Link href="/armor/forge">
+            <Plus className="h-6 w-6" />
+            <span className="sr-only">Forjar Nova Armadura</span>
+          </Link>
+      </Button>
+    </div>
+  );
+}

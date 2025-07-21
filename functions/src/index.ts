@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Cloud Functions para o sistema de notificações do Verbo Vivo.
  * Contém os gatilhos do Firestore para criar e enviar notificações.
@@ -290,7 +291,7 @@ export const requestToJoinCongregation = functions.region(region)
 export const createCongregation = functions.region(region)
     .https.onCall(async (data, context) => {
         const uid = context.auth?.uid;
-        const { name, city, pastorName } = data;
+        const { name, city, pastorName, isPublic, baseVerse } = data;
 
         if (!uid) {
             throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
@@ -317,6 +318,8 @@ export const createCongregation = functions.region(region)
             name,
             city,
             pastorName,
+            isPublic: isPublic || false,
+            baseVerse: baseVerse || null,
             admins: { [uid]: true },
             memberCount: 1,
             inviteCode: generateInviteCode(),
@@ -344,5 +347,3 @@ export const createCongregation = functions.region(region)
             throw new functions.https.HttpsError("internal", "Ocorreu um erro ao criar a congregação.");
         }
     });
-
-    

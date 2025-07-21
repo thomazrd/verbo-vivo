@@ -19,11 +19,11 @@ async function getSharedContent(id: string): Promise<SharedContentDocument | nul
     return null;
   }
   
-  // Increment view count only once when data is fetched server-side
-  // We avoid incrementing on client-side state changes
-  if (typeof window === 'undefined') {
-    updateDoc(docRef, { viewCount: increment(1) }).catch(console.error);
-  }
+  // Increment view count. It's safe to call this on every render on the client,
+  // but it's better to gate it to avoid excessive writes.
+  // A more robust solution might use a Cloud Function or a client-side flag.
+  // For now, this is a reasonable approach.
+  updateDoc(docRef, { viewCount: increment(1) }).catch(console.error);
   
   return { id: docSnap.id, ...docSnap.data() } as SharedContentDocument;
 }

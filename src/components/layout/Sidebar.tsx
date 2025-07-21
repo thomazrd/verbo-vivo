@@ -18,6 +18,7 @@ import {
   Home,
   Smile,
   Newspaper,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -37,11 +38,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
     { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
+    { href: "/armor", label: 'Minha Armadura', icon: Shield },
     { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
     { href: "/plans", label: t('nav_plans'), icon: BookOpen },
     { href: "/bible", label: t('nav_bible'), icon: BookMarked },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: HeartHandshake },
+    { href: "/prayer-circles", label: "Círculos de Oração", icon: HeartHandshake },
+    { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
     { href: "/community", label: t('nav_community'), icon: Users },
     { href: "/blog", label: "Artigos", icon: Newspaper },
     { href: "/characters", label: t('nav_characters'), icon: BookUser },

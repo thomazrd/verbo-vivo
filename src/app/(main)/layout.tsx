@@ -2,6 +2,7 @@
 "use client";
 
 import { type ReactNode, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { cn } from '@/lib/utils';
@@ -10,6 +11,7 @@ import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 
 function AppLayout({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
   const { isFocusMode } = useFocusMode();
   
   // Initialize notification hooks for the logged-in user
@@ -19,9 +21,11 @@ function AppLayout({ children }: { children: ReactNode }) {
     setIsCollapsed(!isCollapsed);
   };
   
-  if (isFocusMode) {
+  const isImmersivePage = pathname.startsWith('/armor/battle/');
+  
+  if (isFocusMode || isImmersivePage) {
     return (
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto h-screen">
           {children}
         </main>
     )

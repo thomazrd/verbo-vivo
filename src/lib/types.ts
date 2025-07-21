@@ -85,10 +85,13 @@ export interface UserProfile {
   photoURL: string | null;
   createdAt: Timestamp;
   onboardingCompleted: boolean;
+  armorOnboardingCompleted?: boolean;
+  prayerCircleOnboardingCompleted?: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
+  favoriteArmorIds?: string[];
 }
 
 export interface Congregation {
@@ -180,11 +183,29 @@ export interface Prayer {
 export interface PrayerCircle {
   id: string;
   name: string;
+  description: string;
+  isPublic: boolean;
+  authorName: string;
   members: string[];
+  prayingUsers?: string[];
   inviteCode: string;
   createdAt: Timestamp;
   createdBy: string;
+  baseVerse?: string;
 }
+
+export interface Victory {
+  id: string;
+  circleId: string;
+  circleName: string;
+  testimony: string;
+  recordedBy: string; // userId of moderator
+  recordedByName: string;
+  recordedAt: Timestamp;
+  amenCount: number;
+  usersWhoSaidAmen?: string[];
+}
+
 
 export interface PrayerRequest {
   id: string;
@@ -335,6 +356,29 @@ export interface BibleChapter {
     }[];
 }
 
+// --- Tipos da Minha Armadura ---
+export interface ArmorWeapon {
+  id: string;
+  verseReference: string;
+  verseText: string;
+  bibleVersion: string;
+}
+
+export interface Armor {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  weapons: ArmorWeapon[];
+  isShared: boolean;
+  isFavorite?: boolean; // Client-side state
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  authorName?: string;
+  authorPhotoURL?: string | null;
+  originalArmorId?: string; // To track copied armors
+}
+
 
 // === AI Flow Schemas and Types ===
 const BaseAiInputSchema = z.object({
@@ -465,3 +509,21 @@ export const ExplainPassageOutputSchema = z.object({
   explanation: z.string().describe("A clear and concise explanation of the passage."),
 });
 export type ExplainPassageOutput = z.infer<typeof ExplainPassageOutputSchema>;
+
+// From: armor-suggestion-flow.ts
+export const ArmorSuggestionInputSchema = BaseAiInputSchema.extend({
+  battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
+});
+export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
+
+export const ArmorWeaponSchema = z.object({
+    verseReference: z.string(),
+    verseText: z.string(),
+    bibleVersion: z.string(),
+});
+export type ArmorWeaponOutput = z.infer<typeof ArmorWeaponSchema>;
+
+export const ArmorSuggestionOutputSchema = z.object({
+    weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
+});
+export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;

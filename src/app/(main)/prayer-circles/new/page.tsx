@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Globe, Lock, Loader2, BookUp } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Loader2, BookUp, Users, Search, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -29,7 +29,7 @@ export default function NewPrayerCirclePage() {
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [baseVerse, setBaseVerse] = useState('');
+  const [selectedWeapons, setSelectedWeapons] = useState<string[]>([]); // To store verse references
 
   const handleSave = async () => {
     if (!user || !userProfile) {
@@ -52,7 +52,7 @@ export default function NewPrayerCirclePage() {
         members: [user.uid],
         inviteCode: generateInviteCode(),
         prayingUsers: [],
-        baseVerse: baseVerse,
+        baseVerse: selectedWeapons.join('; ') || null, // Storing multiple verses separated by semicolon
       });
       toast({ title: t('toast_success'), description: t('toast_circle_created') });
       router.push('/prayer-circles');
@@ -109,17 +109,22 @@ export default function NewPrayerCirclePage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>{t('ammunition_title')}</CardTitle>
-                <CardDescription>{t('ammunition_desc')}</CardDescription>
+                <CardTitle>Ancorando sua Oração na Palavra</CardTitle>
+                <CardDescription>Adicione versículos para fundamentar o propósito desta sala.</CardDescription>
             </CardHeader>
-             <CardContent>
-                <label htmlFor="baseVerse" className="text-sm font-medium">{t('base_verse_label')}</label>
-                <Input 
-                    id="baseVerse" 
-                    value={baseVerse} 
-                    onChange={e => setBaseVerse(e.target.value)} 
-                    placeholder={t('base_verse_placeholder')}
-                />
+             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button variant="outline" className="h-auto py-3 flex-col gap-2">
+                    <Search className="h-6 w-6"/>
+                    <span className="font-semibold">Buscar Manualmente</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-3 flex-col gap-2">
+                    <Users className="h-6 w-6"/>
+                    <span className="font-semibold">Explorar por Tema</span>
+                </Button>
+                 <Button variant="outline" className="h-auto py-3 flex-col gap-2">
+                    <Sparkles className="h-6 w-6"/>
+                    <span className="font-semibold">Sugestão com IA</span>
+                </Button>
             </CardContent>
         </Card>
 

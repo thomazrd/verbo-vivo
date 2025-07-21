@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PrayerCircle } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ChevronRight, Award } from "lucide-react";
+import { Users, ChevronRight, Award, Globe, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { VictoryModal } from "./VictoryModal";
 
@@ -31,6 +31,10 @@ export function CircleCard({ circle }: CircleCardProps) {
                   <div className="flex items-center gap-1.5">
                     <Users className="h-3 w-3" />
                     <span>{circle.members.length} membro(s)</span>
+                  </div>
+                   <div className="flex items-center gap-1.5">
+                    {circle.isPublic ? <Globe className="h-3 w-3 text-blue-500" /> : <Lock className="h-3 w-3 text-orange-500" />}
+                    <span>{circle.isPublic ? 'Público' : 'Privado'}</span>
                   </div>
                   <span className="hidden sm:inline">•</span>
                   <span>Criado por {circle.authorName}</span>

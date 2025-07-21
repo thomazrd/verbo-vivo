@@ -11,13 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Globe, Lock, Loader2, BookUp, Users, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Loader2, BookUp, Users, Search, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
+
+type SelectionMode = null | 'manual' | 'theme' | 'ai';
 
 export default function NewPrayerCirclePage() {
   const router = useRouter();
@@ -30,6 +32,26 @@ export default function NewPrayerCirclePage() {
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedWeapons, setSelectedWeapons] = useState<string[]>([]); // To store verse references
+  
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
+  const [manualVerse, setManualVerse] = useState('');
+
+
+  const handleAddManualVerse = () => {
+    if (manualVerse.trim()) {
+      if (selectedWeapons.includes(manualVerse.trim())) {
+        toast({ variant: 'default', title: 'Versículo já adicionado.' });
+        return;
+      }
+      setSelectedWeapons(prev => [...prev, manualVerse.trim()]);
+      setManualVerse('');
+    }
+  };
+  
+  const handleRemoveVerse = (verseToRemove: string) => {
+    setSelectedWeapons(prev => prev.filter(v => v !== verseToRemove));
+  };
+
 
   const handleSave = async () => {
     if (!user || !userProfile) {
@@ -52,7 +74,7 @@ export default function NewPrayerCirclePage() {
         members: [user.uid],
         inviteCode: generateInviteCode(),
         prayingUsers: [],
-        baseVerse: selectedWeapons.join('; ') || null, // Storing multiple verses separated by semicolon
+        baseVerse: selectedWeapons.join('; ') || null,
       });
       toast({ title: t('toast_success'), description: t('toast_circle_created') });
       router.push('/prayer-circles');
@@ -112,19 +134,51 @@ export default function NewPrayerCirclePage() {
                 <CardTitle>Ancorando sua Oração na Palavra</CardTitle>
                 <CardDescription>Adicione versículos para fundamentar o propósito desta sala.</CardDescription>
             </CardHeader>
-             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-auto py-3 flex-col gap-2">
-                    <Search className="h-6 w-6"/>
-                    <span className="font-semibold">Buscar Manualmente</span>
-                </Button>
-                <Button variant="outline" className="h-auto py-3 flex-col gap-2">
-                    <Users className="h-6 w-6"/>
-                    <span className="font-semibold">Explorar por Tema</span>
-                </Button>
-                 <Button variant="outline" className="h-auto py-3 flex-col gap-2">
-                    <Sparkles className="h-6 w-6"/>
-                    <span className="font-semibold">Sugestão com IA</span>
-                </Button>
+             <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button variant={selectionMode === 'manual' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('manual')}>
+                        <Search className="h-6 w-6"/>
+                        <span className="font-semibold">Buscar Manualmente</span>
+                    </Button>
+                    <Button variant={selectionMode === 'theme' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('theme')}>
+                        <Users className="h-6 w-6"/>
+                        <span className="font-semibold">Explorar por Tema</span>
+                    </Button>
+                     <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('ai')}>
+                        <Sparkles className="h-6 w-6"/>
+                        <span className="font-semibold">Sugestão com IA</span>
+                    </Button>
+                </div>
+
+                {selectionMode === 'manual' && (
+                    <div className="pt-4 border-t">
+                        <div className="flex gap-2">
+                           <Input 
+                             value={manualVerse}
+                             onChange={(e) => setManualVerse(e.target.value)}
+                             placeholder="Digite livro, capítulo e versículo (ex: Fp 4:13)"
+                           />
+                           <Button onClick={handleAddManualVerse}>Adicionar</Button>
+                        </div>
+                    </div>
+                )}
+                
+                {selectedWeapons.length > 0 && (
+                    <div className="pt-4 border-t">
+                        <h4 className="text-sm font-semibold mb-2">Versículos Selecionados ({selectedWeapons.length}):</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {selectedWeapons.map(verse => (
+                                <div key={verse} className="flex items-center gap-1 bg-muted text-muted-foreground rounded-full px-3 py-1 text-sm font-mono">
+                                    <span>{verse}</span>
+                                    <button onClick={() => handleRemoveVerse(verse)} className="text-muted-foreground hover:text-foreground">
+                                        <X className="h-3 w-3"/>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
             </CardContent>
         </Card>
 

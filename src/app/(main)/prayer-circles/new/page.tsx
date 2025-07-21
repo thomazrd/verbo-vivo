@@ -36,7 +36,7 @@ export default function NewPrayerCirclePage() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -76,6 +76,8 @@ export default function NewPrayerCirclePage() {
         const result = await getPrayerCircleSuggestions({
             title,
             description,
+            model: userProfile?.preferredModel,
+            language: userProfile?.preferredLanguage || i18n.language,
         });
         setAiSuggestions(result.suggestions);
     } catch(e) {

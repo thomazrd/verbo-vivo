@@ -11,15 +11,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Globe, Lock, Loader2, BookUp, Users, Search, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Loader2, BookUp, Users, Search, Sparkles, X, Plus, BookOpen, Heart, Shield, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { getPrayerCircleSuggestions } from '@/ai/flows/prayer-circle-suggestion-flow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 type SelectionMode = null | 'manual' | 'theme' | 'ai';
+
+const prayerThemes = {
+    "Força": { icon: Shield, verses: ["Isaías 41:10", "Filipenses 4:13", "Salmos 28:7", "Efésios 6:10", "2 Coríntios 12:9"] },
+    "Paz": { icon: Heart, verses: ["João 14:27", "Filipenses 4:6-7", "Isaías 26:3", "Colossenses 3:15", "Salmos 4:8"] },
+    "Cura": { icon: Sun, verses: ["Jeremias 17:14", "Tiago 5:15", "Isaías 53:5", "Salmos 103:2-3", "Êxodo 15:26"] }
+};
+
+type PrayerTheme = keyof typeof prayerThemes;
 
 export default function NewPrayerCirclePage() {
   const router = useRouter();
@@ -31,27 +41,48 @@ export default function NewPrayerCirclePage() {
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedWeapons, setSelectedWeapons] = useState<string[]>([]); // To store verse references
   
+  const [selectedWeapons, setSelectedWeapons] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
   const [manualVerse, setManualVerse] = useState('');
+  
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<{ verse: string, text: string, justification: string }[]>([]);
 
-
-  const handleAddManualVerse = () => {
-    if (manualVerse.trim()) {
-      if (selectedWeapons.includes(manualVerse.trim())) {
+  const handleAddVerse = (verseToAdd: string) => {
+    if (verseToAdd.trim()) {
+      if (selectedWeapons.includes(verseToAdd.trim())) {
         toast({ variant: 'default', title: 'Versículo já adicionado.' });
         return;
       }
-      setSelectedWeapons(prev => [...prev, manualVerse.trim()]);
-      setManualVerse('');
+      setSelectedWeapons(prev => [...prev, verseToAdd.trim()]);
+      toast({ title: 'Versículo adicionado!', description: `${verseToAdd} foi adicionado à sua sala.`});
     }
   };
   
   const handleRemoveVerse = (verseToRemove: string) => {
     setSelectedWeapons(prev => prev.filter(v => v !== verseToRemove));
   };
-
+  
+  const handleAiSuggest = async () => {
+    if (!title.trim() && !description.trim()) {
+        toast({ variant: 'destructive', title: 'Contexto necessário', description: 'Por favor, preencha o título ou a descrição para receber sugestões.' });
+        return;
+    }
+    setIsAiLoading(true);
+    setAiSuggestions([]);
+    try {
+        const result = await getPrayerCircleSuggestions({
+            title,
+            description,
+        });
+        setAiSuggestions(result.suggestions);
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Erro de IA', description: 'Não foi possível buscar sugestões.' });
+    } finally {
+        setIsAiLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user || !userProfile) {
@@ -140,11 +171,39 @@ export default function NewPrayerCirclePage() {
                         <Search className="h-6 w-6"/>
                         <span className="font-semibold">Buscar Manualmente</span>
                     </Button>
-                    <Button variant={selectionMode === 'theme' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('theme')}>
-                        <Users className="h-6 w-6"/>
-                        <span className="font-semibold">Explorar por Tema</span>
-                    </Button>
-                     <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('ai')}>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant={selectionMode === 'theme' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('theme')}>
+                                <BookOpen className="h-6 w-6"/>
+                                <span className="font-semibold">Explorar por Tema</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Explorar por Tema</DialogTitle>
+                                <DialogDescription>Selecione um tema para ver versículos relacionados.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                {Object.keys(prayerThemes).map(theme => {
+                                    const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
+                                    return (
+                                        <div key={theme}>
+                                            <h4 className="font-semibold text-md mb-2 flex items-center gap-2"><ThemeIcon className="h-4 w-4"/> {theme}</h4>
+                                            <div className="space-y-2">
+                                                {prayerThemes[theme as PrayerTheme].verses.map(verse => (
+                                                    <div key={verse} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                                        <p className="text-sm font-mono">{verse}</p>
+                                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleAddVerse(verse)}><Plus className="h-4 w-4"/></Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                     <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => { setSelectionMode('ai'); handleAiSuggest();}}>
                         <Sparkles className="h-6 w-6"/>
                         <span className="font-semibold">Sugestão com IA</span>
                     </Button>
@@ -158,8 +217,33 @@ export default function NewPrayerCirclePage() {
                              onChange={(e) => setManualVerse(e.target.value)}
                              placeholder="Digite livro, capítulo e versículo (ex: Fp 4:13)"
                            />
-                           <Button onClick={handleAddManualVerse}>Adicionar</Button>
+                           <Button onClick={() => handleAddVerse(manualVerse)}>Adicionar</Button>
                         </div>
+                    </div>
+                )}
+                
+                {selectionMode === 'ai' && (
+                    <div className="pt-4 border-t">
+                        {isAiLoading ? (
+                            <div className="text-center py-6 flex flex-col items-center gap-2 text-muted-foreground">
+                                <Loader2 className="h-6 w-6 animate-spin"/>
+                                <p>Analisando seu pedido à luz da Palavra...</p>
+                            </div>
+                        ) : (
+                             <div className="space-y-3">
+                                {aiSuggestions.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma sugestão encontrada.</p>}
+                                {aiSuggestions.map(suggestion => (
+                                    <Card key={suggestion.verse} className="p-4">
+                                        <p className="font-bold text-primary">{suggestion.verse}</p>
+                                        <blockquote className="text-muted-foreground italic mt-1">"{suggestion.text}"</blockquote>
+                                        <p className="text-xs mt-2"><strong className="text-primary/80">Por que esta Palavra?</strong> {suggestion.justification}</p>
+                                        <div className="text-right mt-2">
+                                            <Button size="sm" onClick={() => handleAddVerse(suggestion.verse)}><Plus className="h-4 w-4 mr-2"/> Adicionar à Sala</Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                             </div>
+                        )}
                     </div>
                 )}
                 

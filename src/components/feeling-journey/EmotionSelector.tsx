@@ -1,6 +1,6 @@
 'use client';
 
-import { LucideIcon, Smile, Frown, Annoyed, Angry, Meh, Hand, BrainCircuit, Heart, Zap, Sparkles } from 'lucide-react';
+import { LucideIcon, Smile, Frown, Annoyed, Angry, Meh, Hand, BrainCircuit, Heart, Zap, Sparkles, Handshake, Search, CloudSun, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,12 +18,16 @@ export const feelingOptions: EmotionOption[] = [
   { name: 'Raiva', icon: Angry, color: 'text-red-500', type: 'negative' },
   { name: 'Cansaço', icon: Zap, color: 'text-yellow-500', type: 'negative' },
   { name: 'Irritação', icon: Annoyed, color: 'text-orange-500', type: 'negative' },
-  { name: 'Indiferença', icon: Meh, color: 'text-gray-500', type: 'negative' },
+  { name: 'Culpa', icon: ShieldAlert, color: 'text-gray-600', type: 'negative' },
+  { name: 'Solidão', icon: CloudSun, color: 'text-indigo-400', type: 'negative' },
+  { name: 'Confusão', icon: Search, color: 'text-teal-500', type: 'negative' },
 ];
 
 export const positiveOptions: EmotionOption[] = [
     { name: 'Em Paz', icon: Heart, color: 'text-pink-500', type: 'positive' },
-    { name: 'Esperançoso(a)', icon: Sparkles, color: 'text-green-500', type: 'positive' },
+    { name: 'Esperançoso(a)', icon: Sparkles, color: 'text-cyan-500', type: 'positive' },
+    { name: 'Alegria', icon: Smile, color: 'text-lime-500', type: 'positive' },
+    { name: 'Gratidão', icon: Handshake, color: 'text-green-500', type: 'positive' },
 ]
 
 interface EmotionSelectorProps {
@@ -42,10 +46,10 @@ export function EmotionSelector({ onSelectEmotion, title }: EmotionSelectorProps
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-3xl mx-auto"
+      className="w-full max-w-4xl mx-auto"
     >
       <h1 className="text-3xl font-bold tracking-tight text-center mb-8">{title}</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {allOptions.map((option, index) => (
           <motion.div
             key={option.name}

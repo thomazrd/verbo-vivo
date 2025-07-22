@@ -1,26 +1,26 @@
-import { render, screen } from '@testing-library/react';
-import { WelcomeHeader } from '../WelcomeHeader';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '../../../i18n';
+import React from 'react';
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '@/testing/test-utils';
+import { WelcomeHeader } from '@/components/home/WelcomeHeader';
 
-// Mock i18next
-jest.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key, options) => {
-      if (key === 'home_welcome') {
-        return `Bem-vindo de volta, ${options.name}!`;
-      }
-      return key;
+// Mock do hook useAuth
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    user: {
+      displayName: 'Convidado',
     },
-  })
+    loading: false,
+  }),
 }));
 
 describe('WelcomeHeader', () => {
-  it('renders the welcome message', () => {
-    render(
-        <WelcomeHeader userName="Test User" />
-    );
-    const heading = screen.getByRole('heading', { name: /Bem-vindo de volta, Test User/i });
-    expect(heading).toBeInTheDocument();
+  it('deve renderizar a saudação com o nome do usuário', () => {
+    renderWithProviders(<WelcomeHeader userName="Convidado" />);
+
+    // Verifica se a saudação de boas-vindas é exibida
+    expect(screen.getByText(/Welcome back, Convidado!/i)).toBeInTheDocument();
+
+    // Verifica se a mensagem de inspiração está presente
+    expect(screen.getByText(/Ready to deepen your faith today?/i)).toBeInTheDocument();
   });
 });

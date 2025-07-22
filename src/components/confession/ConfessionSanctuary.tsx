@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { LockKeyhole } from 'lucide-react';
 
@@ -26,11 +27,10 @@ export function ConfessionSanctuary() {
   const [forgivenessResponse, setForgivenessResponse] = useState<ForgivenessResponse | null>(null);
   
   const holdTimer = useRef<NodeJS.Timeout | null>(null);
-  const holdProgressControls = useRef<any>(null);
+  const controls = useAnimation();
 
-  const handleHoldStart = (controls: any) => {
-    holdProgressControls.current = controls;
-    holdProgressControls.current.start({
+  const handleHoldStart = () => {
+    controls.start({
       pathLength: 1,
       transition: { duration: 1.5, ease: 'easeInOut' }
     });
@@ -43,10 +43,8 @@ export function ConfessionSanctuary() {
     if (holdTimer.current) {
       clearTimeout(holdTimer.current);
     }
-    if (holdProgressControls.current) {
-      holdProgressControls.current.stop();
-      holdProgressControls.current.set({ pathLength: 0 });
-    }
+    controls.stop();
+    controls.set({ pathLength: 0 });
   };
 
   const handleAuthSuccess = () => {
@@ -98,14 +96,29 @@ export function ConfessionSanctuary() {
               Um espaço seguro para confessar seus pecados e receber a graça do perdão, conforme prometido em 1 João 1:9.
             </p>
             <div 
-              className="relative w-40 h-40 mt-8 select-none cursor-pointer"
-              onMouseDown={() => holdProgressControls.current && handleHoldStart(holdProgressControls.current)}
+              className="relative w-40 h-40 mt-8 select-none cursor-pointer flex items-center justify-center"
+              onMouseDown={handleHoldStart}
               onMouseUp={handleHoldEnd}
               onMouseLeave={handleHoldEnd}
-              onTouchStart={() => holdProgressControls.current && handleHoldStart(holdProgressControls.current)}
+              onTouchStart={handleHoldStart}
               onTouchEnd={handleHoldEnd}
             >
-              <LockKeyhole className="w-full h-full text-primary/30" />
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" stroke="hsl(var(--primary) / 0.1)" strokeWidth="5" fill="none" />
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="5"
+                  fill="none"
+                  strokeLinecap="round"
+                  transform="rotate(-90 50 50)"
+                  style={{ pathLength: 0 }}
+                  animate={controls}
+                />
+              </svg>
+              <LockKeyhole className="w-24 h-24 text-primary/30" />
             </div>
             <p className="mt-4 text-sm font-semibold text-primary">Segure para destravar</p>
           </motion.div>

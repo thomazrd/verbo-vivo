@@ -7,13 +7,12 @@ import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { LockKeyhole } from 'lucide-react';
 
-import { AuthStep } from './AuthStep';
 import { RecordingStep } from './RecordingStep';
 import { ProcessingStep } from './ProcessingStep';
 import { ForgivenessStep } from './ForgivenessStep';
 import { processConfession } from '@/ai/flows/confession-flow';
 
-export type SanctuaryState = 'locked' | 'authenticating' | 'recording' | 'processing' | 'response';
+export type SanctuaryState = 'locked' | 'recording' | 'processing' | 'response';
 export type ForgivenessResponse = {
     responseText: string;
     verses: { reference: string; text: string; }[];
@@ -35,7 +34,7 @@ export function ConfessionSanctuary() {
       transition: { duration: 1.5, ease: 'easeInOut' }
     });
     holdTimer.current = setTimeout(() => {
-      setSanctuaryState('authenticating');
+      setSanctuaryState('recording');
     }, 1500);
   };
 
@@ -46,14 +45,6 @@ export function ConfessionSanctuary() {
     controls.stop();
     controls.set({ pathLength: 0 });
   };
-
-  const handleAuthSuccess = () => {
-    setSanctuaryState('recording');
-  };
-  
-  const handleAuthCancel = () => {
-    setSanctuaryState('locked');
-  }
 
   const handleRecordingSubmit = async (text: string) => {
     if (!user) return;
@@ -120,11 +111,9 @@ export function ConfessionSanctuary() {
               </svg>
               <LockKeyhole className="w-24 h-24 text-primary/30" />
             </div>
-            <p className="mt-4 text-sm font-semibold text-primary">Segure para destravar</p>
+            <p className="mt-4 text-sm font-semibold text-primary">Segure para entrar</p>
           </motion.div>
         );
-      case 'authenticating':
-        return <AuthStep onAuthenticated={handleAuthSuccess} onCancel={handleAuthCancel} />;
       case 'recording':
         return <RecordingStep onSubmit={handleRecordingSubmit} />;
       case 'processing':

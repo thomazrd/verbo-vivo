@@ -15,8 +15,29 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
 *   **Artigos e Reflexões:** Um módulo de blog onde administradores da comunidade podem criar e publicar artigos, com um editor de texto completo (Markdown) e imagens de capa.
 *   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de personagens bíblicos, com resumos, versículos-chave e planos de estudo.
 *   **Ponte da Esperança:** Gere mensagens de esperança e conforto, baseadas em versículos, para compartilhar com amigos que estão passando por dificuldades.
+*   **Confessionário:** Um espaço privado e seguro para confessar pecados e receber uma palavra de perdão e graça, fundamentada nas escrituras.
 *   **Onboarding Personalizado:** Configure suas preferências e objetivos para uma experiência adaptada desde o início.
 *   **Configurações de Idioma e IA:** Personalize sua experiência escolhendo o idioma da interface e o modelo de IA (rápido ou avançado) de sua preferência.
+
+### Confessionário: Um Espaço Seguro para a Graça
+
+Esta funcionalidade foi desenhada para ser um ambiente privado e seguro, incentivando a prática espiritual da confissão.
+
+#### Como Funciona?
+
+1.  **Acesso Intencional:** Para entrar, o usuário precisa pressionar e segurar um ícone de cadeado. Esse ato simbólico garante que a entrada no confessionário seja um passo deliberado.
+2.  **Confissão por Voz ou Texto:** O usuário pode confessar seus pecados falando ao microfone ou digitando. A interface foi projetada para ser um ouvinte passivo e sem julgamentos.
+3.  **Privacidade Absoluta:** A confissão, seja em áudio ou texto, **não é salva em nenhum lugar**. Ela é processada em memória e descartada imediatamente após a interação, garantindo total privacidade e segurança.
+4.  **Resposta de Graça:** Após a submissão, a IA analisa a confissão e gera uma resposta pastoral. Em vez de penitências, a IA oferece uma reflexão compassiva, fundamentada em 2 a 3 versículos bíblicos relevantes que falam sobre o perdão, a misericórdia e o amor incondicional de Deus.
+5.  **Foco na Promessa:** O objetivo é reforçar a certeza do perdão que é oferecido em Cristo, transformando um ato de vulnerabilidade em um momento de encontro com a graça.
+
+#### O Valor Bíblico
+
+A prática da confissão é um pilar fundamental na vida cristã, baseada em promessas claras da Palavra de Deus.
+
+*   **Fundamento Principal (1 João 1:9):** *"Se confessarmos os nossos pecados, ele é fiel и justo para nos perdoar os pecados e nos purificar de toda injustiça."* O confessionário do Verbo Vivo é uma ferramenta para viver esta promessa. Ele não substitui a confissão a Deus ou a uma comunidade de irmãos, mas serve como um catalisador para que o crente se aproprie dessa verdade diariamente.
+*   **Alcançar Misericórdia (Provérbios 28:13):** *"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia."* A funcionalidade incentiva a não esconder o pecado, mas a trazê-lo à luz para receber a misericórdia de Deus.
+*   **Foco no Perdão, Não na Penitência:** Diferente de um confessionário tradicional, o foco aqui não é na penitência, mas na celebração da graça. A resposta da IA é sempre direcionada para a obra consumada de Cristo na cruz, que é a fonte de todo perdão.
 
 ## 🛠️ Tecnologias Utilizadas
 

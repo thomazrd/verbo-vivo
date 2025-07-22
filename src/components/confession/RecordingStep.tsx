@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -62,7 +63,10 @@ export function RecordingStep({ onSubmit }: RecordingStepProps) {
     >
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">Confesse seus Pecados</h1>
-        <p className="mt-2 text-muted-foreground">"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia." - Provérbios 28:13</p>
+        <blockquote className="mt-4 p-4 border-l-4 border-primary bg-muted/50 rounded-r-lg">
+            <p className="font-serif italic text-muted-foreground">"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia."</p>
+            <footer className="text-right text-sm font-semibold text-primary/80 mt-2 not-italic">— Provérbios 28:13</footer>
+        </blockquote>
       </div>
 
       <div className="w-full p-4 border bg-muted/50 rounded-lg min-h-[200px] flex flex-col">
@@ -93,6 +97,7 @@ export function RecordingStep({ onSubmit }: RecordingStepProps) {
           Enviar
         </Button>
       </div>
+       {isListening && <p className="text-sm text-primary animate-pulse">Gravando... Fale com calma.</p>}
     </motion.div>
   );
 }

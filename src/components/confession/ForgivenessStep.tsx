@@ -48,7 +48,7 @@ export function ForgivenessStep({ response, onReset }: ForgivenessStepProps) {
       
       <motion.p 
         variants={itemVariants} 
-        className="text-2xl md:text-3xl font-serif text-muted-foreground"
+        className="text-xl md:text-2xl font-serif text-muted-foreground"
       >
         {response.responseText}
       </motion.p>

@@ -26,6 +26,7 @@ import {
   Newspaper,
   Shield,
   LockKeyhole,
+  HandHeart,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -59,6 +60,7 @@ export function Header() {
     { href: "/armor", label: 'Minha Armadura', icon: Shield },
     { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
     { href: "/confession", label: 'Confessionário', icon: LockKeyhole },
+    { href: "/faith-confession", label: 'Confissão de Fé', icon: HandHeart },
     { href: "/plans", label: t('nav_plans'), icon: BookOpen },
     { href: "/bible", label: t('nav_bible'), icon: BookMarked },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },

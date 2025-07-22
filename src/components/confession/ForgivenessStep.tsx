@@ -1,9 +1,11 @@
+
 "use client";
 
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import type { ForgivenessResponse } from './ConfessionSanctuary';
+import { VerseCard } from '../chat/VerseCard';
 
 interface ForgivenessStepProps {
   response: ForgivenessResponse;
@@ -15,7 +17,7 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.4,
+      staggerChildren: 0.3,
       delayChildren: 0.2,
     },
   },
@@ -40,35 +42,30 @@ export function ForgivenessStep({ response, onReset }: ForgivenessStepProps) {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="w-full max-w-4xl mx-auto space-y-8 text-center"
+      className="w-full max-w-2xl mx-auto space-y-8"
     >
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} className="text-center">
         <Sparkles className="h-16 w-16 text-amber-400 mx-auto" />
       </motion.div>
       
-      <motion.p 
+      <motion.div 
         variants={itemVariants} 
-        className="text-xl md:text-2xl font-serif text-muted-foreground"
+        className="p-6 bg-card border rounded-lg"
       >
-        {response.responseText}
-      </motion.p>
+        <p className="whitespace-pre-wrap leading-relaxed text-card-foreground/90">{response.responseText}</p>
+      </motion.div>
       
-      {response.verses.map((verse, index) => (
-        <motion.div
-          key={index}
-          variants={itemVariants}
-          className="bg-primary/5 border-l-4 border-primary/50 text-left p-6 rounded-lg"
-        >
-          <blockquote className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary tracking-tight">
-            “{verse.text}”
-          </blockquote>
-          <p className="text-right text-lg md:text-xl text-primary/80 mt-4 font-semibold">
-            — {verse.reference}
-          </p>
-        </motion.div>
-      ))}
+      <motion.div
+        variants={itemVariants}
+        className="space-y-4"
+      >
+        <h3 className="text-center font-semibold text-muted-foreground">Palavras de Promessa para Você:</h3>
+        {response.verses.map((verse, index) => (
+           <VerseCard key={index} reference={verse.reference} text={verse.text} />
+        ))}
+      </motion.div>
 
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} className="text-center">
         <Button size="lg" onClick={onReset}>
           <RefreshCw className="mr-2 h-5 w-5" />
           Nova Confissão

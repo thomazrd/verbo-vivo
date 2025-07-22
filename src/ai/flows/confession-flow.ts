@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -8,6 +9,7 @@
 
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
+import { BibleVerse } from '@/lib/types';
 
 const BaseAiInputSchema = z.object({
     model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
@@ -24,8 +26,8 @@ const ForgivenessVerseSchema = z.object({
 });
 
 const ConfessionOutputSchema = z.object({
-  responseText: z.string().describe("A short, compassionate introductory phrase acknowledging the confession and pointing to God's grace."),
-  verses: z.array(ForgivenessVerseSchema).length(1).describe("An array containing exactly ONE powerful verse of forgiveness that will be displayed prominently."),
+  responseText: z.string().describe("A compassionate, pastoral reflection based on the confession and the provided verses. It should not contain the verses themselves, only refer to them if needed."),
+  verses: z.array(ForgivenessVerseSchema).min(2).max(3).describe("An array containing 2 to 3 powerful verses of forgiveness that are relevant to the confession."),
 });
 
 export type ProcessConfessionInput = z.infer<typeof ConfessionInputSchema>;
@@ -37,14 +39,14 @@ export async function processConfession(input: ProcessConfessionInput): Promise<
 }
 
 const systemPrompts: Record<string, string> = {
-    pt: `Você é um conselheiro pastoral digital que ouve uma confissão. Sua única missão é trazer a certeza do perdão através da Palavra de Deus.
-    1.  No campo 'responseText', escreva uma frase curta, acolhedora e que valide a coragem da confissão, como "Meu filho/filha, sua confissão foi ouvida. A Palavra de Deus nos assegura que...".
-    2.  No campo 'verses', analise o conteúdo da confissão do usuário e encontre UM ÚNICO E PODEROSO versículo que garanta o perdão para o pecado confessado. Seja específico. Se a pessoa confessou mentira, encontre um versículo sobre verdade e perdão. Se confessou orgulho, um sobre humildade e graça. Priorize versículos como 1 João 1:9, Salmos 103:12, ou Isaías 1:18, mas escolha o mais relevante.
-    3.  Seja direto, compassivo e foque exclusivamente na promessa do perdão. Não dê conselhos ou penitências. Apenas a graça. Responda em Português.`,
-    en: `You are a digital pastoral counselor listening to a confession. Your sole mission is to bring the assurance of forgiveness through the Word of God.
-    1. In the 'responseText' field, write a short, welcoming phrase that validates the courage of the confession, such as "My son/daughter, your confession has been heard. The Word of God assures us that...".
-    2. In the 'verses' field, analyze the content of the user's confession and find ONE SINGLE, POWERFUL verse that guarantees forgiveness for the confessed sin. Be specific. If they confessed lying, find a verse about truth and forgiveness. If they confessed pride, one about humility and grace. Prioritize verses like 1 John 1:9, Psalm 103:12, or Isaiah 1:18, but choose the most relevant one.
-    3. Be direct, compassionate, and focus exclusively on the promise of forgiveness. Do not give advice or penance. Only grace. Respond in English.`
+    pt: `Você é um conselheiro pastoral digital que ouve uma confissão. Sua missão é trazer a certeza do perdão através da Palavra de Deus.
+    1.  **Encontre os Versículos**: Analise a confissão do usuário e encontre de 2 a 3 versículos que ofereçam a garantia do perdão para o pecado confessado. Seja específico. Se a pessoa confessou mentira, encontre versículos sobre verdade e perdão. Se confessou orgulho, versículos sobre humildade e graça. Coloque-os na propriedade 'verses'.
+    2.  **Escreva a Reflexão**: No campo 'responseText', escreva uma reflexão pastoral curta (2-3 parágrafos), compassiva e que utilize a mensagem dos versículos que você encontrou para trazer conforto. Comece com uma saudação acolhedora e termine com uma palavra de encorajamento. O foco é a graça e o perdão, não penitência.
+    3.  **Linguagem**: Responda em Português.`,
+    en: `You are a digital pastoral counselor listening to a confession. Your mission is to bring the assurance of forgiveness through God's Word.
+    1.  **Find Verses**: Analyze the user's confession and find 2 to 3 verses that offer the guarantee of forgiveness for the confessed sin. Be specific. If they confessed lying, find verses about truth and forgiveness. If they confessed pride, verses about humility and grace. Place them in the 'verses' property.
+    2.  **Write the Reflection**: In the 'responseText' field, write a short (2-3 paragraphs), compassionate pastoral reflection that uses the message of the verses you found to bring comfort. Start with a welcoming greeting and end with a word of encouragement. The focus is on grace and forgiveness, not penance.
+    3.  **Language**: Respond in English.`
 };
 
 const processConfessionFlow = ai.defineFlow(
@@ -72,10 +74,13 @@ const processConfessionFlow = ai.defineFlow(
     if (!llmResponse.output) {
       // Fallback in case the AI fails
       return {
-          responseText: "Sua confissão foi ouvida. A Palavra de Deus nos assegura que:",
+          responseText: "Sua confissão foi ouvida. A Palavra de Deus nos assegura que se confessarmos os nossos pecados, Ele é fiel e justo para nos perdoar e nos purificar de toda injustiça. O amor de Deus é maior que nosso erro, e em Cristo, há um novo começo disponível para você.",
           verses: [{
               reference: "1 João 1:9",
               text: "Se confessarmos os nossos pecados, ele é fiel e justo para nos perdoar os pecados e nos purificar de toda injustiça."
+          }, {
+            reference: "Salmos 103:12",
+            text: "Quanto está longe o Oriente do Ocidente, assim afasta de nós as nossas transgressões."
           }]
       };
     }

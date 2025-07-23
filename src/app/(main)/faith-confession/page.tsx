@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Carousel,
   CarouselContent,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HandHeart, Quote } from 'lucide-react';
+import { HandHeart, Quote, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { faithAffirmations, introVerse } from '@/lib/faith-affirmations';
 
@@ -32,7 +33,7 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
         transition={{ duration: 0.6, ease: "easeInOut" }}
         className="w-full max-w-2xl"
       >
-        <Card className="bg-background text-center min-h-[60vh] sm:min-h-[50vh] flex flex-col justify-center border-primary/20 shadow-lg">
+        <Card className="bg-background/80 text-center min-h-[60vh] sm:min-h-[50vh] flex flex-col justify-center border-primary/20 shadow-lg">
           <div className="bg-muted/50 p-4 border-b">
               <p className="text-xs text-muted-foreground mb-2 font-semibold">Fundamento Bíblico</p>
               <div className="text-sm text-foreground/80">
@@ -63,6 +64,7 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
 export default function FaithConfessionPage() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     if (!api) return;
@@ -72,6 +74,12 @@ export default function FaithConfessionPage() {
 
   return (
     <div className="h-full w-full overflow-hidden bg-background text-foreground flex flex-col items-center justify-center">
+      <header className="absolute top-0 right-0 p-4 z-10">
+        <Button variant="ghost" size="icon" onClick={() => router.push('/home')}>
+          <X className="h-6 w-6" />
+          <span className="sr-only">Fechar</span>
+        </Button>
+      </header>
       <Carousel setApi={setApi} className="w-full h-full flex flex-col">
         <CarouselContent className="ml-0 flex-1">
           <CarouselItem key="intro" className="p-4 sm:p-6 md:p-8 flex items-center justify-center">

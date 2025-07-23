@@ -21,7 +21,8 @@ function AppLayout({ children }: { children: ReactNode }) {
     setIsCollapsed(!isCollapsed);
   };
   
-  const isImmersivePage = pathname.startsWith('/armor/battle/');
+  const immersivePages = ['/armor/battle/', '/faith-confession'];
+  const isImmersivePage = immersivePages.some(path => pathname.startsWith(path));
   
   if (isFocusMode || isImmersivePage) {
     return (

@@ -23,7 +23,7 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
   verseText: string;
 }) {
   return (
-    <div className="flex h-full w-full items-center justify-center p-2 sm:p-4">
+    <div className="flex h-full w-full items-center justify-center p-1">
       <motion.div
         key={title}
         initial={{ opacity: 0, scale: 0.95 }}
@@ -32,7 +32,7 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
         transition={{ duration: 0.6, ease: "easeInOut" }}
         className="w-full max-w-2xl"
       >
-        <Card className="bg-background/80 border-primary/20 shadow-lg text-center min-h-[50vh] flex flex-col justify-between">
+        <Card className="bg-background/80 border-primary/20 shadow-lg text-center min-h-[60vh] sm:min-h-[50vh] flex flex-col justify-between">
           <div>
             <CardHeader>
               <div className="flex justify-center items-center gap-2">
@@ -71,21 +71,21 @@ export default function FaithConfessionPage() {
   }, [api]);
 
   return (
-    <div className="h-full w-full overflow-hidden bg-background text-foreground flex flex-col items-center justify-center">
-      <Carousel setApi={setApi} className="w-full max-w-5xl h-full flex flex-col items-center justify-center">
-        <CarouselContent className="ml-0 h-full">
-          <CarouselItem key="intro" className="p-2 sm:p-4 md:p-6 lg:p-8 flex items-center justify-center">
+    <div className="h-full w-full overflow-hidden bg-gradient-to-br from-background via-secondary to-background text-foreground flex flex-col items-center justify-center">
+      <Carousel setApi={setApi} className="w-full h-full flex flex-col">
+        <CarouselContent className="ml-0 flex-1">
+          <CarouselItem key="intro" className="p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl"
             >
-              <HandHeart className="h-20 w-20 text-primary mx-auto mb-6" />
-              <h1 className="text-4xl font-extrabold tracking-tight">Confissão de Fé</h1>
-              <blockquote className="mt-8 p-6 border-l-4 border-primary bg-muted/50 rounded-r-lg">
-                <p className="font-serif italic text-2xl text-foreground">"{introVerse.text}"</p>
-                <footer className="text-right text-lg font-semibold text-primary/80 mt-4 not-italic">— {introVerse.reference}</footer>
+              <HandHeart className="h-16 sm:h-20 w-16 sm:w-20 text-primary mx-auto mb-6" />
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Confissão de Fé</h1>
+              <blockquote className="mt-8 p-4 sm:p-6 border-l-4 border-primary bg-muted/50 rounded-r-lg">
+                <p className="font-serif italic text-xl sm:text-2xl text-foreground">"{introVerse.text}"</p>
+                <footer className="text-right text-base sm:text-lg font-semibold text-primary/80 mt-4 not-italic">— {introVerse.reference}</footer>
               </blockquote>
               <Button onClick={() => api?.scrollNext()} size="lg" className="mt-12">
                 Começar a Declarar
@@ -93,17 +93,19 @@ export default function FaithConfessionPage() {
             </motion.div>
           </CarouselItem>
           {faithAffirmations.map((affirmation) => (
-            <CarouselItem key={affirmation.title} className="p-2 sm:p-4 md:p-6 lg:p-8">
+            <CarouselItem key={affirmation.title} className="p-4 sm:p-6 md:p-8 flex items-center">
               <AffirmationCard {...affirmation} />
             </CarouselItem>
           ))}
         </CarouselContent>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-8">
-            <CarouselPrevious className="static translate-y-0 bg-secondary/80 hover:bg-secondary text-primary h-12 w-12" disabled={!api?.canScrollPrev()}/>
-            <p className="text-sm text-muted-foreground font-mono">
-                {current} / {faithAffirmations.length}
-            </p>
-            <CarouselNext className="static translate-y-0 bg-secondary/80 hover:bg-secondary text-primary h-12 w-12" disabled={!api?.canScrollNext()}/>
+        <div className="flex-shrink-0 w-full p-4 border-t bg-background/50 backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-6 sm:gap-8 max-w-sm mx-auto">
+                <CarouselPrevious className="static translate-y-0 bg-secondary/80 hover:bg-secondary text-primary h-12 w-12" disabled={!api?.canScrollPrev()}/>
+                <p className="text-sm text-muted-foreground font-mono w-16 text-center">
+                    {current} / {faithAffirmations.length}
+                </p>
+                <CarouselNext className="static translate-y-0 bg-secondary/80 hover:bg-secondary text-primary h-12 w-12" disabled={!api?.canScrollNext()}/>
+            </div>
         </div>
       </Carousel>
     </div>

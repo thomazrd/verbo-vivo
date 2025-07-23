@@ -32,7 +32,7 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
         transition={{ duration: 0.6, ease: "easeInOut" }}
         className="w-full max-w-2xl"
       >
-        <Card className="bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg text-center min-h-[50vh] flex flex-col justify-between">
+        <Card className="bg-background/80 border-primary/20 shadow-lg text-center min-h-[50vh] flex flex-col justify-between">
           <div>
             <CardHeader>
               <div className="flex justify-center items-center gap-2">
@@ -71,7 +71,7 @@ export default function FaithConfessionPage() {
   }, [api]);
 
   return (
-    <div className="h-full w-full overflow-hidden bg-gray-900 bg-gradient-to-br from-background via-gray-900 to-background text-foreground flex flex-col items-center justify-center">
+    <div className="h-full w-full overflow-hidden bg-background text-foreground flex flex-col items-center justify-center">
       <Carousel setApi={setApi} className="w-full max-w-5xl h-full flex flex-col items-center justify-center">
         <CarouselContent className="ml-0 h-full">
           <CarouselItem key="intro" className="p-2 sm:p-4 md:p-6 lg:p-8 flex items-center justify-center">

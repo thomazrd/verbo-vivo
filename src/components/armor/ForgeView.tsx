@@ -41,7 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Wand2, BookOpen, Share2 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { Checkbox } from "../ui/checkbox";
-import { Separator } from "../ui/separator";
+import { ScrollArea } from "../ui/scroll-area";
 
 const armorFormSchema = z.object({
   name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }).max(50),
@@ -86,23 +86,31 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<Omit<ArmorWeapon, 'id'>[]>([]);
     
-    // State for manual entry
     const [manualReference, setManualReference] = useState('');
     const [manualText, setManualText] = useState('');
     const [manualVersion, setManualVersion] = useState('NVI');
     
     const { toast } = useToast();
 
-    const handleGenerateSuggestions = async () => {
+    const handleGenerateSuggestions = async (loadMore = false) => {
         if (!battle.trim()) {
             toast({ variant: 'destructive', title: 'Campo obrigatório', description: 'Descreva a batalha para obter sugestões.'});
             return;
         }
         setIsLoading(true);
-        setSuggestions([]);
+        if (!loadMore) {
+          setSuggestions([]);
+        }
+        
         try {
-            const result = await getBibleWeaponSuggestion({ battle });
-            setSuggestions(result.weapons);
+            const result = await getBibleWeaponSuggestion({ 
+              battle,
+              existingVerses: loadMore ? suggestions.map(s => ({...s, id: s.verseReference })) : undefined
+            });
+            const newSuggestions = result.weapons.filter(
+              (newWeapon) => !suggestions.some(existing => existing.verseReference === newWeapon.verseReference)
+            );
+            setSuggestions(current => [...current, ...newSuggestions]);
         } catch(e) {
             console.error(e);
             toast({ variant: 'destructive', title: 'Erro de IA', description: 'Não foi possível buscar sugestões.'});
@@ -142,8 +150,7 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
                 </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                {/* AI Suggestion Section */}
-                <div className="space-y-4">
+                <div className="space-y-4 flex flex-col">
                     <div className="text-center">
                         <h3 className="font-semibold text-foreground">Sugestão da IA</h3>
                         <p className="text-xs text-muted-foreground">Descreva uma batalha e receba versículos.</p>
@@ -156,29 +163,34 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
                                 onChange={(e) => setBattle(e.target.value)}
                                 placeholder="Ex: Insegurança, impaciência..."
                             />
-                            <Button onClick={handleGenerateSuggestions} disabled={isLoading}>
-                                {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                            <Button onClick={() => handleGenerateSuggestions()} disabled={isLoading}>
+                                {isLoading && !suggestions.length ? <Loader2 className="animate-spin" /> : <Wand2 />}
                             </Button>
                         </div>
                     </div>
+                    <ScrollArea className="h-64 flex-1">
+                      <div className="space-y-3 pr-4">
+                          {suggestions.map(s => (
+                              <div key={s.verseReference} className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
+                                  <div className="flex-1">
+                                      <p className="font-semibold text-sm">{s.verseReference}</p>
+                                      <p className="text-sm text-muted-foreground">{s.verseText}</p>
+                                  </div>
+                                  <Button size="sm" onClick={() => handleAddSuggestion(s)}>
+                                      <Plus className="h-4 w-4"/>
+                                  </Button>
+                              </div>
+                          ))}
+                      </div>
+                    </ScrollArea>
                     {suggestions.length > 0 && (
-                        <div className="space-y-3 pt-2">
-                            {suggestions.map(s => (
-                                <div key={s.verseReference} className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-sm">{s.verseReference}</p>
-                                        <p className="text-sm text-muted-foreground">{s.verseText}</p>
-                                    </div>
-                                    <Button size="sm" onClick={() => handleAddSuggestion(s)}>
-                                        <Plus className="h-4 w-4"/>
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                      <Button variant="outline" onClick={() => handleGenerateSuggestions(true)} disabled={isLoading}>
+                          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                          Buscar Mais Sugestões
+                      </Button>
                     )}
                 </div>
 
-                {/* Manual Entry Section */}
                 <div className="space-y-4">
                      <div className="text-center">
                         <h3 className="font-semibold text-foreground">Adicionar Manualmente</h3>
@@ -282,7 +294,6 @@ export function ForgeView({ armorId }: { armorId?: string }) {
 
         try {
             if (armorId) {
-                // Editing an existing armor
                 const batch = writeBatch(db);
                 const userArmorRef = doc(db, `users/${user.uid}/armors`, armorId);
                 const sharedArmorRef = doc(db, 'sharedArmors', armorId);
@@ -290,9 +301,8 @@ export function ForgeView({ armorId }: { armorId?: string }) {
                 batch.update(userArmorRef, armorData);
 
                 if (values.isShared) {
-                    batch.set(sharedArmorRef, armorData); // Use set to create or overwrite
+                    batch.set(sharedArmorRef, armorData);
                 } else {
-                    // Check if doc exists before trying to delete
                     const sharedDoc = await getDoc(sharedArmorRef);
                     if (sharedDoc.exists()) {
                        batch.delete(sharedArmorRef);
@@ -300,14 +310,12 @@ export function ForgeView({ armorId }: { armorId?: string }) {
                 }
                 await batch.commit();
             } else {
-                // Creating a new armor
                 const userArmorRef = await addDoc(collection(db, `users/${user.uid}/armors`), {
                     ...armorData,
                     createdAt: serverTimestamp(),
                 });
 
                 if (values.isShared) {
-                    // Create the shared version with the same ID
                     const sharedArmorRef = doc(db, 'sharedArmors', userArmorRef.id);
                     await setDoc(sharedArmorRef, {
                         ...armorData,

@@ -10,14 +10,41 @@
 
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
-import { ArmorSuggestionInputSchema, ArmorSuggestionOutputSchema, ArmorWeaponSchema } from '@/lib/types';
-import type { ArmorSuggestionInput, ArmorSuggestionOutput } from '@/lib/types';
+
+const ArmorWeaponSchema = z.object({
+    verseReference: z.string(),
+    verseText: z.string(),
+    bibleVersion: z.string(),
+});
+
+// Input for a single weapon suggestion now accepts existing verses to avoid repetition
+const SingleWeaponSuggestionInputSchema = z.object({
+  battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
+  model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
+  language: z.string().optional().describe('The language code for the response (e.g., "pt", "en").'),
+  existingVerses: z.array(ArmorWeaponSchema).optional().describe('An array of verses already suggested to avoid repetition.'),
+});
+export type SingleWeaponSuggestionInput = z.infer<typeof SingleWeaponSuggestionInputSchema>;
+
+
+const ArmorSuggestionInputSchema = z.object({
+  battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
+  model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
+  language: z.string().optional().describe('The language code for the response (e.g., "pt", "en").'),
+});
+export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
+
+const ArmorSuggestionOutputSchema = z.object({
+    weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
+});
+export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
+
 
 export async function suggestWeaponsForBattle(input: ArmorSuggestionInput): Promise<ArmorSuggestionOutput> {
   return suggestWeaponsFlow(input);
 }
 
-export async function getBibleWeaponSuggestion(input: ArmorSuggestionInput): Promise<ArmorSuggestionOutput> {
+export async function getBibleWeaponSuggestion(input: SingleWeaponSuggestionInput): Promise<ArmorSuggestionOutput> {
     return getSingleWeaponSuggestionFlow(input);
 }
 
@@ -47,10 +74,6 @@ const suggestWeaponsFlow = ai.defineFlow(
     if (!output) {
       throw new Error('A IA não conseguiu gerar as armas. Tente novamente.');
     }
-
-    // Since the output schema expects IDs, and the AI won't generate them,
-    // we can add them here if necessary, though the frontend will likely handle it.
-    // For now, the schema on the frontend doesn't require an ID from the AI.
     return output;
   }
 );
@@ -59,18 +82,25 @@ const suggestWeaponsFlow = ai.defineFlow(
 const getSingleWeaponSuggestionFlow = ai.defineFlow(
     {
       name: 'getBibleWeaponSuggestionFlow',
-      inputSchema: ArmorSuggestionInputSchema,
+      inputSchema: SingleWeaponSuggestionInputSchema,
       outputSchema: ArmorSuggestionOutputSchema,
     },
     async (input) => {
         const prompt = ai.definePrompt({
             name: 'getSingleWeaponSuggestionPrompt',
-            input: { schema: ArmorSuggestionInputSchema },
-            // The output is an array of weapons, but the prompt asks for 3.
-            // This is valid as the schema defines the structure of the items in the array.
+            input: { schema: SingleWeaponSuggestionInputSchema },
             output: { schema: ArmorSuggestionOutputSchema },
-            system: `Para um soldado lutando contra '{{battle}}', sugira 3 versículos bíblicos relevantes como objetos JSON. Cada objeto deve ter os campos: verseReference, verseText, e bibleVersion ('NVI').`,
-            prompt: `Batalha: "{{battle}}"`,
+            system: `Para um soldado lutando contra '{{battle}}', sugira 3 versículos bíblicos com MÁXIMA RELEVÂNCIA para o tema. Cada objeto JSON deve ter os campos: verseReference, verseText, e bibleVersion ('NVI'). Se uma lista de versículos existentes for fornecida, NÃO repita NENHUM deles.`,
+            prompt: `
+Batalha: "{{battle}}"
+
+{{#if existingVerses}}
+Versículos já sugeridos (não repita estes):
+{{#each existingVerses}}
+- {{this.verseReference}}
+{{/each}}
+{{/if}}
+`,
         });
 
       const { output } = await prompt(input, {
@@ -87,4 +117,3 @@ const getSingleWeaponSuggestionFlow = ai.defineFlow(
       return output;
     }
   );
-

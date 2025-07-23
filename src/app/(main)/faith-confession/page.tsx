@@ -34,11 +34,11 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
         className="w-full max-w-2xl"
       >
         <Card className="bg-background/80 text-center min-h-[60vh] sm:min-h-[50vh] flex flex-col justify-center border-primary/20 shadow-lg">
-          <div className="bg-muted/50 p-4 border-b">
-              <p className="text-xs text-muted-foreground mb-2 font-semibold">Fundamento Bíblico</p>
-              <div className="text-sm text-foreground/80">
+          <div className="bg-amber-50/50 p-4 border-b border-amber-600/30">
+              <Quote className="h-5 w-5 text-amber-600/70" />
+              <div className="text-sm font-serif text-amber-900/80 mt-2">
                 <p className="italic">"{verseText}"</p>
-                <p className="font-bold text-primary/80 mt-1">{verseReference}</p>
+                <p className="font-bold text-amber-700/80 mt-2 not-italic">{verseReference}</p>
               </div>
           </div>
           <div className="flex-1 flex flex-col justify-center">

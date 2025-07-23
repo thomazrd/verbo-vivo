@@ -69,7 +69,7 @@ export function ConfessionSanctuary() {
   const handleReset = () => {
     setConfessionText('');
     setForgivenessResponse(null);
-    setSanctuaryState('recording');
+    setSanctuaryState('locked');
   };
 
   const renderCurrentStep = () => {

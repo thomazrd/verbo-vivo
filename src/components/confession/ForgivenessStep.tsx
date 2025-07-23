@@ -68,7 +68,7 @@ export function ForgivenessStep({ response, onReset }: ForgivenessStepProps) {
       <motion.div variants={itemVariants} className="text-center">
         <Button size="lg" onClick={onReset}>
           <RefreshCw className="mr-2 h-5 w-5" />
-          Nova Confissão
+          Voltar ao Início
         </Button>
       </motion.div>
     </motion.div>

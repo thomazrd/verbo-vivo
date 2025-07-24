@@ -3,17 +3,17 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchBar } from "@/components/studies/SearchBar";
 import { BookCopy, FileWarning } from "lucide-react";
 import { FeatureCard } from "@/components/home/FeatureCard";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StudyCard } from "@/components/studies/StudyCard";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 // Função para normalizar texto para busca
 const normalizeText = (text: string) =>
@@ -25,8 +25,8 @@ const normalizeText = (text: string) =>
 function StudiesShelf({ title, studies, isLoading }: { title: string; studies: Study[]; isLoading: boolean }) {
   if (isLoading) {
     return (
-        <div>
-            <Skeleton className="h-8 w-1/3 mb-4" />
+        <div className="space-y-4">
+            <Skeleton className="h-8 w-1/3" />
             <div className="flex space-x-4 pb-4">
                 <div className="w-64 space-y-2 shrink-0"><Skeleton className="w-full h-36" /><Skeleton className="h-4 w-5/6" /></div>
                 <div className="w-64 space-y-2 shrink-0"><Skeleton className="w-full h-36" /><Skeleton className="h-4 w-5/6" /></div>
@@ -70,7 +70,7 @@ export default function StudiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const featuredStudy = useMemo(() => allStudies[0], [allStudies]);
-  const recentStudies = useMemo(() => allStudies.slice(1, 6), [allStudies]);
+  const recentStudies = useMemo(() => allStudies.slice(0, 7), [allStudies]);
 
   useEffect(() => {
     const fetchStudies = async () => {
@@ -79,7 +79,7 @@ export default function StudiesPage() {
         const studiesQuery = query(
             collection(db, "studies"),
             where("status", "==", "PUBLISHED"),
-            orderBy("publishedAt", "desc")
+            orderBy("updatedAt", "desc")
         );
         const snapshot = await getDocs(studiesQuery);
         const fetchedStudies: Study[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Study));

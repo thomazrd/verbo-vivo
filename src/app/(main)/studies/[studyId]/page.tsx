@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, notFound } from "next/navigation";
+import { useParams, notFound, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import type { Study } from "@/lib/types";
@@ -14,9 +14,9 @@ import { RelatedContentList } from "@/components/studies/RelatedContentList";
 import { useAuth } from "@/hooks/use-auth";
 import { useContentAccess } from "@/hooks/use-content-access";
 import { AccessModal } from "@/components/auth/AccessModal";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { ArrowLeft, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 async function getStudy(id: string): Promise<Study | null> {
   const docRef = doc(db, "studies", id);
@@ -32,6 +32,7 @@ export default function StudyDetailPage() {
   const studyId = params.studyId as string;
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [study, setStudy] = useState<Study | null | 'not-found'>(null);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
@@ -109,12 +110,18 @@ export default function StudyDetailPage() {
         </div>
     );
   }
-  
-  const authorInitial = study.authorName?.[0]?.toUpperCase() || <User className="h-5 w-5"/>;
 
   return (
     <>
       <div className="container mx-auto max-w-7xl px-4 py-8">
+        <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="mb-4 md:hidden"
+        >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+        </Button>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
             
             <div className="lg:col-span-2 space-y-8">

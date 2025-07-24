@@ -12,6 +12,7 @@ import {
   NotebookText,
   Share2,
   Smile,
+  Presentation,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +20,14 @@ export function FeatureGrid() {
   const { t } = useTranslation();
 
   const features = [
+    {
+      icon: Presentation,
+      title: t('feature_studies_title'),
+      description: t('feature_studies_desc'),
+      linkTo: "/studies",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "focused person studying",
+    },
     {
       icon: HeartHandshake,
       title: t('feature_prayer_sanctuary_title'),

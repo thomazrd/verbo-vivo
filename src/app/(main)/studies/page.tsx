@@ -10,10 +10,7 @@ import { SearchBar } from "@/components/studies/SearchBar";
 import { BookCopy, FileWarning } from "lucide-react";
 import { FeatureCard } from "@/components/home/FeatureCard";
 import { StudyCard } from "@/components/studies/StudyCard";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { StudiesShelf } from "@/components/studies/StudiesShelf";
 
 // Função para normalizar texto para busca
 const normalizeText = (text: string) =>
@@ -21,46 +18,6 @@ const normalizeText = (text: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-
-function StudiesShelf({ title, studies, isLoading }: { title: string; studies: Study[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-        <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3" />
-            <div className="flex space-x-4 pb-4">
-                <div className="w-64 space-y-2 shrink-0"><Skeleton className="w-full h-36" /><Skeleton className="h-4 w-5/6" /></div>
-                <div className="w-64 space-y-2 shrink-0"><Skeleton className="w-full h-36" /><Skeleton className="h-4 w-5/6" /></div>
-                <div className="w-64 space-y-2 shrink-0"><Skeleton className="w-full h-36" /><Skeleton className="h-4 w-5/6" /></div>
-            </div>
-        </div>
-    );
-  }
-
-  if (studies.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-        <Button variant="link" asChild>
-          <Link href="/studies/all">Ver todos <ArrowRight className="ml-2 h-4 w-4"/></Link>
-        </Button>
-      </div>
-      <div className="relative">
-        <ScrollArea>
-          <div className="flex space-x-4 pb-4">
-            {studies.map((study) => (
-              <StudyCard key={study.id} study={study} className="w-64 shrink-0" />
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </div>
-    </div>
-  );
-}
 
 
 export default function StudiesPage() {

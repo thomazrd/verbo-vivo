@@ -277,7 +277,7 @@ exports.createCongregation = functions.region(region)
     .https.onCall(async (data, context) => {
     var _a, _b, _c, _d, _e;
     const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
-    const { name, city, pastorName } = data;
+    const { name, city, pastorName, isPublic, baseVerse } = data;
     if (!uid) {
         throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
     }
@@ -299,6 +299,8 @@ exports.createCongregation = functions.region(region)
         name,
         city,
         pastorName,
+        isPublic: isPublic || false,
+        baseVerse: baseVerse || null,
         admins: { [uid]: true },
         memberCount: 1,
         inviteCode: generateInviteCode(),

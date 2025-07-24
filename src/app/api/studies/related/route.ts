@@ -19,14 +19,19 @@ export async function GET(request: Request) {
   try {
     let studiesQuery: admin.firestore.Query = db.collection("studies");
     
+    // Sempre filtrar por estudos publicados
     studiesQuery = studiesQuery.where("status", "==", "PUBLISHED");
     
+    // Aplicar lógicas de consulta diferentes baseadas na presença de tags
     if (tags.length > 0) {
-      studiesQuery = studiesQuery.where("tags", "array-contains-any", tags);
+      // Se houver tags, a prioridade é a relevância por tag.
+      // Firestore não permite orderBy em um campo diferente do `array-contains-any` sem um índice composto.
+      // A relevância por tag é mais importante aqui do que a data.
+      studiesQuery = studiesQuery.where("tags", "array-contains-any", tags).limit(10);
+    } else {
+      // Se não houver tags, buscar os mais recentes.
+      studiesQuery = studiesQuery.orderBy("publishedAt", "desc").limit(10);
     }
-    
-    // A ordenação principal será por data
-    studiesQuery = studiesQuery.orderBy("publishedAt", "desc").limit(10); // Busca um pouco mais para garantir que teremos 4 após filtrar
 
     const snapshot = await studiesQuery.get();
     

@@ -28,30 +28,35 @@ async function getStudy(id: string): Promise<Study | null> {
 export default function StudyDetailPage() {
   const params = useParams();
   const studyId = params.studyId as string;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [study, setStudy] = useState<Study | null | 'not-found'>(null);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   
-  const { canView, isLoading: isAccessLoading } = useContentAccess(studyId, !user);
+  // Use a flag to prevent running the hook on server or before auth is resolved.
+  const shouldCheckAccess = !authLoading && !user;
+  const { canView, isLoading: isAccessLoading } = useContentAccess(studyId, shouldCheckAccess);
   
   useEffect(() => {
-    if (isAccessLoading) return; // Aguarda a verificação de acesso terminar
+    if (authLoading || isAccessLoading) return;
 
     if (!canView) {
       setIsAccessModalOpen(true);
-    } else if (studyId) {
+      // We still fetch the study to show metadata if needed, but gate the content
+    }
+    
+    if (studyId) {
       getStudy(studyId).then(data => {
         setStudy(data || 'not-found');
       });
     }
-  }, [studyId, canView, isAccessLoading]);
+  }, [studyId, canView, isAccessLoading, authLoading]);
 
   if (study === 'not-found') {
     notFound();
   }
   
-  if (!study || isAccessLoading) {
+  if (study === null || authLoading || isAccessLoading) {
     return (
         <div className="w-full max-w-4xl mx-auto px-4 py-8 space-y-6">
             <Skeleton className="w-full aspect-video rounded-lg" />

@@ -11,13 +11,15 @@ export function useContentAccess(studyId: string, isVisitor: boolean) {
   const [canView, setCanView] = useState(false);
 
   useEffect(() => {
+    // If not a visitor (i.e., user is logged in or check is disabled), grant access.
     if (!isVisitor) {
-      // Logged-in users always have access
       setCanView(true);
       setIsLoading(false);
       return;
     }
-
+    
+    // If we've determined this is a visitor, run the check.
+    setIsLoading(true);
     try {
       const viewedIdsString = localStorage.getItem(STORAGE_KEY);
       const viewedIds: string[] = viewedIdsString ? JSON.parse(viewedIdsString) : [];

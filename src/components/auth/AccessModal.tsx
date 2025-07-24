@@ -29,11 +29,11 @@ export function AccessModal({ isOpen, onClose }: AccessModalProps) {
             Para acessar todo o conteúdo, crie uma conta gratuita ou faça login.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
-          <Button size="lg" onClick={() => handleNavigate('/signup')}>
+        <DialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2 pt-4">
+          <Button size="lg" className="w-full" onClick={() => handleNavigate('/signup')}>
             Criar Conta Gratuitamente
           </Button>
-          <Button size="lg" variant="outline" onClick={() => handleNavigate('/login')}>
+          <Button size="lg" variant="outline" className="w-full" onClick={() => handleNavigate('/login')}>
             Entrar (já tenho uma conta)
           </Button>
         </DialogFooter>

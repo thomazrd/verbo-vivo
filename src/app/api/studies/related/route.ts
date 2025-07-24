@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const currentStudyId = searchParams.get('currentStudyId');
   const tagsString = searchParams.get('tags');
-  const tags = tagsString ? tagsString.split(',') : [];
+  // Corrigido: Garante que as tags sejam filtradas para remover strings vazias.
+  const tags = tagsString ? tagsString.split(',').filter(tag => tag.trim() !== '') : [];
 
   if (!currentStudyId) {
     return NextResponse.json({ message: 'currentStudyId é obrigatório' }, { status: 400 });
@@ -19,7 +20,8 @@ export async function GET(request: Request) {
     let studiesQuery;
     const studiesRef = db.collection("studies");
     
-    if (tags && tags.length > 0) {
+    // Corrigido: A condição agora verifica se o array de tags tem de fato conteúdo.
+    if (tags.length > 0) {
       studiesQuery = studiesRef
         .where("status", "==", "PUBLISHED")
         .where("tags", "array-contains-any", tags)

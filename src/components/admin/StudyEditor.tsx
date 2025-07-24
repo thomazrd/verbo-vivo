@@ -34,6 +34,7 @@ const studyFormSchema = z.object({
 });
 
 type StudyFormValues = z.infer<typeof studyFormSchema>;
+type SubmitAction = 'DRAFT' | 'PUBLISHED';
 
 export function StudyEditor({ studyId }: { studyId?: string }) {
   const { user, userProfile } = useAuth();
@@ -48,6 +49,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submitActionRef = useRef<SubmitAction>('DRAFT');
 
   const form = useForm<StudyFormValues>({
     resolver: zodResolver(studyFormSchema),
@@ -94,7 +96,8 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSave = async (values: StudyFormValues, status: 'DRAFT' | 'PUBLISHED') => {
+  const handleFormSubmit = async (values: StudyFormValues) => {
+    const status = submitActionRef.current;
     if (!user || !userProfile) return;
     setIsSaving(true);
     let newThumbnailUrl = study?.thumbnailUrl || thumbnailPreview || null;
@@ -178,7 +181,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       <div className="mb-6"><PrayerOfSower /></div>
 
       <Form {...form}>
-        <form className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2 space-y-6">
               <FormField
@@ -206,12 +209,12 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                   <CardTitle>Publicação</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <Button onClick={form.handleSubmit(d => handleSave(d, 'DRAFT'))} variant="secondary" disabled={isSaving}>
+                  <Button type="submit" onClick={() => submitActionRef.current = 'DRAFT'} variant="secondary" disabled={isSaving}>
                     <Save className="mr-2" /> {isSaving ? 'Salvando...' : 'Salvar Rascunho'}
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button disabled={isSaving}>
+                      <Button type="button" disabled={isSaving}>
                         <Send className="mr-2" /> Publicar
                       </Button>
                     </AlertDialogTrigger>
@@ -224,9 +227,9 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={form.handleSubmit(d => handleSave(d, 'PUBLISHED'))}>
+                        <Button type="submit" onClick={() => submitActionRef.current = 'PUBLISHED'}>
                           Publicar Agora
-                        </AlertDialogAction>
+                        </Button>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -291,5 +294,3 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     </>
   );
 }
-
-    

@@ -3,7 +3,6 @@
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface TagCarouselProps {
   tags: string[];
@@ -12,6 +11,10 @@ interface TagCarouselProps {
 }
 
 export function TagCarousel({ tags, selectedTag, onSelectTag }: TagCarouselProps) {
+  if (tags.length === 0) {
+    return null;
+  }
+  
   return (
     <div className="relative">
       <ScrollArea className="w-full whitespace-nowrap">

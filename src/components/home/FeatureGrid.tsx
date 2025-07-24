@@ -12,11 +12,11 @@ import {
   NotebookText,
   Share2,
   Smile,
-  Presentation,
   Shield,
   LockKeyhole,
   HandHeart,
   Newspaper,
+  Presentation,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +31,14 @@ export function FeatureGrid() {
       linkTo: "/chat",
       imageUrl: "https://dynamic.tiggomark.com.br/images/chat.jpg",
       imageHint: "person phone cafe",
+    },
+    {
+      icon: Presentation,
+      title: t('nav_studies'),
+      description: 'Explore pílulas de sabedoria e estudos aprofundados sobre diversos temas da vida cristã.',
+      linkTo: "/studies",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "sermon presentation",
     },
     {
       icon: BookMarked,

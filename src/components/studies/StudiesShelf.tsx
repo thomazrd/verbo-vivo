@@ -13,9 +13,10 @@ interface StudiesShelfProps {
   title: string;
   studies: Study[];
   isLoading: boolean;
+  viewAllLink?: string;
 }
 
-export function StudiesShelf({ title, studies, isLoading }: StudiesShelfProps) {
+export function StudiesShelf({ title, studies, isLoading, viewAllLink = "/studies" }: StudiesShelfProps) {
   if (isLoading) {
     return (
         <div className="space-y-4">
@@ -38,7 +39,7 @@ export function StudiesShelf({ title, studies, isLoading }: StudiesShelfProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
         <Button variant="link" asChild>
-          <Link href="/studies/all">Ver todos <ArrowRight className="ml-2 h-4 w-4"/></Link>
+          <Link href={viewAllLink}>Ver todos <ArrowRight className="ml-2 h-4 w-4"/></Link>
         </Button>
       </div>
       <div className="relative">

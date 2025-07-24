@@ -2,7 +2,6 @@
 "use client";
 
 import type { Study } from "@/lib/types";
-import { Skeleton } from "../ui/skeleton";
 import { StudyCard } from "./StudyCard";
 
 interface StudiesGridProps {

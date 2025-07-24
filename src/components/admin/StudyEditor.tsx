@@ -175,6 +175,11 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     return <div className="flex h-full items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
+  const triggerSubmit = (action: SubmitAction) => {
+    submitActionRef.current = action;
+    form.handleSubmit(handleFormSubmit)();
+  };
+
   return (
     <>
     <AnimatePresence>
@@ -193,7 +198,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       <div className="mb-6"><PrayerOfSower /></div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+        <form onSubmit={e => e.preventDefault()}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2 space-y-6">
               <FormField
@@ -233,7 +238,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                   <CardTitle>Publicação</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <Button type="submit" onClick={() => submitActionRef.current = 'DRAFT'} variant="secondary" disabled={isSaving}>
+                  <Button type="button" onClick={() => triggerSubmit('DRAFT')} variant="secondary" disabled={isSaving}>
                     <Save className="mr-2" /> {isSaving ? 'Salvando...' : 'Salvar Rascunho'}
                   </Button>
                   <AlertDialog>
@@ -251,9 +256,9 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <Button type="submit" onClick={() => submitActionRef.current = 'PUBLISHED'}>
+                        <AlertDialogAction onClick={() => triggerSubmit('PUBLISHED')}>
                           Publicar Agora
-                        </Button>
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

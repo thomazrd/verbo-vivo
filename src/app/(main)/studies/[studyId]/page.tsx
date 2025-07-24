@@ -92,8 +92,7 @@ export default function StudyDetailPage() {
         <div className="container mx-auto max-w-7xl px-4 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <Skeleton className="w-full aspect-video rounded-lg" />
-                    <Skeleton className="h-10 w-3/4" />
+                    <Skeleton className="w-full h-28 rounded-lg" />
                     <div className="flex gap-2">
                         <Skeleton className="h-6 w-20 rounded-full" />
                         <Skeleton className="h-6 w-24 rounded-full" />
@@ -119,10 +118,12 @@ export default function StudyDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
             
             <div className="lg:col-span-2 space-y-8">
-                <AudioPlayer
-                    study={study}
-                    onShare={handleShare}
-                />
+                <div className="w-full">
+                    <AudioPlayer
+                        study={study}
+                        onShare={handleShare}
+                    />
+                </div>
 
                 <div className="flex flex-wrap justify-between items-center gap-4 py-4 border-y">
                    <div className="flex items-center gap-3 text-sm text-muted-foreground">

@@ -2,15 +2,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import { CompactStudyCard } from "./CompactStudyCard";
 import type { User } from "firebase/auth";
+import axios from "axios";
 
 interface RelatedContentListProps {
-  user: User | null; // Adicionado para verificar se o usuário está logado
+  user: User | null;
   currentStudyId: string;
   tags?: string[];
 }
@@ -20,39 +19,24 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Só busca estudos relacionados se o usuário estiver logado
     if (!user) {
       setIsLoading(false);
       return;
     }
 
     const fetchRelated = async () => {
+      setIsLoading(true);
       try {
-        let studiesQuery;
+        const params = new URLSearchParams({
+          currentStudyId,
+        });
         if (tags && tags.length > 0) {
-          studiesQuery = query(
-            collection(db, "studies"),
-            where("status", "==", "PUBLISHED"),
-            where("tags", "array-contains-any", tags),
-            orderBy("publishedAt", "desc"),
-            limit(6) // Fetch a bit more to filter out the current one
-          );
-        } else {
-          // Fallback: fetch most recent studies if no tags are available
-          studiesQuery = query(
-            collection(db, "studies"),
-            where("status", "==", "PUBLISHED"),
-            orderBy("publishedAt", "desc"),
-            limit(5)
-          );
+          params.append('tags', tags.join(','));
         }
+        
+        const response = await axios.get(`/api/studies/related?${params.toString()}`);
+        setRelatedStudies(response.data);
 
-        const snapshot = await getDocs(studiesQuery);
-        const fetchedStudies = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() } as Study))
-          .filter(study => study.id !== currentStudyId); // Exclude the current study
-
-        setRelatedStudies(fetchedStudies.slice(0, 4)); // Ensure max 4 are shown
       } catch (err) {
         console.error("Error fetching related studies:", err);
       } finally {
@@ -80,7 +64,6 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
   }
   
   if (relatedStudies.length === 0) {
-    // Se não for logado, ou se não houver estudos, não mostra nada.
     return null;
   }
 

@@ -125,16 +125,6 @@ export default function StudyDetailPage() {
                     />
                 </div>
 
-                <div className="flex flex-wrap justify-between items-center gap-4 py-4 border-y">
-                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage src={study.authorPhotoURL || undefined} alt={study.authorName} />
-                            <AvatarFallback>{authorInitial}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-semibold text-base text-foreground">{study.authorName}</span>
-                    </div>
-                </div>
-
                 <StudyContentAccordion 
                     markdownContent={study.content}
                     practicalChallenge={study.practicalChallenge}

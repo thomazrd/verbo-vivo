@@ -18,6 +18,7 @@ import { AccessModal } from "@/components/auth/AccessModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Share2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 async function getStudy(id: string): Promise<Study | null> {
   const docRef = doc(db, "studies", id);
@@ -32,6 +33,7 @@ export default function StudyDetailPage() {
   const params = useParams();
   const studyId = params.studyId as string;
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   
   const [study, setStudy] = useState<Study | null | 'not-found'>(null);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
@@ -52,6 +54,35 @@ export default function StudyDetailPage() {
       });
     }
   }, [studyId, canView, isAccessLoading, authLoading]);
+
+  const handleShare = async () => {
+    if (!study || study === 'not-found') return;
+    const shareData = {
+      title: `Estudo: ${study.title}`,
+      text: `Confira este estudo edificante do Verbo Vivo: ${study.title}`,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback for browsers that don't support the Share API
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copiado!",
+          description: "O link para este estudo foi copiado para sua área de transferência.",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing study:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao compartilhar",
+        description: "Não foi possível compartilhar este estudo.",
+      });
+    }
+  };
+
 
   if (study === 'not-found') {
     notFound();
@@ -114,7 +145,7 @@ export default function StudyDetailPage() {
                         <span className="font-semibold text-base text-foreground">{study.authorName}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline"><Share2 className="mr-2 h-4 w-4"/> Compartilhar</Button>
+                        <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/> Compartilhar</Button>
                         <Button variant="outline"><Bookmark className="mr-2 h-4 w-4"/> Salvar</Button>
                     </div>
                 </div>

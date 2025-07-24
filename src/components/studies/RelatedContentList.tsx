@@ -7,17 +7,25 @@ import { collection, query, where, orderBy, limit, getDocs } from "firebase/fire
 import type { Study } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import { CompactStudyCard } from "./CompactStudyCard";
+import type { User } from "firebase/auth";
 
 interface RelatedContentListProps {
+  user: User | null; // Adicionado para verificar se o usuário está logado
   currentStudyId: string;
   tags?: string[];
 }
 
-export function RelatedContentList({ currentStudyId, tags }: RelatedContentListProps) {
+export function RelatedContentList({ user, currentStudyId, tags }: RelatedContentListProps) {
   const [relatedStudies, setRelatedStudies] = useState<Study[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Só busca estudos relacionados se o usuário estiver logado
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchRelated = async () => {
       try {
         let studiesQuery;
@@ -53,7 +61,7 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
     };
     
     fetchRelated();
-  }, [currentStudyId, tags]);
+  }, [currentStudyId, tags, user]);
 
   if (isLoading) {
       return (
@@ -72,7 +80,8 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
   }
   
   if (relatedStudies.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nenhum conteúdo similar encontrado.</p>;
+    // Se não for logado, ou se não houver estudos, não mostra nada.
+    return null;
   }
 
   return (

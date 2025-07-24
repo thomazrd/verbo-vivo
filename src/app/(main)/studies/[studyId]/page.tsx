@@ -66,7 +66,6 @@ export default function StudyDetailPage() {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback for browsers that don't support the Share API
         await navigator.clipboard.writeText(window.location.href);
         toast({
           title: "Link Copiado!",
@@ -81,8 +80,6 @@ export default function StudyDetailPage() {
                 title: "Erro ao compartilhar",
                 description: "Não foi possível compartilhar este estudo.",
             });
-        } else {
-            console.log("Share cancelled by user.");
         }
     }
   };
@@ -162,7 +159,11 @@ export default function StudyDetailPage() {
 
             <aside className="lg:col-span-1 space-y-6">
                  <h2 className="text-xl font-bold tracking-tight">Próximos Estudos</h2>
-                 <RelatedContentList currentStudyId={study.id} tags={study.tags} />
+                 <RelatedContentList
+                    user={user}
+                    currentStudyId={study.id}
+                    tags={study.tags}
+                 />
             </aside>
 
         </div>

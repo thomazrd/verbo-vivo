@@ -73,13 +73,18 @@ export default function StudyDetailPage() {
           description: "O link para este estudo foi copiado para sua área de transferência.",
         });
       }
-    } catch (error) {
-      console.error('Error sharing study:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao compartilhar",
-        description: "Não foi possível compartilhar este estudo.",
-      });
+    } catch (error: any) {
+        // Ignore NotAllowedError which happens when the user cancels the share dialog
+        if (error.name === 'NotAllowedError') {
+            console.log('Share was cancelled by the user.');
+        } else {
+            console.error('Error sharing study:', error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao compartilhar",
+                description: "Não foi possível compartilhar este estudo.",
+            });
+        }
     }
   };
 

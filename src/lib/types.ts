@@ -324,11 +324,11 @@ export interface Study {
   title: string;
   audioUrl: string;
   thumbnailUrl: string | null;
-  content: string; // Conteúdo principal em Markdown
+  content: string;
   authorId: string;
   authorName: string;
-  practicalChallenge?: string;
-  tags: string[];
+  practicalChallenge?: string | null;
+  tags?: string[];
   status: 'DRAFT' | 'PUBLISHED';
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -338,7 +338,7 @@ export interface Study {
 export interface Suggestion {
   id: string;
   text: string;
-  submittedBy: string;
+  submittedBy: string; // UserID
   submittedAt: Timestamp;
   status: 'NEW' | 'VIEWED' | 'ARCHIVED' | 'ACTIONED';
 }
@@ -554,5 +554,3 @@ export const ArmorSuggestionOutputSchema = z.object({
     weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
 });
 export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
-
-    

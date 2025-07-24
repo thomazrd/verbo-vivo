@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookCopy, FileText, Lightbulb, Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { collection, getCountFromServer } from "firebase/firestore";
+import { collection, getCountFromServer, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function AdminDashboardPage() {
@@ -22,12 +22,17 @@ export default function AdminDashboardPage() {
                 const studiesCol = collection(db, "studies");
                 const suggestionsCol = collection(db, "suggestions");
                 
-                const studiesCount = (await getCountFromServer(studiesCol)).data().count;
-                const suggestionsCount = (await getCountFromServer(suggestionsCol)).data().count;
+                const publishedQuery = query(studiesCol, where("status", "==", "PUBLISHED"));
+                const draftsQuery = query(studiesCol, where("status", "==", "DRAFT"));
+                const newSuggestionsQuery = query(suggestionsCol, where("status", "==", "NEW"));
+                
+                const publishedCount = (await getCountFromServer(publishedQuery)).data().count;
+                const draftsCount = (await getCountFromServer(draftsQuery)).data().count;
+                const suggestionsCount = (await getCountFromServer(newSuggestionsQuery)).data().count;
 
                 setStats({
-                    studies: studiesCount,
-                    drafts: 0, // Placeholder, need a query with where clause for this
+                    studies: publishedCount,
+                    drafts: draftsCount,
                     suggestions: suggestionsCount
                 });
             } catch (error) {
@@ -57,7 +62,7 @@ export default function AdminDashboardPage() {
                     title="Estudos Publicados" 
                     count={stats.studies}
                     icon={BookCopy}
-                    href="/admin/studies"
+                    href="/admin/studies?status=PUBLISHED"
                     isLoading={loadingStats}
                 />
                  <StatCard 
@@ -68,7 +73,7 @@ export default function AdminDashboardPage() {
                     isLoading={loadingStats}
                 />
                  <StatCard 
-                    title="Sugestões dos Usuários" 
+                    title="Novas Sugestões" 
                     count={stats.suggestions}
                     icon={Lightbulb}
                     href="/admin/suggestions"
@@ -78,5 +83,3 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
-
-    

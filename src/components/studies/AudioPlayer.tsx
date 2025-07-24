@@ -95,7 +95,7 @@ export function AudioPlayer({ audioUrl, coverImageUrl, title }: AudioPlayerProps
   }
 
   return (
-    <div className="w-full aspect-video bg-gray-800 text-white relative overflow-hidden flex items-center justify-center">
+    <div className="w-full aspect-video bg-gray-800 text-white relative overflow-hidden flex items-center justify-center rounded-lg">
       {coverImageUrl && (
         <Image
           src={coverImageUrl}

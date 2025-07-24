@@ -29,21 +29,15 @@ export default function StudiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const { userProfile } = useAuth(); // Usado para obter a role de admin
-
   useEffect(() => {
     const fetchStudies = async () => {
       try {
         setIsLoading(true);
-        // Acesso para Admin: busca todos os estudos.
-        // Acesso para Usuário: busca apenas estudos publicados.
-        const studiesQuery = userProfile?.role === 'ADMIN' 
-            ? query(collection(db, "studies"), orderBy("updatedAt", "desc"))
-            : query(
-                collection(db, "studies"),
-                where("status", "==", "PUBLISHED"),
-                orderBy("updatedAt", "desc")
-              );
+        const studiesQuery = query(
+            collection(db, "studies"),
+            where("status", "==", "PUBLISHED"),
+            orderBy("updatedAt", "desc")
+        );
 
         const snapshot = await getDocs(studiesQuery);
         const fetchedStudies: Study[] = [];
@@ -65,7 +59,7 @@ export default function StudiesPage() {
       }
     };
     fetchStudies();
-  }, [userProfile]);
+  }, []);
 
   const filteredStudies = useMemo(() => {
     let studies = allStudies;

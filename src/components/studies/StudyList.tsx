@@ -22,7 +22,7 @@ export function StudyList({ studies, isLoading, layout = 'grid' }: StudyListProp
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex gap-4">
-                <Skeleton className="h-20 w-20 shrink-0" />
+                <Skeleton className="h-20 w-28 shrink-0 rounded-lg" />
                 <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-2/3" />

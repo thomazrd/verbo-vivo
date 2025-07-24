@@ -6,7 +6,8 @@ import type { Study } from "@/lib/types";
 import { Skeleton } from "../ui/skeleton";
 import { CompactStudyCard } from "./CompactStudyCard";
 import type { User } from "firebase/auth";
-import axios from "axios";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface RelatedContentListProps {
   user: User | null;
@@ -19,23 +20,39 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // This logic should only run for logged-in users.
     if (!user) {
       setIsLoading(false);
       return;
     }
 
-    const fetchRelated = async () => {
+    const fetchAndFilterStudies = async () => {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({
-          currentStudyId,
-        });
-        if (tags && tags.length > 0) {
-          params.append('tags', tags.join(','));
-        }
+        // 1. Fetch the 10 most recent published studies. This is a simple and fast query.
+        const studiesQuery = query(
+          collection(db, "studies"),
+          where("status", "==", "PUBLISHED"),
+          orderBy("publishedAt", "desc"),
+          limit(10)
+        );
+        const snapshot = await getDocs(studiesQuery);
+        const recentStudies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Study));
+
+        // 2. Filter on the client-side. This is more flexible and avoids complex query errors.
+        const filtered = recentStudies
+          // Exclude the current study
+          .filter(study => study.id !== currentStudyId)
+          // Find studies with at least one matching tag, if tags are provided
+          .filter(study => {
+            if (!tags || tags.length === 0) {
+              return true; // If no tags, all recent studies are "related"
+            }
+            return study.tags?.some(studyTag => tags.includes(studyTag)) ?? false;
+          });
         
-        const response = await axios.get(`/api/studies/related?${params.toString()}`);
-        setRelatedStudies(response.data);
+        // 3. Limit to the top 4 results.
+        setRelatedStudies(filtered.slice(0, 4));
 
       } catch (err) {
         console.error("Error fetching related studies:", err);
@@ -44,7 +61,7 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
       }
     };
     
-    fetchRelated();
+    fetchAndFilterStudies();
   }, [currentStudyId, tags, user]);
 
   if (isLoading) {

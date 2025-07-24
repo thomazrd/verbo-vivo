@@ -38,11 +38,11 @@ export default function StudiesPage() {
         // Acesso para Admin: busca todos os estudos.
         // Acesso para Usuário: busca apenas estudos publicados.
         const studiesQuery = userProfile?.role === 'ADMIN' 
-            ? query(collection(db, "studies"), orderBy("publishedAt", "desc"))
+            ? query(collection(db, "studies"), orderBy("updatedAt", "desc"))
             : query(
                 collection(db, "studies"),
                 where("status", "==", "PUBLISHED"),
-                orderBy("publishedAt", "desc")
+                orderBy("updatedAt", "desc")
               );
 
         const snapshot = await getDocs(studiesQuery);

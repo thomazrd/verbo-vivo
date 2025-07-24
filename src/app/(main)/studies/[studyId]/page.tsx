@@ -11,13 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AudioPlayer } from "@/components/studies/AudioPlayer";
 import { StudyContentAccordion } from "@/components/studies/StudyContentAccordion";
 import { RelatedContentList } from "@/components/studies/RelatedContentList";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useContentAccess } from "@/hooks/use-content-access";
 import { AccessModal } from "@/components/auth/AccessModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Share2, Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 async function getStudy(id: string): Promise<Study | null> {
@@ -122,20 +120,9 @@ export default function StudyDetailPage() {
             
             <div className="lg:col-span-2 space-y-8">
                 <AudioPlayer
-                    audioUrl={study.audioUrl}
-                    coverImageUrl={study.thumbnailUrl}
-                    title={study.title}
+                    study={study}
+                    onShare={handleShare}
                 />
-                <header>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{study.title}</h1>
-                     {study.tags && study.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            {study.tags.map(tag => (
-                                <Badge key={tag} variant="secondary">{tag}</Badge>
-                            ))}
-                        </div>
-                    )}
-                </header>
 
                 <div className="flex flex-wrap justify-between items-center gap-4 py-4 border-y">
                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -144,10 +131,6 @@ export default function StudyDetailPage() {
                             <AvatarFallback>{authorInitial}</AvatarFallback>
                         </Avatar>
                         <span className="font-semibold text-base text-foreground">{study.authorName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4"/> Compartilhar</Button>
-                        <Button variant="outline"><Bookmark className="mr-2 h-4 w-4"/> Salvar</Button>
                     </div>
                 </div>
 

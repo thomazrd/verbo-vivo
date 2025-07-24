@@ -9,7 +9,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const currentStudyId = searchParams.get('currentStudyId');
   const tagsString = searchParams.get('tags');
-  // Corrigido: Garante que as tags sejam filtradas para remover strings vazias.
   const tags = tagsString ? tagsString.split(',').filter(tag => tag.trim() !== '') : [];
 
   if (!currentStudyId) {
@@ -17,22 +16,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    let studiesQuery;
-    const studiesRef = db.collection("studies");
+    let studiesQuery: admin.firestore.Query = db.collection("studies");
     
-    // Corrigido: A condição agora verifica se o array de tags tem de fato conteúdo.
+    studiesQuery = studiesQuery.where("status", "==", "PUBLISHED");
+    
     if (tags.length > 0) {
-      studiesQuery = studiesRef
-        .where("status", "==", "PUBLISHED")
-        .where("tags", "array-contains-any", tags)
-        .orderBy("publishedAt", "desc")
-        .limit(6);
-    } else {
-      studiesQuery = studiesRef
-        .where("status", "==", "PUBLISHED")
-        .orderBy("publishedAt", "desc")
-        .limit(5);
+      studiesQuery = studiesQuery
+        .where("tags", "array-contains-any", tags);
     }
+    
+    studiesQuery = studiesQuery.orderBy("publishedAt", "desc").limit(6);
 
     const snapshot = await studiesQuery.get();
     

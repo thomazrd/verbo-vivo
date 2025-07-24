@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { db, storage } from "@/lib/firebase";
-import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "@/hooks/use-auth";
 import type { Study } from "@/lib/types";
@@ -131,7 +131,8 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
             publishedAt: study?.status !== 'PUBLISHED' && status === 'PUBLISHED' ? serverTimestamp() : study?.publishedAt || null,
         });
       } else {
-        await addDoc(collection(db, "studies"), {
+        const newDocRef = doc(collection(db, "studies"));
+        await setDoc(newDocRef, {
             ...dataToSave,
             createdAt: serverTimestamp(),
             publishedAt: status === 'PUBLISHED' ? serverTimestamp() : null,
@@ -181,7 +182,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       <div className="mb-6"><PrayerOfSower /></div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2 space-y-6">
               <FormField
@@ -197,10 +198,22 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                   </FormItem>
                 )}
               />
-              <MarkdownEditor
-                value={form.watch('content')}
-                onChange={(value) => form.setValue('content', value)}
-              />
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg">Conteúdo Principal</FormLabel>
+                    <FormControl>
+                        <MarkdownEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+                />
             </div>
 
             <div className="md:col-span-1 space-y-6">

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -15,6 +14,7 @@ interface AudioPlayerProps {
 }
 
 function formatTime(seconds: number): string {
+  if (isNaN(seconds)) return '0:00';
   const floorSeconds = Math.floor(seconds);
   const min = Math.floor(floorSeconds / 60);
   const sec = floorSeconds % 60;
@@ -95,26 +95,20 @@ export function AudioPlayer({ audioUrl, coverImageUrl, title }: AudioPlayerProps
   }
 
   return (
-    <div className="w-full aspect-video bg-gray-800 text-white relative overflow-hidden flex items-center justify-center rounded-lg">
+    <div className="w-full aspect-video bg-slate-900 text-white relative overflow-hidden flex items-center justify-center rounded-lg shadow-xl">
       {coverImageUrl && (
         <Image
           src={coverImageUrl}
           alt={title}
           fill
-          className="object-cover opacity-30 blur-md scale-110"
+          className="object-cover opacity-20 blur-lg scale-110"
+          data-ai-hint="spiritual abstract background"
         />
       )}
-      <div className="relative z-10 w-full max-w-2xl p-8 space-y-6">
-          <div className="flex items-center gap-6">
-            {coverImageUrl && (
-                <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg overflow-hidden shadow-lg">
-                    <Image src={coverImageUrl} alt={title} width={128} height={128} className="object-cover w-full h-full" />
-                </div>
-            )}
-            <h2 className="text-2xl sm:text-3xl font-bold line-clamp-3">{title}</h2>
-          </div>
-          
-          <div className="space-y-3">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+      
+      <div className="relative z-10 w-full max-w-2xl p-4 sm:p-8 space-y-4">
+          <div className="space-y-3 text-center">
             <Slider
               value={[currentTime]}
               max={duration || 0}
@@ -127,19 +121,19 @@ export function AudioPlayer({ audioUrl, coverImageUrl, title }: AudioPlayerProps
             </div>
           </div>
           
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10" onClick={() => handleSeekRelative(-15)}>
-              <Rewind className="h-6 w-6" />
+              <Rewind className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
             <Button variant="ghost" size="icon" className="h-16 w-16 bg-white/10 hover:bg-white/20 rounded-full text-white hover:text-white" onClick={togglePlayPause}>
-              {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+              {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 ml-1" />}
             </Button>
             <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10" onClick={() => handleSeekRelative(15)}>
-              <FastForward className="h-6 w-6" />
+              <FastForward className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4">
+          <div className="flex items-center justify-end gap-2 pt-2 absolute bottom-2 right-4">
             <button onClick={() => setIsMuted(!isMuted)}>
                 {isMuted ? <VolumeX className="h-5 w-5"/> : <Volume2 className="h-5 w-5"/>}
             </button>

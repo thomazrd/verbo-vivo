@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import type { Study } from "@/lib/types";
-import { StudyList } from "./StudyList";
+import { Skeleton } from "../ui/skeleton";
+import { CompactStudyCard } from "./CompactStudyCard";
 
 interface RelatedContentListProps {
   currentStudyId: string;
@@ -18,24 +19,30 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
 
   useEffect(() => {
     const fetchRelated = async () => {
-      if (!tags || tags.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-      
       try {
-        const relatedQuery = query(
-          collection(db, "studies"),
-          where("status", "==", "PUBLISHED"),
-          where("tags", "array-contains-any", tags),
-          orderBy("publishedAt", "desc"),
-          limit(5)
-        );
+        let studiesQuery;
+        if (tags && tags.length > 0) {
+          studiesQuery = query(
+            collection(db, "studies"),
+            where("status", "==", "PUBLISHED"),
+            where("tags", "array-contains-any", tags),
+            orderBy("publishedAt", "desc"),
+            limit(6) // Fetch a bit more to filter out the current one
+          );
+        } else {
+          // Fallback: fetch most recent studies if no tags are available
+          studiesQuery = query(
+            collection(db, "studies"),
+            where("status", "==", "PUBLISHED"),
+            orderBy("publishedAt", "desc"),
+            limit(5)
+          );
+        }
 
-        const snapshot = await getDocs(relatedQuery);
+        const snapshot = await getDocs(studiesQuery);
         const fetchedStudies = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as Study))
-          .filter(study => study.id !== currentStudyId); // Double-check filtering
+          .filter(study => study.id !== currentStudyId); // Exclude the current study
 
         setRelatedStudies(fetchedStudies.slice(0, 4)); // Ensure max 4 are shown
       } catch (err) {
@@ -49,7 +56,19 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
   }, [currentStudyId, tags]);
 
   if (isLoading) {
-      return <StudyList studies={[]} isLoading={true} layout="compact" />
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex gap-4">
+                <Skeleton className="h-20 w-28 shrink-0 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                </div>
+            </div>
+          ))}
+        </div>
+      );
   }
   
   if (relatedStudies.length === 0) {
@@ -57,6 +76,10 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
   }
 
   return (
-    <StudyList studies={relatedStudies} isLoading={false} layout="compact"/>
+    <div className="space-y-4">
+        {relatedStudies.map(study => (
+            <CompactStudyCard key={study.id} study={study}/>
+        ))}
+    </div>
   );
 }

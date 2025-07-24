@@ -6,15 +6,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BookCopy } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StudyCardProps {
   study: Study;
+  className?: string;
 }
 
-export function StudyCard({ study }: StudyCardProps) {
+export function StudyCard({ study, className }: StudyCardProps) {
   return (
-    <Link href={`/studies/${study.id}`} className="group block h-full">
-      <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-lg group-hover:-translate-y-1">
+    <Link href={`/studies/${study.id}`} className={cn("group block h-full", className)}>
+      <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-lg">
         <div className="aspect-video overflow-hidden relative bg-muted">
           {study.thumbnailUrl ? (
              <Image
@@ -23,6 +25,7 @@ export function StudyCard({ study }: StudyCardProps) {
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                data-ai-hint="study lesson"
              />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -31,7 +34,8 @@ export function StudyCard({ study }: StudyCardProps) {
           )}
         </div>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold line-clamp-2">{study.title}</CardTitle>
+          <CardTitle className="text-base font-semibold line-clamp-2">{study.title}</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">{study.authorName}</p>
         </CardHeader>
       </Card>
     </Link>

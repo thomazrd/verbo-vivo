@@ -16,7 +16,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useContentAccess } from "@/hooks/use-content-access";
 import { AccessModal } from "@/components/auth/AccessModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { User, Share2, Bookmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 async function getStudy(id: string): Promise<Study | null> {
   const docRef = doc(db, "studies", id);
@@ -59,8 +60,8 @@ export default function StudyDetailPage() {
   if (study === null || authLoading || isAccessLoading) {
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                <div className="md:col-span-2 lg:col-span-3 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
                     <Skeleton className="w-full aspect-video rounded-lg" />
                     <Skeleton className="h-10 w-3/4" />
                     <div className="flex gap-2">
@@ -69,7 +70,8 @@ export default function StudyDetailPage() {
                     </div>
                     <Skeleton className="h-20 w-full rounded-lg" />
                 </div>
-                <div className="md:col-span-1 lg:col-span-1 space-y-4">
+                <div className="lg:col-span-1 space-y-4">
+                     <Skeleton className="h-8 w-1/2 mb-4" />
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
@@ -84,32 +86,38 @@ export default function StudyDetailPage() {
   return (
     <>
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
             
-            {/* Main Content Column */}
-            <div className="md:col-span-2 lg:col-span-3 space-y-8">
+            <div className="lg:col-span-2 space-y-8">
                 <AudioPlayer
                     audioUrl={study.audioUrl}
                     coverImageUrl={study.thumbnailUrl}
                     title={study.title}
                 />
                 <header>
-                    {study.tags && study.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{study.title}</h1>
+                     {study.tags && study.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
                             {study.tags.map(tag => (
                                 <Badge key={tag} variant="secondary">{tag}</Badge>
                             ))}
                         </div>
                     )}
-                    <h1 className="text-3xl font-bold tracking-tight">{study.title}</h1>
-                    <div className="flex items-center gap-3 mt-4 text-sm text-muted-foreground">
-                        <Avatar className="h-8 w-8">
+                </header>
+
+                <div className="flex flex-wrap justify-between items-center gap-4 py-4 border-y">
+                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Avatar className="h-10 w-10">
                             <AvatarImage src={study.authorPhotoURL || undefined} alt={study.authorName} />
                             <AvatarFallback>{authorInitial}</AvatarFallback>
                         </Avatar>
-                        <span className="font-semibold">{study.authorName}</span>
+                        <span className="font-semibold text-base text-foreground">{study.authorName}</span>
                     </div>
-                </header>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline"><Share2 className="mr-2 h-4 w-4"/> Compartilhar</Button>
+                        <Button variant="outline"><Bookmark className="mr-2 h-4 w-4"/> Salvar</Button>
+                    </div>
+                </div>
 
                 <StudyContentAccordion 
                     markdownContent={study.content}
@@ -117,11 +125,10 @@ export default function StudyDetailPage() {
                 />
             </div>
 
-            {/* Related Content Sidebar */}
-            <div className="md:col-span-1 lg:col-span-1 space-y-6">
-                 <h2 className="text-xl font-bold tracking-tight">Relacionados</h2>
+            <aside className="lg:col-span-1 space-y-6">
+                 <h2 className="text-xl font-bold tracking-tight">Próximos Estudos</h2>
                  <RelatedContentList currentStudyId={study.id} tags={study.tags} />
-            </div>
+            </aside>
 
         </div>
       </div>

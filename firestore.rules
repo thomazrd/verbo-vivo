@@ -4,154 +4,119 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-  	function isSignedIn() {
-    	return request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
     }
     
     function isOwner(userId) {
-    	return request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     function isAdmin() {
-      // Check if the user document has role == 'ADMIN'
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
-    }
-    
-    // Regras de Usuários
-    match /users/{userId} {
-      allow read;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-    }
-    
-    // Regras de Planos de Estudo (subcoleção de usuário)
-    match /users/{userId}/plans/{planId} {
-      allow read, write: if isSignedIn() && isOwner(userId);
-    }
-    
-    // Regras do Diário (subcoleção de usuário)
-    match /users/{userId}/journals/{journalId} {
-      allow read, write: if isSignedIn() && isOwner(userId);
-    }
-    
-    // Regras de Mensagens do Chat (subcoleção de usuário)
-    match /users/{userId}/messages/{messageId} {
-    	allow read, write: if isSignedIn() && isOwner(userId);
-    }
-    
-    // Regras de Orações (coleção principal)
-    match /prayers/{prayerId} {
-      allow read, create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Regras de Meditações (coleção principal)
-    match /meditations/{meditationId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Regras de Jornada de Sentimentos (coleção principal)
-    match /feelingJourneys/{journeyId} {
-    	allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Regras de Conteúdo Compartilhável (Ponte da Esperança)
-    match /sharedContent/{contentId} {
-    	allow read;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+      // Verifica se o documento do usuário existe e se o campo 'role' é 'ADMIN'
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
     }
 
-    // Regras para Armaduras
+    match /users/{userId} {
+      allow read;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+    
+    match /users/{userId}/plans/{planId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if isOwner(userId);
+    }
+
     match /users/{userId}/armors/{armorId} {
-        allow read, write: if isSignedIn() && isOwner(userId);
+      allow read, create, update, delete: if isOwner(userId);
     }
 
     match /sharedArmors/{armorId} {
-        allow read: if isSignedIn();
-        // Only the original author can create, update, or delete in the shared collection
-        allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
+      // Only the original author can create, update or delete a shared armor
+      allow create, update, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /journals/{journalId} {
+      allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
-    // Regras para Círculos de Oração
+    match /meditations/{meditationId} {
+      allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /feelingJourneys/{journeyId} {
+      allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /sharedContent/{contentId} {
+        allow read;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+    }
+
+    match /congregations/{congregationId} {
+      allow read;
+      allow create: if isSignedIn(); // Função 'createCongregation' gerencia as permissões
+      allow update: if isSignedIn() && resource.data.admins[request.auth.uid] == true;
+    }
+    
+    match /congregations/{congregationId}/members/{memberId} {
+        allow read;
+        allow write: if isSignedIn(); // Funções 'requestToJoin' e 'approve' gerenciam as permissões
+    }
+    
+    match /congregations/{congregationId}/posts/{postId} {
+        allow read: if isSignedIn();
+        allow create, update: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow delete: if isSignedIn() && (
+            resource.data.authorId == request.auth.uid || 
+            get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true
+        );
+    }
+
+    match /congregations/{congregationId}/posts/{postId}/{subcollection}/{docId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read, update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      // Ninguém pode criar notificações diretamente, elas são criadas por Cloud Functions
+      allow create, delete: if false;
+    }
+
+    match /userPushTokens/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /articles/{articleId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /studies/{studyId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin(); // write engloba create, update, delete
+    }
+
+    match /podcasts/{podcastId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Por enquanto, ninguém pode escrever diretamente
+    }
+
     match /prayerCircles/{circleId} {
-      // Public circles can be read by anyone signed in
-      // Private circles only by members
-      allow read: if isSignedIn() && (resource.data.isPublic == true || request.auth.uid in resource.data.members);
-      
-      // Any signed in user can create a circle
-      allow create: if isSignedIn();
-      
-      // Only members can update (e.g., pray). Specific actions should be handled by functions.
-      // Updates like changing name/desc should be restricted to author/moderators in functions.
-      allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn(); // Lógica de membro é tratada no código
     }
 
     match /victories/{victoryId} {
       allow read: if isSignedIn();
-      // Only the circle moderator can record a victory
-      allow create: if isSignedIn(); 
-      // Users can only update the amen count
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amenCount', 'usersWhoSaidAmen']);
+      allow create, update: if isSignedIn();
     }
 
-    // Regras para Podcasts / Estudos (Admin Portal)
-    match /studies/{studyId} {
-      // Anyone signed in can read published studies
-      allow read: if isSignedIn() && resource.data.status == 'PUBLISHED';
-      // Only admins can write/update/delete studies
-      allow write: if isSignedIn() && isAdmin();
-    }
-    
-    // Regras para Sugestões de Usuários
-    match /suggestions/{suggestionId} {
-    	// Only admins can read suggestions
-    	allow read: if isSignedIn() && isAdmin();
-      // Any signed in user can create a suggestion
-      allow create: if isSignedIn();
-      // Only admins can update the status of a suggestion
-      allow update: if isSignedIn() && isAdmin();
-    }
-    
-    // Regras de Notificações
-    match /notifications/{notificationId} {
-    	allow read, update: if isSignedIn() && request.auth.uid == resource.data.recipientId;
-    }
-    
-    match /userPushTokens/{userId} {
-    	allow write: if isSignedIn() && isOwner(userId);
-    }
-
-    match /articles/{articleId} {
-      allow read: if resource.data.status == 'published';
-      allow write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
-    }
-
-    // Congregações
-    match /congregations/{congregationId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.admins || get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'MEMBER';
-      allow update: if isSignedIn() && request.auth.uid in resource.data.admins;
-      allow create: if isSignedIn();
-    }
-    
-    match /congregations/{congregationId}/members/{memberId} {
-    	allow read, write: if isSignedIn() && (isOwner(memberId) || request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins);
-    }
-    
-    match /congregations/{congregationId}/posts/{postId} {
-    	allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      // Allow updates only for likeCount and commentCount by any member, or content by author/admin
-      allow update: if isSignedIn(); 
-    }
-    
-    match /congregations/{congregationId}/posts/{postId}/likes/{userId} {
-    	allow read, write: if isSignedIn() && isOwner(userId);
-    }
-    
-    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
-    	allow read, write: if isSignedIn();
-    }
   }
 }
-
-    

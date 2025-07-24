@@ -2,128 +2,128 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // =================================================================
-    // Funções Auxiliares
-    // =================================================================
-    
+
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isAdmin(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId)) &&
-             get(/databases/$(database)/documents/users/$(userId)).data.role == 'ADMIN';
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // =================================================================
-    // Coleções Principais
-    // =================================================================
-    
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isUser(userId);
-      allow update: if isUser(userId);
-      // Delete should be handled by a Cloud Function for cleanup.
-      allow delete: if isUser(userId);
+      allow read, update: if isOwner(userId);
+      allow create: if isSignedIn();
     }
     
     match /userPushTokens/{userId} {
-        allow read, write: if isUser(userId);
-    }
-    
-    match /congregations/{congregationId} {
-        allow read: if isSignedIn();
-        // Creation is handled by a Cloud Function
-        allow create: if isSignedIn(); 
-        allow update: if isAdmin(request.auth.uid);
-    }
-    
-    match /congregations/{congregationId}/members/{userId} {
-        allow read: if isSignedIn();
-        // Write is handled by Cloud Functions
-        allow write: if isSignedIn();
-    }
-    
-    match /congregations/{congregationId}/posts/{postId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isUser(request.resource.data.authorId) || isAdmin(request.auth.uid);
+        allow read, write: if isOwner(userId);
     }
 
-    match /congregations/{congregationId}/posts/{postId}/{subcollection}/{docId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /journals/{journalId} {
-      allow read, create, update, delete: if isSignedIn() && isUser(request.resource.data.userId);
-    }
-    
-    match /meditations/{meditationId} {
-       allow read, create, update, delete: if isSignedIn() && isUser(request.resource.data.userId);
-    }
-    
-    match /prayers/{prayerId} {
-       allow read, create, update, delete: if isSignedIn() && isUser(request.resource.data.userId);
-    }
-
-    match /users/{userId}/plans/{planId} {
-       allow read, create, update, delete: if isUser(userId);
-    }
-    
     match /sharedContent/{contentId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isUser(request.resource.data.creatorId);
+        allow read: if true;
+        allow create, update: if isSignedIn();
     }
 
-    match /users/{userId}/armors/{armorId} {
-      allow read, write: if isUser(userId);
+    match /meditations/{meditationId} {
+      allow read, write: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+    
+    match /feelingJourneys/{journeyId} {
+        allow read, write: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+
+    match /journals/{entryId} {
+      allow read, write: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+    
+    match /plans/{planId} {
+      allow read, write: if isOwner(request.resource.data.userId);
+    }
+    
+    match /messages/{messageId} {
+        allow read, write: if isOwner(request.resource.data.userId);
+    }
+    
+    match /armors/{armorId} {
+      allow read, write: if isSignedIn() && isOwner(request.resource.data.userId);
     }
     
     match /sharedArmors/{armorId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isUser(request.resource.data.userId);
+      // Only the original author can update/delete the shared copy
+      allow write: if isSignedIn() && isOwner(request.resource.data.userId);
     }
 
-    match /prayerCircles/{circleId} {
-      allow read, create: if isSignedIn();
-      allow update: if isSignedIn() && (isUser(resource.data.createdBy) || request.resource.data.members.hasAny(request.auth.uid));
-      allow delete: if isUser(resource.data.createdBy);
+    match /congregations/{congregationId} {
+        // Members can read congregation details
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId;
+        // Only admins can update congregation details
+        allow update: if isAdmin();
+        // Creation is handled by a Cloud Function
+        allow create: if isSignedIn();
+        allow delete: if false; // Deletion should be handled by a Cloud Function
     }
-
-    match /victories/{victoryId} {
-      allow read: if true;
-      allow create, update: if isSignedIn();
+    
+    match /congregations/{congregationId}/members/{userId} {
+        // A user can read their own member document, or an admin can read any.
+        allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+        // Requests to join are handled by Cloud Function
+        allow create: if isSignedIn() && isOwner(userId);
+        // Only admins can update status
+        allow update: if isAdmin();
+        allow delete: if isAdmin() || isOwner(userId); // Admins can remove, users can leave
+    }
+    
+    match /congregations/{congregationId}/posts/{postId} {
+        allow read, write: if isSignedIn();
+    }
+    
+    match /congregations/{congregationId}/posts/{postId}/comments/{commentId} {
+        allow read, write: if isSignedIn();
+    }
+    
+     match /congregations/{congregationId}/posts/{postId}/likes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && isOwner(userId);
+    }
+    
+    match /notifications/{notificationId} {
+        allow read, update: if isSignedIn() && isOwner(resource.data.recipientId);
+        allow create: if false; // Only functions can create
     }
     
     match /articles/{articleId} {
-      allow read: if resource.data.status == 'published' || (isSignedIn() && isUser(resource.data.authorId));
-      allow create, update, delete: if isSignedIn() && (isAdmin(request.auth.uid) || isUser(request.resource.data.authorId));
-    }
-
-    match /studies/{studyId} {
-      allow read: if resource.data.status == 'PUBLISHED' || (isSignedIn() && isAdmin(request.auth.uid));
-      allow write: if isSignedIn() && isAdmin(request.auth.uid);
-    }
-    
-    match /suggestions/{suggestionId} {
-        allow read, write: if isSignedIn() && isAdmin(request.auth.uid);
-        allow create: if isSignedIn();
+        allow read: if resource.data.status == 'published';
+        allow write: if isAdmin();
     }
     
     match /podcasts/{podcastId} {
       allow read: if isSignedIn();
-      // Only admins should be able to create podcasts in a real scenario
-      allow write: if isSignedIn() && isAdmin(request.auth.uid);
+      // Temporarily allow any logged in user to create for testing
+      allow write: if isSignedIn();
+    }
+    
+    match /prayerCircles/{circleId} {
+      allow read: if resource.data.isPublic == true || request.auth.uid in resource.data.members;
+      allow create: if isSignedIn();
+      allow update: if request.auth.uid == resource.data.createdBy; // Only creator can update
     }
 
-    match /notifications/{notificationId} {
-      // Only the recipient can read/update their notifications
-      allow read, update: if isSignedIn() && isUser(resource.data.recipientId);
+    match /victories/{victoryId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn(); // Allow liking
     }
+
+    match /studies/{studyId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
   }
 }

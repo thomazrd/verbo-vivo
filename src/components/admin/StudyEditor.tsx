@@ -46,7 +46,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
   const [isLoading, setIsLoading] = useState(!!studyId);
   const [isSaving, setIsSaving] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [submitAction, setSubmitAction] = useState<SubmitAction>('DRAFT');
+  const submitActionRef = useRef<SubmitAction>('DRAFT');
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
@@ -105,7 +105,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
   };
 
   const handleFormSubmit = async (values: StudyFormValues) => {
-    const status = submitAction;
+    const status = submitActionRef.current;
     if (!user || !userProfile) return;
     setIsSaving(true);
     let newThumbnailUrl = study?.thumbnailUrl || thumbnailPreview || null;
@@ -122,7 +122,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
-      const dataToSave = {
+      const dataToSave: any = {
         title: values.title,
         content: values.content,
         audioUrl: values.audioUrl,
@@ -136,17 +136,18 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       };
 
       if (studyId) {
-        await updateDoc(doc(db, "studies", studyId), {
-            ...dataToSave,
-            publishedAt: study?.status !== 'PUBLISHED' && status === 'PUBLISHED' ? serverTimestamp() : study?.publishedAt || null,
-        });
+        if (status === 'PUBLISHED' && study?.status !== 'PUBLISHED') {
+            dataToSave.publishedAt = serverTimestamp();
+        }
+        await updateDoc(doc(db, "studies", studyId), dataToSave);
       } else {
-        const newDocRef = doc(collection(db, "studies"));
-        await setDoc(newDocRef, {
-            ...dataToSave,
-            createdAt: serverTimestamp(),
-            publishedAt: status === 'PUBLISHED' ? serverTimestamp() : null,
-        });
+        dataToSave.createdAt = serverTimestamp();
+        if (status === 'PUBLISHED') {
+            dataToSave.publishedAt = serverTimestamp();
+        } else {
+            dataToSave.publishedAt = null;
+        }
+        await setDoc(doc(db, "studies", docId), dataToSave);
       }
       
       toast({ title: "Sucesso!", description: `Estudo salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.` });
@@ -232,7 +233,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                   <CardTitle>Publicação</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <Button type="submit" onClick={() => setSubmitAction('DRAFT')} variant="secondary" disabled={isSaving}>
+                  <Button type="submit" onClick={() => submitActionRef.current = 'DRAFT'} variant="secondary" disabled={isSaving}>
                     <Save className="mr-2" /> {isSaving ? 'Salvando...' : 'Salvar Rascunho'}
                   </Button>
                   <AlertDialog>
@@ -250,7 +251,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <Button type="submit" onClick={() => setSubmitAction('PUBLISHED')}>
+                        <Button type="submit" onClick={() => submitActionRef.current = 'PUBLISHED'}>
                           Publicar Agora
                         </Button>
                       </AlertDialogFooter>

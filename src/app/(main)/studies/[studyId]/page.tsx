@@ -74,16 +74,15 @@ export default function StudyDetailPage() {
         });
       }
     } catch (error: any) {
-        // Ignore NotAllowedError which happens when the user cancels the share dialog
-        if (error.name === 'NotAllowedError') {
-            console.log('Share was cancelled by the user.');
-        } else {
+        if (error.name !== 'NotAllowedError') {
             console.error('Error sharing study:', error);
             toast({
                 variant: "destructive",
                 title: "Erro ao compartilhar",
                 description: "Não foi possível compartilhar este estudo.",
             });
+        } else {
+            console.log("Share cancelled by user.");
         }
     }
   };

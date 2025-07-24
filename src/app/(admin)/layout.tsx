@@ -21,7 +21,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (!userProfile) {
-    router.push('/login');
+    // Adiciona o parâmetro de redirecionamento para voltar para a rota admin após o login
+    router.push('/login?redirect=/admin');
     return null;
   }
 
@@ -42,5 +43,3 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
-    

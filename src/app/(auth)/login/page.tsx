@@ -1,9 +1,12 @@
+
+"use client"
 import { LoginForm } from "@/components/auth/LoginForm";
 import { BookHeart } from "lucide-react";
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Suspense } from 'react';
 
-export default function LoginPage() {
+function LoginPageContent() {
   return (
     <Card className="w-full max-w-md border">
       <CardHeader className="items-center text-center space-y-3">
@@ -26,4 +29,12 @@ export default function LoginPage() {
       </CardContent>
     </Card>
   );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <LoginPageContent />
+    </Suspense>
+  )
 }

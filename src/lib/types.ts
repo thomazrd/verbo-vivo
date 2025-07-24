@@ -89,6 +89,7 @@ export interface UserProfile {
   prayerCircleOnboardingCompleted?: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
+  role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
   favoriteArmorIds?: string[];
@@ -317,6 +318,32 @@ export interface Article {
   publishedAt?: Timestamp;
 }
 
+// --- Tipos do Portal Administrativo ---
+export interface Study {
+  id: string;
+  title: string;
+  audioUrl: string;
+  thumbnailUrl: string | null;
+  content: string; // Conteúdo principal em Markdown
+  authorId: string;
+  authorName: string;
+  practicalChallenge?: string;
+  tags: string[];
+  status: 'DRAFT' | 'PUBLISHED';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  publishedAt: Timestamp | null;
+}
+
+export interface Suggestion {
+  id: string;
+  text: string;
+  submittedBy: string;
+  submittedAt: Timestamp;
+  status: 'NEW' | 'VIEWED' | 'ARCHIVED' | 'ACTIONED';
+}
+
+
 // --- Tipos da API da Bíblia ---
 
 export interface BibleVersion {
@@ -527,3 +554,5 @@ export const ArmorSuggestionOutputSchema = z.object({
     weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
 });
 export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
+
+    

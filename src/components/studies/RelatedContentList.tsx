@@ -28,9 +28,8 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
           collection(db, "studies"),
           where("status", "==", "PUBLISHED"),
           where("tags", "array-contains-any", tags),
-          where("__name__", "!=", currentStudyId),
-          orderBy("__name__"), // Firestore requires an orderBy when using inequality filters
-          limit(4)
+          orderBy("publishedAt", "desc"),
+          limit(5)
         );
 
         const snapshot = await getDocs(relatedQuery);
@@ -38,7 +37,7 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
           .map(doc => ({ id: doc.id, ...doc.data() } as Study))
           .filter(study => study.id !== currentStudyId); // Double-check filtering
 
-        setRelatedStudies(fetchedStudies);
+        setRelatedStudies(fetchedStudies.slice(0, 4)); // Ensure max 4 are shown
       } catch (err) {
         console.error("Error fetching related studies:", err);
       } finally {
@@ -49,14 +48,15 @@ export function RelatedContentList({ currentStudyId, tags }: RelatedContentListP
     fetchRelated();
   }, [currentStudyId, tags]);
 
-  if (isLoading || relatedStudies.length === 0) {
-    return null;
+  if (isLoading) {
+      return <StudyList studies={[]} isLoading={true} layout="compact" />
+  }
+  
+  if (relatedStudies.length === 0) {
+    return <p className="text-sm text-muted-foreground">Nenhum conteúdo similar encontrado.</p>;
   }
 
   return (
-    <div className="mt-12">
-      <h2 className="text-2xl font-bold tracking-tight mb-6">Conteúdos Relacionados</h2>
-      <StudyList studies={relatedStudies} isLoading={false} />
-    </div>
+    <StudyList studies={relatedStudies} isLoading={false} layout="compact"/>
   );
 }

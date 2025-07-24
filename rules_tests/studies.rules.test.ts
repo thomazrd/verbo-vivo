@@ -19,11 +19,13 @@ describe('Firestore Security Rules for Studies Module', () => {
   });
 
   it('deve permitir que administradores leiam e escrevam em qualquer estudo', () => {
-    // Esta expressão regular verifica a regra:
-    // allow read, write: if (isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN');
-    // A expressão é flexível para pequenas variações de formatação.
-    const adminAccessRule = /match \/studies\/{studyId} {[\s\S]*?allow (read, write|write, read): if \(isUserAuthenticated\(\) && get\(\/databases\/\$\(database\)\/documents\/users\/\$\(request\.auth\.uid\)\)\.data\.role == 'ADMIN'\);?/;
-    expect(rulesContent).toMatch(adminAccessRule);
+    // Verifica a regra de leitura para administradores
+    const adminReadRule = /match \/studies\/{studyId} {[\s\S]*?allow read: if .*?isUserAdmin\(\);?/;
+    expect(rulesContent).toMatch(adminReadRule);
+    
+    // Verifica a regra de escrita para administradores
+    const adminWriteRule = /match \/studies\/{studyId} {[\s\S]*?allow write: if isUserAdmin\(\);?/;
+    expect(rulesContent).toMatch(adminWriteRule);
   });
 
   it('deve conter a função de verificação de administrador (isUserAdmin)', () => {

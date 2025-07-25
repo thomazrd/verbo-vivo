@@ -5,7 +5,7 @@ import type { Study } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BookCopy } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StudyCardProps {
@@ -30,6 +30,9 @@ export function StudyCard({ study, className }: StudyCardProps) {
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint="study lesson"
           />
+           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <PlayCircle className="h-12 w-12 text-white/70" />
+            </div>
         </div>
         <CardHeader>
           <CardTitle className="text-base font-semibold line-clamp-2">{study.title}</CardTitle>

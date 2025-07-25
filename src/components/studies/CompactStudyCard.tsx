@@ -4,7 +4,8 @@
 import type { Study } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
-import { BookCopy } from "lucide-react";
+import { PlayCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CompactStudyCardProps {
   study: Study;
@@ -26,6 +27,9 @@ export function CompactStudyCard({ study }: CompactStudyCardProps) {
                 sizes="128px"
                 data-ai-hint="study lesson"
             />
+            <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <PlayCircle className="h-8 w-8 text-white/80" />
+            </div>
         </div>
         <div className="flex-1">
             <h4 className="font-semibold text-sm leading-tight line-clamp-3 text-foreground group-hover:text-primary transition-colors">

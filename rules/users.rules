@@ -1,0 +1,8 @@
+    // === REGRAS DE USUÁRIOS ===
+    match /users/{userId} {
+      // Qualquer usuário autenticado pode ler perfis para funcionalidades da comunidade
+      allow read: if isUserAuthenticated();
+      
+      // Usuário só pode criar e modificar seu próprio perfil
+      allow create, update: if isOwner(userId);
+    }

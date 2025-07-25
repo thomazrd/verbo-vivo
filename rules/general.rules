@@ -1,0 +1,43 @@
+    // === REGRAS GERAIS ===
+
+    // Diário Pessoal
+    match /journals/{journalId} {
+      allow read, write, delete: if isOwner(request.resource.data.userId);
+    }
+
+    // Planos de Estudo Pessoais
+    match /plans/{planId} {
+        allow read, write, delete: if isOwner(request.resource.data.userId);
+    }
+
+    // Orações Pessoais
+    match /prayers/{prayerId} {
+       allow read, write, delete: if isOwner(request.resource.data.userId);
+    }
+
+    // Meditações Pessoais
+    match /meditations/{meditationId} {
+       allow read, write, delete: if isOwner(request.resource.data.userId);
+    }
+
+    // Jornadas de Sentimento
+    match /feelingJourneys/{journeyId} {
+       allow read, write, delete: if isOwner(request.resource.data.userId);
+    }
+
+    // Ponte da Esperança (Conteúdo Compartilhado)
+    match /sharedContent/{contentId} {
+      allow read: if resource.data.status == 'ACTIVE';
+      allow create: if isUserAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isOwner(resource.data.creatorId); // Para marcar como deletado
+    }
+
+    // Tokens para Notificações Push
+    match /userPushTokens/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Notificações do Usuário
+    match /notifications/{notificationId} {
+      allow read, update: if isOwner(resource.data.recipientId);
+    }

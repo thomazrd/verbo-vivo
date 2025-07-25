@@ -1,0 +1,36 @@
+    // === REGRAS DA CONGREGAÇÃO ===
+    match /congregations/{congregationId} {
+      allow read: if isUserAuthenticated();
+      allow create: if isUserAuthenticated() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isCongregationAdmin(congregationId);
+      
+      // Membros
+      match /members/{userId} {
+        allow read: if isCongregationMember(congregationId);
+        allow create: if isOwner(userId); // Ao solicitar entrada
+        allow update: if isCongregationAdmin(congregationId); // Aprovação, promoção
+        allow delete: if isCongregationAdmin(congregationId) || isOwner(userId); // Remover ou sair
+      }
+      
+      // Posts
+      match /posts/{postId} {
+        allow read: if isCongregationMember(congregationId);
+        allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
+        allow update: if isOwner(request.resource.data.authorId);
+        allow delete: if isOwner(request.resource.data.authorId) || isCongregationAdmin(congregationId);
+        
+        // Likes
+        match /likes/{userId} {
+          allow read: if isCongregationMember(congregationId);
+          allow create, delete: if isOwner(userId);
+        }
+        
+        // Comentários
+        match /comments/{commentId} {
+           allow read: if isCongregationMember(congregationId);
+           allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
+           allow update: if isOwner(request.resource.data.authorId);
+           allow delete: if isOwner(request.resource.data.authorId) || isCongregationAdmin(congregationId);
+        }
+      }
+    }

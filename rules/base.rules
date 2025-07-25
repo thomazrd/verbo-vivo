@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Funções de utilidade globais
+    function isUserAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUserAdmin() {
+      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    function isOwner(userId) {
+      return isUserAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isCongregationMember(congregationId) {
+      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
+          && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'MEMBER'
+           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN');
+    }
+
+    function isCongregationAdmin(congregationId) {
+      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
+    }

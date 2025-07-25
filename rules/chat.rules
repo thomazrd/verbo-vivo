@@ -1,0 +1,4 @@
+    // Regras para o Módulo de Chat
+    match /users/{userId}/messages/{messageId} {
+      allow read, write: if isOwner(userId);
+    }

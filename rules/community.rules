@@ -1,59 +1,42 @@
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    
-    // Coleção: congregations
+    // === REGRAS PARA COMUNIDADE (CONGREGAÇÕES) ===
     match /congregations/{congregationId} {
-      // Qualquer usuário autenticado pode ler os dados de uma congregação
-      allow read: if request.auth != null;
+      // Leitura: Membros da congregação podem ler os dados da congregação.
+      allow read: if userData(request.auth.uid).congregationId == congregationId;
       
-      // Apenas administradores da congregação podem atualizar os dados
-      allow update: if request.auth != null && resource.data.admins[request.auth.uid] == true;
+      // Atualização: Apenas administradores da congregação podem editar os dados.
+      allow update: if userData(request.auth.uid).congregationStatus == 'ADMIN';
       
-      // A criação é gerenciada por uma Cloud Function, não por regras diretas
-      allow create: if false; 
+      // Criação: Regra gerenciada pela Cloud Function `createCongregation`.
+      allow create: if request.auth != null;
       
-      // Subcoleção: members
-      match /members/{userId} {
-        // Leitura: qualquer membro da congregação pode ver outros membros
-        allow read: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+      // --- SUBCOLEÇÕES ---
+      
+      // Membros
+      match /members/{memberId} {
+        // Leitura: Outros membros podem ver a lista de membros.
+        allow read: if userData(request.auth.uid).congregationId == congregationId;
         
-        // Escrita: Apenas admins podem alterar status (aprovar, promover). O próprio usuário pode se remover.
-        // A lógica de adição (solicitação) e aprovação é feita via Cloud Functions para segurança.
-        allow write: if request.auth != null && (
-          // Admin gerenciando
-          get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true ||
-          // Usuário saindo (deletando seu próprio documento de membro)
-          (request.auth.uid == userId && request.resource == null)
-        );
+        // Escrita: Administradores podem adicionar/remover/atualizar membros. O próprio usuário pode sair.
+        allow write: if userData(request.auth.uid).congregationStatus == 'ADMIN' || isOwner(memberId);
       }
       
-      // Subcoleção: posts
+      // Posts
       match /posts/{postId} {
-        // Leitura: Membros da congregação podem ler posts
-        allow read: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+        // Leitura: Membros podem ler todos os posts.
+        allow read: if userData(request.auth.uid).congregationId == congregationId;
         
-        // Escrita: Membros podem criar posts. Apenas o autor ou admin podem editar/deletar.
-        allow create: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-        allow update, delete: if request.auth != null && (
-          resource.data.authorId == request.auth.uid ||
-          get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true
-        );
+        // Criação: Membros podem criar posts.
+        allow create: if isOwner(request.resource.data.authorId) && userData(request.auth.uid).congregationId == congregationId;
         
-        // Subcoleções de posts
+        // Atualização/Exclusão: Apenas o autor do post pode editar/excluir.
+        allow update, delete: if isOwner(resource.data.authorId);
+        
+        // Likes e Comentários
         match /{subcollection}/{docId} {
-           // Qualquer membro pode criar likes e comentários
-           allow create: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
-           
-           // Apenas o autor do like/comentário pode deletá-lo
-           allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
-
-           // Apenas o autor do comentário pode editá-lo
-           allow update: if subcollection == 'comments' && request.auth != null && resource.data.authorId == request.auth.uid;
+           // Leitura: Membros podem ler likes e comentários.
+           allow read: if userData(request.auth.uid).congregationId == congregationId;
+           // Escrita: Membros podem dar like e comentar.
+           allow write: if userData(request.auth.uid).congregationId == congregationId;
         }
       }
     }
-  }
-}

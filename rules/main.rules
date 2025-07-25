@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions from base.rules are automatically included here.
+    // Modular rules for collections will be injected below.
+    
+    // {{all_rules}}
+  
+  }
+}

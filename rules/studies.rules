@@ -1,29 +1,8 @@
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Coleção: studies (Estudos / Pílulas de Sabedoria)
+    // === REGRAS PARA ESTUDOS (PÍLULAS DE SABEDORIA) ===
     match /studies/{studyId} {
-      // Leitura: Permitida para todos se o status for 'PUBLISHED'.
-      // Apenas admins podem ler rascunhos.
-      allow read: if resource.data.status == 'PUBLISHED' ||
-                   (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
-
-      // Escrita (criar, atualizar, deletar): Apenas para administradores.
-      allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+        // Leitura: Qualquer um pode ler se estiver publicado. Rascunhos só para admins.
+        allow read: if resource.data.status == 'PUBLISHED' || (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
+        
+        // Escrita: Apenas admins.
+        allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
     }
-
-    // Coleção: suggestions (Sugestões de temas para estudos)
-    match /suggestions/{suggestionId} {
-      // Qualquer usuário autenticado pode criar uma sugestão.
-      allow create: if request.auth != null;
-      
-      // Apenas administradores podem ler e atualizar (para arquivar/processar).
-      allow read, update: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
-
-      // Ninguém pode deletar sugestões diretamente.
-      allow delete: if false;
-    }
-  }
-}

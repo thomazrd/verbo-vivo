@@ -1,24 +1,11 @@
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
+    // === FUNÇÕES GLOBAIS ===
     
-    // --- Funções de Ajuda Globais ---
-
-    // Retorna os dados de um perfil de usuário
+    // Retorna os dados de um perfil de usuário.
     function userData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
-
-    // Verifica se o usuário autenticado é o dono do documento
+    
+    // Verifica se o usuário autenticado é o dono do recurso.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    // Verifica se o usuário autenticado é um administrador global
-    function isAdmin() {
-        return request.auth != null && userData(request.auth.uid).role == 'ADMIN';
-    }
-  }
-}

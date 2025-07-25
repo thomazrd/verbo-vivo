@@ -1,4 +1,5 @@
-    // Regras para o Módulo de Chat
+    // === REGRAS PARA CHAT ===
     match /users/{userId}/messages/{messageId} {
-      allow read, write: if isOwner(userId);
+      // Apenas o próprio usuário pode ler e escrever suas mensagens.
+      allow read, write: if request.auth.uid == userId;
     }

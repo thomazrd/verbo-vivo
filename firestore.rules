@@ -1,31 +1,43 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /articles/{articleId} {
+      // Qualquer pessoa pode ler um artigo publicado
+      allow read: if resource.data.status == 'published';
 
-    // Funções de utilidade globais
-    function isUserAuthenticated() {
-      return request.auth != null;
+      // Apenas administradores podem criar, editar ou apagar artigos
+      allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+    }
+  }
+}
+
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Funções de Ajuda Globais ---
+
+    // Retorna os dados de um perfil de usuário
+    function userData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    function isUserAdmin() {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
-    }
-
+    // Verifica se o usuário autenticado é o dono do documento
     function isOwner(userId) {
-      return isUserAuthenticated() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
-
-    function isCongregationMember(congregationId) {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
-          && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'MEMBER'
-           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN');
+    
+    // Verifica se o usuário autenticado é um administrador global
+    function isAdmin() {
+        return request.auth != null && userData(request.auth.uid).role == 'ADMIN';
     }
-
-    function isCongregationAdmin(congregationId) {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
-    }
+  }
+}
 
 
     // Regras para o Módulo de Chat
@@ -34,42 +46,65 @@ service cloud.firestore {
     }
 
 
-    // === REGRAS DA CONGREGAÇÃO ===
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Coleção: congregations
     match /congregations/{congregationId} {
-      allow read: if isUserAuthenticated();
-      allow create: if isUserAuthenticated() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isCongregationAdmin(congregationId);
+      // Qualquer usuário autenticado pode ler os dados de uma congregação
+      allow read: if request.auth != null;
       
-      // Membros
+      // Apenas administradores da congregação podem atualizar os dados
+      allow update: if request.auth != null && resource.data.admins[request.auth.uid] == true;
+      
+      // A criação é gerenciada por uma Cloud Function, não por regras diretas
+      allow create: if false; 
+      
+      // Subcoleção: members
       match /members/{userId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create: if isOwner(userId); // Ao solicitar entrada
-        allow update: if isCongregationAdmin(congregationId); // Aprovação, promoção
-        allow delete: if isCongregationAdmin(congregationId) || isOwner(userId); // Remover ou sair
+        // Leitura: qualquer membro da congregação pode ver outros membros
+        allow read: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+        
+        // Escrita: Apenas admins podem alterar status (aprovar, promover). O próprio usuário pode se remover.
+        // A lógica de adição (solicitação) e aprovação é feita via Cloud Functions para segurança.
+        allow write: if request.auth != null && (
+          // Admin gerenciando
+          get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true ||
+          // Usuário saindo (deletando seu próprio documento de membro)
+          (request.auth.uid == userId && request.resource == null)
+        );
       }
       
-      // Posts
+      // Subcoleção: posts
       match /posts/{postId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
-        allow update: if isOwner(request.resource.data.authorId);
-        allow delete: if isOwner(request.resource.data.authorId) || isCongregationAdmin(congregationId);
+        // Leitura: Membros da congregação podem ler posts
+        allow read: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
         
-        // Likes
-        match /likes/{userId} {
-          allow read: if isCongregationMember(congregationId);
-          allow create, delete: if isOwner(userId);
-        }
+        // Escrita: Membros podem criar posts. Apenas o autor ou admin podem editar/deletar.
+        allow create: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+        allow update, delete: if request.auth != null && (
+          resource.data.authorId == request.auth.uid ||
+          get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true
+        );
         
-        // Comentários
-        match /comments/{commentId} {
-           allow read: if isCongregationMember(congregationId);
-           allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
-           allow update: if isOwner(request.resource.data.authorId);
-           allow delete: if isOwner(request.resource.data.authorId) || isCongregationAdmin(congregationId);
+        // Subcoleções de posts
+        match /{subcollection}/{docId} {
+           // Qualquer membro pode criar likes e comentários
+           allow create: if request.auth != null && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+           
+           // Apenas o autor do like/comentário pode deletá-lo
+           allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+
+           // Apenas o autor do comentário pode editá-lo
+           allow update: if subcollection == 'comments' && request.auth != null && resource.data.authorId == request.auth.uid;
         }
       }
     }
+  }
+}
 
 
     // === REGRAS GERAIS ===
@@ -118,14 +153,55 @@ service cloud.firestore {
 
 
 
-// --- Studies Rules ---
-// Published studies are public.
-// Drafts are only accessible by admins.
-// Writing is restricted to admins.
-match /studies/{studyId} {
-  allow read: if resource.data.status == 'published'
-              || (request.auth != null && getUserData(request.auth.uid).role == 'ADMIN');
-  allow write: if request.auth != null && getUserData(request.auth.uid).role == 'ADMIN';
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sharedContent/{contentId} {
+      // Qualquer pessoa pode ler um conteúdo compartilhado que está ativo
+      allow read: if resource.data.status == 'ACTIVE';
+
+      // O criador pode atualizar (ex: para deletar logicamente)
+      allow update: if request.auth != null && request.auth.uid == resource.data.creatorId;
+
+      // Qualquer usuário autenticado pode criar
+      allow create: if request.auth != null;
+      
+      // Ninguém pode deletar diretamente
+      allow delete: if false;
+    }
+  }
+}
+
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Coleção: studies (Estudos / Pílulas de Sabedoria)
+    match /studies/{studyId} {
+      // Leitura: Permitida para todos se o status for 'PUBLISHED'.
+      // Apenas admins podem ler rascunhos.
+      allow read: if resource.data.status == 'PUBLISHED' ||
+                   (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
+
+      // Escrita (criar, atualizar, deletar): Apenas para administradores.
+      allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+    }
+
+    // Coleção: suggestions (Sugestões de temas para estudos)
+    match /suggestions/{suggestionId} {
+      // Qualquer usuário autenticado pode criar uma sugestão.
+      allow create: if request.auth != null;
+      
+      // Apenas administradores podem ler e atualizar (para arquivar/processar).
+      allow read, update: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+
+      // Ninguém pode deletar sugestões diretamente.
+      allow delete: if false;
+    }
+  }
 }
 
 

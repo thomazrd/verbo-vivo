@@ -19,17 +19,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, UploadCloud, X, Save, Send } from "lucide-react";
+import { ArrowLeft, Loader2, UploadCloud, X, Save, Send, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { PrayerOfSower } from "./PrayerOfSower";
 import { CelebrationOverlay } from "./CelebrationOverlay";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 const studyFormSchema = z.object({
   title: z.string().min(5, { message: "O título deve ter pelo menos 5 caracteres." }),
   audioUrl: z.string().url({ message: "Por favor, insira uma URL válida." }),
   content: z.string().min(50, { message: "O estudo deve ter pelo menos 50 caracteres." }),
+  thumbnailUrl: z.string().url({ message: "Por favor, insira uma URL de imagem válida." }).optional().or(z.literal('')),
   practicalChallenge: z.string().optional(),
   tags: z.string().optional(), // Accepting as a comma-separated string for simplicity
 });
@@ -54,8 +56,10 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
 
   const form = useForm<StudyFormValues>({
     resolver: zodResolver(studyFormSchema),
-    defaultValues: { title: "", audioUrl: "", content: "", practicalChallenge: "", tags: "" },
+    defaultValues: { title: "", audioUrl: "", content: "", thumbnailUrl: "", practicalChallenge: "", tags: "" },
   });
+
+  const formThumbnailUrl = form.watch("thumbnailUrl");
 
   useEffect(() => {
     if (studyId && user) {
@@ -75,7 +79,8 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
           form.reset({
              title: data.title, 
              content: data.content, 
-             audioUrl: data.audioUrl, 
+             audioUrl: data.audioUrl,
+             thumbnailUrl: data.thumbnailUrl || "",
              practicalChallenge: data.practicalChallenge,
              tags: data.tags?.join(', ') || ''
             });
@@ -90,17 +95,33 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     }
   }, [studyId, user, form, router, toast]);
 
+  useEffect(() => {
+    // Update preview if URL is pasted and no file is selected
+    if (formThumbnailUrl && !thumbnailFile) {
+        setThumbnailPreview(formThumbnailUrl);
+    } else if (!formThumbnailUrl && !thumbnailFile && study?.thumbnailUrl) {
+        // Handle case where user deletes URL, should revert to original if available
+        setThumbnailPreview(study.thumbnailUrl);
+    } else if (!formThumbnailUrl && !thumbnailFile) {
+        setThumbnailPreview(null);
+    }
+  }, [formThumbnailUrl, thumbnailFile, study?.thumbnailUrl]);
+
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setThumbnailFile(file);
-      setThumbnailPreview(URL.createObjectURL(file));
+      const filePreviewUrl = URL.createObjectURL(file);
+      setThumbnailPreview(filePreviewUrl);
+      form.setValue("thumbnailUrl", ""); // Clear URL field if a file is chosen
     }
   };
 
   const removeThumbnail = () => {
     setThumbnailFile(null);
     setThumbnailPreview(null);
+    form.setValue("thumbnailUrl", "");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -108,7 +129,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     const status = submitActionRef.current;
     if (!user || !userProfile) return;
     setIsSaving(true);
-    let newThumbnailUrl = study?.thumbnailUrl || thumbnailPreview || null;
+    let finalThumbnailUrl = values.thumbnailUrl || null;
 
     try {
       const docId = studyId || study?.id || doc(collection(db, "studies")).id;
@@ -117,7 +138,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
         const storagePath = `studies/${docId}/${thumbnailFile.name}`;
         const storageRef = ref(storage, storagePath);
         await uploadBytes(storageRef, thumbnailFile);
-        newThumbnailUrl = await getDownloadURL(storageRef);
+        finalThumbnailUrl = await getDownloadURL(storageRef);
       }
       
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
@@ -126,7 +147,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
         title: values.title,
         content: values.content,
         audioUrl: values.audioUrl,
-        thumbnailUrl: newThumbnailUrl,
+        thumbnailUrl: finalThumbnailUrl,
         practicalChallenge: values.practicalChallenge || null,
         tags: tagsArray,
         authorId: user.uid,
@@ -285,19 +306,41 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                   />
                   <div>
                     <FormLabel>Imagem de Capa</FormLabel>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                    {thumbnailPreview ? (
+                    <Tabs defaultValue="upload" className="w-full mt-2">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="upload"><ImageIcon className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
+                        <TabsTrigger value="link"><LinkIcon className="mr-2 h-4 w-4"/>Link</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="upload" className="pt-4">
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md hover:border-primary transition-colors">
+                            <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground mt-2">Clique para enviar</span>
+                        </button>
+                      </TabsContent>
+                      <TabsContent value="link" className="pt-2">
+                         <FormField
+                            control={form.control}
+                            name="thumbnailUrl"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                <Input placeholder="https://exemplo.com/imagem.jpg" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                         />
+                      </TabsContent>
+                    </Tabs>
+
+                    {thumbnailPreview && (
                       <div className="relative mt-2">
                         <Image src={thumbnailPreview} alt="Preview" width={400} height={200} className="rounded-md w-full aspect-video object-cover" />
                         <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={removeThumbnail}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                    ) : (
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-2 flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md hover:border-primary transition-colors">
-                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground mt-2">Clique para enviar</span>
-                      </button>
                     )}
                   </div>
                    <FormField

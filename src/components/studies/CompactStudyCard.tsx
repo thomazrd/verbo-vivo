@@ -4,7 +4,7 @@
 import type { Study } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
-import { PlayCircle, CheckCircle } from "lucide-react";
+import { PlayCircle, CheckCircle, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompactStudyCardProps {
@@ -27,8 +27,8 @@ export function CompactStudyCard({ study }: CompactStudyCardProps) {
                 sizes="128px"
                 data-ai-hint="study lesson"
             />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity duration-300">
-                <PlayCircle className="h-8 w-8 text-white/80 opacity-80 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                <PlayCircle className="h-8 w-8 text-white/80" />
             </div>
         </div>
         <div className="flex-1">
@@ -38,6 +38,10 @@ export function CompactStudyCard({ study }: CompactStudyCardProps) {
             <div className="flex items-center gap-1 text-xs text-primary font-semibold mt-1">
                 <CheckCircle className="h-3 w-3" />
                 <span>Verbo Vivo</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                <Eye className="h-3 w-3" />
+                <span>{study.viewCount || 0}</span>
             </div>
         </div>
     </Link>

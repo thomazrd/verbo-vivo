@@ -27,10 +27,7 @@
     }
   ],
   "firestore": {
-    "rules": "firestore.rules",
-    "predeploy": [
-      "npm run build:rules"
-    ]
+    "rules": "firestore.rules"
   },
   "storage": {
     "rules": "storage.rules"

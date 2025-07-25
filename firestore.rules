@@ -3,174 +3,181 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions from base.rules are automatically included here.
-    // Modular rules for collections will be injected below.
-    
-        // === REGRAS PARA ARTIGOS (BLOG) ===
-    match /articles/{articleId} {
-      // Leitura: Qualquer pessoa pode ler artigos publicados.
-      allow read: if resource.data.status == 'published';
-      
-      // Escrita: Apenas administradores podem criar, editar e apagar.
-      allow write: if userData(request.auth.uid).role == 'ADMIN';
-    }
-
-
-    // === FUNÇÕES GLOBAIS ===
-    
-    // Retorna os dados de um perfil de usuário.
+    // =================================
+    // Base Functions & Rules
+    // =================================
     function userData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
     
-    // Verifica se o usuário autenticado é o dono do recurso.
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return request.auth.uid == userId;
+    }
+    
+    function isUserAuthenticated() {
+      return request.auth != null;
     }
 
+    // =================================
+    // Articles Rules
+    // =================================
+    match /articles/{articleId} {
+      allow read: if resource.data.status == 'published';
+      allow write: if isUserAuthenticated() && userData(request.auth.uid).role == 'ADMIN';
+    }
 
-    // === REGRAS PARA CHAT ===
+    // =================================
+    // Chat Rules
+    // =================================
     match /users/{userId}/messages/{messageId} {
-      // Apenas o próprio usuário pode ler e escrever suas mensagens.
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
 
-
-    // === REGRAS PARA COMUNIDADE (CONGREGAÇÕES) ===
+    // =================================
+    // Community Rules
+    // =================================
     match /congregations/{congregationId} {
-      // Leitura: Membros da congregação podem ler os dados da congregação.
-      allow read: if userData(request.auth.uid).congregationId == congregationId;
+      allow read: if isUserAuthenticated();
       
-      // Atualização: Apenas administradores da congregação podem editar os dados.
-      allow update: if userData(request.auth.uid).congregationStatus == 'ADMIN';
-      
-      // Criação: Regra gerenciada pela Cloud Function `createCongregation`.
-      allow create: if request.auth != null;
-      
-      // --- SUBCOLEÇÕES ---
-      
-      // Membros
+      // Only admins can update congregation details. Creation is handled by a Cloud Function.
+      allow update: if isUserAuthenticated() && userData(request.auth.uid).role == 'ADMIN';
+
+      // Rules for members subcollection
       match /members/{memberId} {
-        // Leitura: Outros membros podem ver a lista de membros.
-        allow read: if userData(request.auth.uid).congregationId == congregationId;
+        allow read: if isUserAuthenticated();
         
-        // Escrita: Administradores podem adicionar/remover/atualizar membros. O próprio usuário pode sair.
-        allow write: if userData(request.auth.uid).congregationStatus == 'ADMIN' || isOwner(memberId);
+        // Creation (joining) and updates (approval) are handled by Cloud Functions
+        allow create, update, delete: if isUserAuthenticated() && (
+          isOwner(memberId) || userData(request.auth.uid).role == 'ADMIN'
+        );
       }
-      
-      // Posts
+
+      // Rules for posts subcollection
       match /posts/{postId} {
-        // Leitura: Membros podem ler todos os posts.
-        allow read: if userData(request.auth.uid).congregationId == congregationId;
+        allow read: if isUserAuthenticated();
         
-        // Criação: Membros podem criar posts.
-        allow create: if isOwner(request.resource.data.authorId) && userData(request.auth.uid).congregationId == congregationId;
+        // Any member can create posts
+        allow create: if isUserAuthenticated() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'MEMBER' || get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
         
-        // Atualização/Exclusão: Apenas o autor do post pode editar/excluir.
-        allow update, delete: if isOwner(resource.data.authorId);
+        // Only author or admin can update/delete
+        allow update, delete: if isUserAuthenticated() && (isOwner(resource.data.authorId) || userData(request.auth.uid).role == 'ADMIN');
+
+        // Rules for likes and comments
+        match /likes/{userId} {
+          allow read: if isUserAuthenticated();
+          // Any authenticated member can like/unlike a post
+          allow write: if isOwner(userId);
+        }
         
-        // Likes e Comentários
-        match /{subcollection}/{docId} {
-           // Leitura: Membros podem ler likes e comentários.
-           allow read: if userData(request.auth.uid).congregationId == congregationId;
-           // Escrita: Membros podem dar like e comentar.
-           allow write: if userData(request.auth.uid).congregationId == congregationId;
+        match /comments/{commentId} {
+          allow read: if isUserAuthenticated();
+          // Any authenticated member can create a comment
+          allow create: if isUserAuthenticated();
+          // Only the author of the comment or an admin can update/delete
+          allow update, delete: if isUserAuthenticated() && (isOwner(resource.data.authorId) || userData(request.auth.uid).role == 'ADMIN');
         }
       }
     }
 
-
-    // === REGRAS GERAIS ===
-
-    // Diário Pessoal
-    match /journals/{journalId} {
-      allow read, write, delete: if isOwner(request.resource.data.userId);
-    }
-
-    // Planos de Estudo Pessoais
-    match /plans/{planId} {
-        allow read, write, delete: if isOwner(request.resource.data.userId);
-    }
-
-    // Orações Pessoais
-    match /prayers/{prayerId} {
-       allow read, write, delete: if isOwner(request.resource.data.userId);
-    }
-
-    // Meditações Pessoais
-    match /meditations/{meditationId} {
-       allow read, write, delete: if isOwner(request.resource.data.userId);
-    }
-
-    // Jornadas de Sentimento
+    // =================================
+    // Feeling Journey Rules
+    // =================================
     match /feelingJourneys/{journeyId} {
-       allow read, write, delete: if isOwner(request.resource.data.userId);
+      allow read, create: if isOwner(resource.data.userId);
     }
 
-    // Ponte da Esperança (Conteúdo Compartilhado)
-    match /sharedContent/{contentId} {
-      allow read: if resource.data.status == 'ACTIVE';
-      allow create: if isUserAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if isOwner(resource.data.creatorId); // Para marcar como deletado
+    // =================================
+    // Journal Rules
+    // =================================
+    match /journals/{entryId} {
+      allow read, write: if isOwner(resource.data.userId);
     }
 
-    // Tokens para Notificações Push
-    match /userPushTokens/{userId} {
-      allow read, write: if isOwner(userId);
+    // =================================
+    // Meditations Rules
+    // =================================
+    match /meditations/{meditationId} {
+      allow read, create: if isOwner(resource.data.userId);
     }
-    
-    // Notificações do Usuário
+
+    // =================================
+    // Notifications Rules
+    // =================================
     match /notifications/{notificationId} {
       allow read, update: if isOwner(resource.data.recipientId);
+      // Notifications are created by Cloud Functions, not clients.
+      allow create, delete: if false;
+    }
+
+    // =================================
+    // Plans Rules
+    // =================================
+    match /users/{userId}/plans/{planId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // =================================
+    // Prayers Rules
+    // =================================
+    match /prayers/{prayerId} {
+      allow read, create: if isOwner(resource.data.userId);
+    }
+
+    // =================================
+    // Prayer Circles Rules
+    // =================================
+    match /prayerCircles/{circleId} {
+      allow read: if resource.data.isPublic == true || request.auth.uid in resource.data.members;
+      allow create: if isUserAuthenticated();
+      allow update: if request.auth.uid in resource.data.members;
+    }
+    
+    match /victories/{victoryId} {
+        allow read: if true;
+        allow create: if isUserAuthenticated();
+        allow update: if isUserAuthenticated();
     }
 
 
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
+    // =================================
+    // Shared Content (Ponte da Esperança) Rules
+    // =================================
     match /sharedContent/{contentId} {
-      // Qualquer pessoa pode ler um conteúdo compartilhado que está ativo
-      allow read: if resource.data.status == 'ACTIVE';
-
-      // O criador pode atualizar (ex: para deletar logicamente)
-      allow update: if request.auth != null && request.auth.uid == resource.data.creatorId;
-
-      // Qualquer usuário autenticado pode criar
-      allow create: if request.auth != null;
-      
-      // Ninguém pode deletar diretamente
-      allow delete: if false;
+      allow read: if true;
+      allow create: if isUserAuthenticated();
+      allow update: if isOwner(resource.data.creatorId);
     }
-  }
-}
-
-
-    // === REGRAS PARA ESTUDOS (PÍLULAS DE SABEDORIA) ===
+    
+    // =================================
+    // Studies Rules
+    // =================================
     match /studies/{studyId} {
-        // Leitura: Qualquer um pode ler se estiver publicado. Rascunhos só para admins.
-        allow read: if resource.data.status == 'PUBLISHED' || (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
-        
-        // Escrita: Apenas admins.
-        allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+       allow read: if resource.data.status == 'PUBLISHED' || (isUserAuthenticated() && userData(request.auth.uid).role == 'ADMIN');
+       allow write: if isUserAuthenticated() && userData(request.auth.uid).role == 'ADMIN';
     }
 
-
-    // === REGRAS PARA USUÁRIOS ===
+    // =================================
+    // Users Rules
+    // =================================
     match /users/{userId} {
-      // Leitura: Qualquer usuário autenticado pode ler perfis de outros para funcionalidades da comunidade.
-      allow read: if request.auth != null;
-      
-      // Escrita: Apenas o próprio usuário pode atualizar seu perfil.
+      allow read: if true;
       allow write: if isOwner(userId);
     }
+    
+    match /userPushTokens/{userId} {
+        allow read, write: if isOwner(userId);
+    }
 
-
-
-  }
-}
-
-  
+    // =================================
+    // Armor Rules
+    // =================================
+    match /users/{userId}/armors/{armorId} {
+        allow read, write: if isOwner(userId);
+    }
+    
+    match /sharedArmors/{armorId} {
+        allow read: if true;
+        allow write: if isOwner(resource.data.userId);
+    }
   }
 }

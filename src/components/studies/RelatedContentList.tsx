@@ -23,7 +23,7 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
     const fetchAndFilterStudies = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch the 10 most recent published studies. This is a simple and fast query.
+        // This query now includes `where("status", "==", "PUBLISHED")` to comply with security rules for unauthenticated access.
         const studiesQuery = query(
           collection(db, "studies"),
           where("status", "==", "PUBLISHED"),
@@ -33,19 +33,16 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
         const snapshot = await getDocs(studiesQuery);
         const recentStudies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Study));
 
-        // 2. Filter on the client-side. This is more flexible and avoids complex query errors.
+        // Client-side filtering remains for flexibility with tags and excluding the current study.
         const filtered = recentStudies
-          // Exclude the current study
           .filter(study => study.id !== currentStudyId)
-          // Find studies with at least one matching tag, if tags are provided
           .filter(study => {
             if (!tags || tags.length === 0) {
-              return true; // If no tags, all recent studies are "related"
+              return true; 
             }
             return study.tags?.some(studyTag => tags.includes(studyTag)) ?? false;
           });
         
-        // 3. Limit to the top 4 results.
         setRelatedStudies(filtered.slice(0, 4));
 
       } catch (err) {

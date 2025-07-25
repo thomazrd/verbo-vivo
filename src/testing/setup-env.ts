@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom';
+import { TextDecoder, TextEncoder } from 'util';
+
+// Adiciona TextDecoder e TextEncoder ao escopo global para os testes do Firebase
+Object.assign(global, { TextDecoder, TextEncoder });
+
 
 // Mock de 'next/router'
 jest.mock('next/router', () => ({

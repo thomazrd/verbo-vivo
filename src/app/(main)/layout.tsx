@@ -1,3 +1,4 @@
+
 "use client";
 
 import { type ReactNode, useState, useEffect } from 'react';
@@ -20,15 +21,15 @@ function AppLayout({ children }: { children: ReactNode }) {
   // Initialize notification hooks for the logged-in user
   useNotifications();
 
+  // This effect handles redirecting unauthenticated users after loading is complete.
   useEffect(() => {
-    if (!loading && !user) {
-        // Allow access to public pages like /studies/[studyId]
-        const publicPaths = ['/studies', '/ponte', '/blog'];
-        const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-        
-        if (!isPublicPath) {
-            router.push(`/login?redirect=${pathname}`);
-        }
+    if (loading) return; // Wait until authentication check is complete
+
+    const publicPaths = ['/studies', '/ponte', '/blog'];
+    const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+
+    if (!user && !isPublicPath) {
+      router.push(`/login?redirect=${pathname}`);
     }
   }, [user, loading, router, pathname]);
 
@@ -40,9 +41,21 @@ function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // If user is not logged in but on a public page, don't show the main layout
-  if (!user) {
+  // If user is not logged in but on a public page, don't show the main layout, just the page content.
+  const publicPaths = ['/studies', '/ponte', '/blog'];
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  if (!user && isPublicPath) {
     return <main className="flex-1 overflow-y-auto h-screen">{children}</main>;
+  }
+  
+  // If we are here and there's no user, it means they are on a non-public page and will be redirected by the useEffect.
+  // We can return a loader to avoid a flash of content before redirection.
+  if (!user) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
 

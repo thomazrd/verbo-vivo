@@ -1,6 +1,4 @@
-
-import '@/lib/firebase-admin-init'; // Garante a inicialização do Admin SDK
-import { type Metadata, type ResolvingMetadata } from 'next';
+import { type Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/firebase-admin';
 import type { Study } from '@/lib/types';

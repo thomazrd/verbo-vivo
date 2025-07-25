@@ -1,7 +1,14 @@
 // src/lib/firebase-admin.ts
 import 'server-only';
 import * as admin from 'firebase-admin';
-import './firebase-admin-init'; // Garante que a inicialização ocorra antes de exportar
+
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error('Firebase admin initialization error', error.stack);
+  }
+}
 
 export const db = admin.firestore();
 export const auth = admin.auth();

@@ -5,7 +5,7 @@ import { type ReactNode, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -23,17 +23,29 @@ function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-        router.push(`/login?redirect=${pathname}`);
+        // Allow access to public pages like /studies/[studyId]
+        const publicPaths = ['/studies'];
+        const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+        
+        if (!isPublicPath) {
+            router.push(`/login?redirect=${pathname}`);
+        }
     }
   }, [user, loading, router, pathname]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
   }
+
+  // If user is not logged in but on a public page, don't show the main layout
+  if (!user) {
+    return <main className="flex-1 overflow-y-auto h-screen">{children}</main>;
+  }
+
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);

@@ -1,21 +1,39 @@
 
 "use client";
 
-import { type ReactNode, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { type ReactNode, useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
+import { useAuth } from '@/hooks/use-auth';
+import { Loader2 } from 'lucide-react';
 
 function AppLayout({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const { isFocusMode } = useFocusMode();
   
   // Initialize notification hooks for the logged-in user
   useNotifications();
+
+  useEffect(() => {
+    if (!loading && !user) {
+        router.push(`/login?redirect=${pathname}`);
+    }
+  }, [user, loading, router, pathname]);
+
+  if (loading || !user) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);

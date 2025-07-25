@@ -3,13 +3,14 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs } from "firestore";
 import type { Study } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchBar } from "@/components/studies/SearchBar";
 import { BookCopy, FileWarning } from "lucide-react";
 import { StudiesGrid } from "@/components/studies/StudiesGrid";
 import { TagCarousel } from "@/components/studies/TagCarousel";
+import { Card } from "@/components/ui/card";
 
 const normalizeText = (text: string) =>
   text

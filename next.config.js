@@ -13,11 +13,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'dynamic.tiggomark.com.br',
-      },
       {
         protocol: 'https',
         hostname: 'placehold.co',

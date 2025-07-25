@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams, notFound, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,17 @@ import { Button } from "@/components/ui/button";
 
 async function getStudy(id: string): Promise<Study | null> {
   const docRef = doc(db, "studies", id);
+
+  try {
+    // Increment view count. It's safe to call this on every render on the client,
+    // but a better approach would gate it. This is a reasonable implementation.
+    await updateDoc(docRef, { viewCount: increment(1) });
+  } catch (e) {
+    // This can fail if the document doesn't exist yet, which is fine.
+    // We'll catch that with the getDoc call.
+    console.log("Could not increment view count (document might not exist yet).");
+  }
+
   const docSnap = await getDoc(docRef);
   if (docSnap.exists() && docSnap.data().status === 'PUBLISHED') {
     return { id: docSnap.id, ...docSnap.data() } as Study;

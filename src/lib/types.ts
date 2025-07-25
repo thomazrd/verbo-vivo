@@ -333,6 +333,7 @@ export interface Study {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   publishedAt: Timestamp | null;
+  viewCount?: number;
 }
 
 export interface Suggestion {

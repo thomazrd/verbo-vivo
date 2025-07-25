@@ -4,7 +4,7 @@
 import type { Study } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
-import { PlayCircle } from "lucide-react";
+import { PlayCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompactStudyCardProps {
@@ -35,7 +35,10 @@ export function CompactStudyCard({ study }: CompactStudyCardProps) {
             <h4 className="font-semibold text-sm leading-tight line-clamp-3 text-foreground group-hover:text-primary transition-colors">
                 {study.title}
             </h4>
-            <p className="text-xs text-muted-foreground mt-1">{study.authorName}</p>
+            <div className="flex items-center gap-1 text-xs text-primary font-semibold mt-1">
+                <CheckCircle className="h-3 w-3" />
+                <span>Verbo Vivo</span>
+            </div>
         </div>
     </Link>
   );

@@ -1,11 +1,10 @@
-
 "use client";
 
 import { type ReactNode, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { cn } from "@/lib/utils';
+import { cn } from "@/lib/utils";
 import { useNotifications } from '@/hooks/use-notifications';
 import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,7 +23,7 @@ function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loading && !user) {
         // Allow access to public pages like /studies/[studyId]
-        const publicPaths = ['/studies'];
+        const publicPaths = ['/studies', '/ponte', '/blog'];
         const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
         
         if (!isPublicPath) {

@@ -5,10 +5,8 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, Bookmark, Share2 } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, Bookmark, Share2, Gauge } from 'lucide-react';
 import type { Study } from '@/lib/types';
-import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
 
 interface AudioPlayerProps {
   study: Study;
@@ -16,6 +14,7 @@ interface AudioPlayerProps {
 }
 
 const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+const PLAYBACK_RATES = [0.75, 1, 1.5, 2];
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';
@@ -32,6 +31,7 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   const imageUrl = study.thumbnailUrl || DEFAULT_THUMBNAIL;
 
@@ -61,6 +61,12 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
           audioRef.current.volume = isMuted ? 0 : volume;
       }
   }, [volume, isMuted])
+
+  useEffect(() => {
+    if (audioRef.current) {
+        audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   const togglePlayPause = () => {
     if (audioRef.current) {
@@ -95,6 +101,12 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
       } else if (isMuted) {
           setIsMuted(false);
       }
+  }
+
+  const cyclePlaybackRate = () => {
+    const currentIndex = PLAYBACK_RATES.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % PLAYBACK_RATES.length;
+    setPlaybackRate(PLAYBACK_RATES[nextIndex]);
   }
 
   return (
@@ -146,8 +158,12 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Volume Control */}
+      {/* Volume & Speed Control */}
       <div className="hidden sm:flex items-center justify-end gap-2 w-full sm:w-1/3">
+        <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 relative" onClick={cyclePlaybackRate}>
+            <Gauge className="h-5 w-5"/>
+            <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-white/20 rounded-full h-4 w-4 flex items-center justify-center">{playbackRate}x</span>
+        </Button>
         <button onClick={() => setIsMuted(!isMuted)}>
             {isMuted ? <VolumeX className="h-5 w-5"/> : <Volume2 className="h-5 w-5"/>}
         </button>

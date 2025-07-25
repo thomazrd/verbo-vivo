@@ -1,16 +1,7 @@
 // src/lib/firebase-admin.ts
 import 'server-only';
 import * as admin from 'firebase-admin';
-
-if (!admin.apps.length) {
-  try {
-    // This simplified initialization works for both local development (with gcloud auth)
-    // and deployed Google Cloud environments.
-    admin.initializeApp();
-  } catch (error: any) {
-    console.error('Firebase admin initialization error', error.stack);
-  }
-}
+import './firebase-admin-init'; // Garante que a inicialização ocorra antes de exportar
 
 export const db = admin.firestore();
 export const auth = admin.auth();

@@ -114,15 +114,17 @@ Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) gera
 
 1.  **Acesse o Logs Explorer:** [Clique aqui para ir para o Google Cloud Logs Explorer](https://console.cloud.google.com/logs/viewer).
 2.  **Selecione o Projeto Correto:** Garanta que o projeto no topo da página seja o mesmo do seu Firebase.
-3.  **Filtre por Função e Severidade:** Use a caixa de consulta para filtrar os erros da sua aplicação. Uma consulta útil é:
+3.  **Filtre pela Função e Severidade:** Use a caixa de consulta para filtrar os erros da sua aplicação. Uma consulta útil é:
     ```
     resource.type="cloud_function"
     resource.labels.function_name="ssrinovai-pr4x6"
     severity>=ERROR
     ```
     *Substitua `ssrinovai-pr4x6` pelo nome da função do seu projeto, se for diferente. Você pode encontrar o nome da função no seu [Painel do Firebase](https://console.firebase.google.com/project/_/functions).*
-
-4.  **Interprete o Log de Erro:** Ao encontrar um erro, clique nele para expandir os detalhes. Procure por duas informações cruciais:
+4.  **Encontre o Log do Erro da Aplicação:** O Google Cloud mostra dois tipos de logs para uma função:
+    *   **Logs de Requisição (`run.googleapis.com/requests`):** Estes logs apenas confirmam que uma requisição HTTP aconteceu e qual foi seu status (ex: 200 para sucesso, 500 para erro). **Eles não contêm a causa do erro**.
+    *   **Logs da Aplicação (`run.googleapis.com/stdout` ou `stderr`):** **É AQUI QUE ESTÁ O ERRO.** Procure por uma entrada que não seja um log de requisição. Ela terá a mensagem de erro detalhada e o "stack trace".
+5.  **Interprete o Stack Trace:** Ao encontrar o log de erro da aplicação, clique nele para expandir os detalhes. Procure por duas informações cruciais:
     *   **Mensagem de Erro:** A primeira linha, geralmente em vermelho, que descreve *o que* deu errado.
     *   **Stack Trace (Rastreamento da Pilha):** Uma lista de arquivos e números de linha que mostra *onde* o erro ocorreu.
 

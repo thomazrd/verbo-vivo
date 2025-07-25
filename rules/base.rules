@@ -1,11 +1,12 @@
-    // === FUNÇÕES GLOBAIS ===
-    
-    // Retorna os dados de um perfil de usuário.
-    function userData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
-    }
-    
-    // Verifica se o usuário autenticado é o dono do recurso.
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
+// Funções de ajuda
+function isUserAuthenticated() {
+  return request.auth != null;
+}
+
+function isOwner(userId) {
+  return request.auth.uid == userId;
+}
+
+function userData(userId) {
+  return get(/databases/$(database)/documents/users/$(userId)).data;
+}

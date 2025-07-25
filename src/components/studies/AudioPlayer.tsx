@@ -14,7 +14,7 @@ interface AudioPlayerProps {
 }
 
 const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
-const PLAYBACK_RATES = [0.75, 1, 1.5, 2];
+const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2];
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';

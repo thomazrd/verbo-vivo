@@ -1,49 +1,146 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
+    // --- Helper Functions ---
     function isUserAuthenticated() {
       return request.auth != null;
     }
 
-    // Função para verificar se o usuário autenticado é um administrador.
-    // Lê o documento do próprio usuário para checar o campo 'role'.
     function isUserAdmin() {
       return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
     }
 
-    // Regras para a coleção 'users'
+    // --- Users Collection ---
     match /users/{userId} {
-      // Um usuário pode ler e escrever em seu próprio documento.
-      // Um administrador também pode ler e escrever em qualquer documento de usuário.
-      allow read, write: if request.auth.uid == userId || isUserAdmin();
+      // Users can read their own profile.
+      allow read: if isUserAuthenticated() && request.auth.uid == userId;
+      
+      // Users can create their own profile document.
+      allow create: if isUserAuthenticated() && request.auth.uid == userId;
+
+      // Users can update their own profile, with some field restrictions.
+      allow update: if isUserAuthenticated() && request.auth.uid == userId
+                    && !(request.resource.data.keys().hasAny(['role', 'congregationStatus']));
+
+      // Subcollections for a user
+      match /{subcollection}/{docId} {
+        // Users can read/write to their own subcollections (plans, journals, armors, etc.).
+        allow read, write, delete: if isUserAuthenticated() && request.auth.uid == userId;
+      }
+      
+      // Allow users to read and write ONLY to their own messages subcollection.
+      match /messages/{messageId} {
+        allow read, write: if isUserAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // --- Congregations Collection ---
+    match /congregations/{congregationId} {
+      allow read: if isUserAuthenticated(); // Any authenticated user can read basic congregation info.
+      
+      // Creating a new congregation is handled by a Cloud Function.
+      allow create: if false; 
+      
+      // Only admins of the congregation can update its details.
+      allow update: if isUserAuthenticated() && get(path("/congregations/" + congregationId)).data.admins[request.auth.uid] == true;
+
+      // --- Members Subcollection ---
+      match /members/{userId} {
+        allow read: if isUserAuthenticated();
+        // Joining and approval are handled by Cloud Functions.
+        allow write: if isUserAuthenticated() && get(path("/congregations/" + congregationId)).data.admins[request.auth.uid] == true;
+      }
+      
+      // --- Posts Subcollection ---
+      match /posts/{postId} {
+        allow read: if isUserAuthenticated() && get(path("/congregations/" + congregationId + "/members/" + request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+        allow create: if isUserAuthenticated() && request.auth.uid == request.resource.data.authorId;
+        allow update, delete: if isUserAuthenticated() && request.auth.uid == resource.data.authorId;
+
+        // --- Comments and Likes Subcollections in Posts ---
+        match /{subcollection}/{docId} {
+           allow read: if isUserAuthenticated() && get(path("/congregations/" + congregationId + "/members/" + request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+           allow create: if isUserAuthenticated(); // Basic check, could be refined to ensure user is member.
+           allow update, delete: if isUserAuthenticated() && request.auth.uid == resource.data.authorId;
+        }
+      }
+    }
+
+    // --- Notifications Collection ---
+    match /notifications/{notificationId} {
+      allow read, update: if isUserAuthenticated() && request.auth.uid == resource.data.recipientId;
+      // Creation is handled by Cloud Functions.
+      allow create: if false;
     }
     
-    // Regras para a coleção 'studies' (Estudos do Admin)
+    // --- User Push Tokens ---
+    match /userPushTokens/{userId} {
+        allow read, write: if isUserAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- Shared Content (Hope Bridge) ---
+    match /sharedContent/{contentId} {
+      allow read; // Publicly readable by anyone with the link.
+      allow create: if isUserAuthenticated();
+      // Allow only the creator to update (e.g., to delete).
+      allow update: if isUserAuthenticated() && request.auth.uid == resource.data.creatorId;
+    }
+
+    // --- Feeling Journeys ---
+    match /feelingJourneys/{journeyId} {
+        allow read, write: if isUserAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    // --- Shared Armors ---
+    match /sharedArmors/{armorId} {
+      allow read: if isUserAuthenticated();
+      allow create, update, delete: if isUserAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // --- Prayer Circles ---
+    match /prayerCircles/{circleId} {
+        // Members of the circle can read its data.
+        allow read: if isUserAuthenticated() && resource.data.members.hasAny([request.auth.uid]);
+        // Anyone authenticated can create a circle.
+        allow create: if isUserAuthenticated() && request.auth.uid == request.resource.data.createdBy;
+        // Only the creator can update the circle's main data.
+        // Joining/leaving is an update to the 'members' array.
+        allow update: if isUserAuthenticated() && (
+            (request.auth.uid == resource.data.createdBy) || // Creator can edit
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'prayingUsers'])) // Members can join/leave/pray
+        );
+    }
+    
+    // --- Victories ---
+    match /victories/{victoryId} {
+        allow read: if isUserAuthenticated(); // All users can read testimonies.
+        allow create: if isUserAuthenticated(); // Created by moderators via the app.
+        // Allow only updates to the amen count by authenticated users.
+        allow update: if isUserAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amenCount', 'usersWhoSaidAmen']);
+    }
+
+    // --- Admin-only collections ---
     match /studies/{studyId} {
-      // REGRAS DE LEITURA:
-      // 1. Permite a leitura se o estudo estiver com status 'PUBLISHED'. (Acesso público)
-      // 2. OU, se o usuário for um ADMIN (permite ver rascunhos, etc.).
       allow read: if resource.data.status == 'PUBLISHED' || isUserAdmin();
-      
-      // REGRAS DE ESCRITA (criar, atualizar, deletar):
-      // Apenas administradores podem escrever na coleção de estudos.
       allow write: if isUserAdmin();
     }
 
-    // Regras para a coleção 'sharedContent' (Ponte da Esperança)
-    match /sharedContent/{contentId} {
-      // Qualquer pessoa pode ler o conteúdo compartilhado.
-      allow read: if true;
-      // Apenas usuários autenticados podem criar conteúdo.
-      allow write: if isUserAuthenticated();
+    match /suggestions/{suggestionId} {
+      allow create: if isUserAuthenticated();
+      allow read, write: if isUserAdmin();
     }
     
-    // Nega todas as outras leituras e escritas por padrão.
-    match /{document=**} {
-      allow read, write: if false;
+    match /articles/{articleId} {
+      allow read: if resource.data.status == 'published' || (isUserAuthenticated() && get(/databases/$(database)/documents/congregations/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId)).data.admins[request.auth.uid] == true);
+      allow write: if isUserAuthenticated() && get(/databases/$(database)/documents/congregations/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId)).data.admins[request.auth.uid] == true;
+    }
+    
+    match /wisdomPearls/{pearlId} {
+      // Read-only for users, writeable only for admins.
+      allow read: if true;
+      allow write: if isUserAdmin();
     }
   }
 }

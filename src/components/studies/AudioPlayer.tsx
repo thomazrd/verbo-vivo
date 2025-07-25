@@ -125,10 +125,6 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
         <div className="min-w-0">
           <h2 className="font-bold text-sm truncate">{study.title}</h2>
           <p className="text-xs text-muted-foreground truncate">{study.authorName}</p>
-           <div className="flex items-center gap-2 mt-2">
-                <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-7 w-7" onClick={onShare}><Share2 className="h-4 w-4"/></Button>
-                <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-7 w-7"><Bookmark className="h-4 w-4"/></Button>
-            </div>
         </div>
       </div>
 
@@ -158,22 +154,32 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Volume & Speed Control */}
-      <div className="hidden sm:flex items-center justify-end gap-2 w-full sm:w-1/3">
-        <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 relative" onClick={cyclePlaybackRate}>
-            <Gauge className="h-5 w-5"/>
-            <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-white/20 rounded-full h-4 w-4 flex items-center justify-center">{playbackRate}x</span>
-        </Button>
-        <button onClick={() => setIsMuted(!isMuted)}>
-            {isMuted ? <VolumeX className="h-5 w-5"/> : <Volume2 className="h-5 w-5"/>}
-        </button>
-        <Slider 
-            value={[isMuted ? 0 : volume]}
-            max={1}
-            step={0.1}
-            onValueChange={handleVolumeChange}
-            className="w-24"
-        />
+      {/* Volume, Speed & Share Control */}
+      <div className="w-full sm:w-1/3 flex items-center justify-end gap-2">
+         <div className="hidden sm:flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 relative" onClick={cyclePlaybackRate}>
+                <Gauge className="h-5 w-5"/>
+                <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-white/20 rounded-full h-4 w-4 flex items-center justify-center">{playbackRate}x</span>
+            </Button>
+            <button onClick={() => setIsMuted(!isMuted)}>
+                {isMuted ? <VolumeX className="h-5 w-5"/> : <Volume2 className="h-5 w-5"/>}
+            </button>
+            <Slider 
+                value={[isMuted ? 0 : volume]}
+                max={1}
+                step={0.1}
+                onValueChange={handleVolumeChange}
+                className="w-20"
+            />
+         </div>
+         <Button
+            size="sm"
+            onClick={onShare}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Compartilhar
+          </Button>
       </div>
     </div>
   );

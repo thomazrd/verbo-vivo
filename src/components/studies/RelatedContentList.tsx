@@ -10,7 +10,7 @@ import { collection, query, where, orderBy, limit, getDocs } from "firebase/fire
 import { db } from "@/lib/firebase";
 
 interface RelatedContentListProps {
-  user: User | null;
+  user: User | null; // Keep user prop for potential future personalization
   currentStudyId: string;
   tags?: string[];
 }
@@ -20,12 +20,6 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This logic should only run for logged-in users.
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
     const fetchAndFilterStudies = async () => {
       setIsLoading(true);
       try {
@@ -62,7 +56,7 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
     };
     
     fetchAndFilterStudies();
-  }, [currentStudyId, tags, user]);
+  }, [currentStudyId, tags]);
 
   if (isLoading) {
       return (

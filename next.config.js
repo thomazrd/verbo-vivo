@@ -12,6 +12,9 @@ const nextConfig = {
     // mesmo que seu projeto tenha erros de ESLint.
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    serverComponentsExternalPackages: ['@opentelemetry/api', '@genkit-ai/googleai'],
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

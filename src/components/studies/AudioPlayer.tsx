@@ -10,7 +10,6 @@ import type { Study } from '@/lib/types';
 
 interface AudioPlayerProps {
   study: Study;
-  onShare: () => void;
 }
 
 const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
@@ -24,7 +23,7 @@ function formatTime(seconds: number): string {
   return `${min}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
-export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
+export function AudioPlayer({ study }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -129,7 +128,7 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
       </div>
 
       {/* Player Controls & Progress Bar */}
-      <div className="flex flex-col items-center gap-2 w-full sm:w-1/3">
+      <div className="flex flex-col items-center gap-2 w-full sm:w-2/5">
         <div className="flex items-center justify-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10" onClick={() => handleSeekRelative(-15)}>
                 <Rewind className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -154,9 +153,9 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Volume, Speed & Share Control */}
-      <div className="w-full sm:w-1/3 flex items-center justify-end gap-2">
-         <div className="hidden sm:flex items-center gap-2">
+      {/* Volume, Speed */}
+      <div className="w-full sm:w-auto flex items-center justify-end gap-2">
+         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 relative" onClick={cyclePlaybackRate}>
                 <Gauge className="h-5 w-5"/>
                 <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-white/20 rounded-full h-4 w-4 flex items-center justify-center">{playbackRate}x</span>
@@ -172,14 +171,6 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
                 className="w-20"
             />
          </div>
-         <Button
-            size="sm"
-            onClick={onShare}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            <Share2 className="mr-2 h-4 w-4" />
-            Compartilhar
-          </Button>
       </div>
     </div>
   );

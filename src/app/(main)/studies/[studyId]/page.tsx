@@ -14,7 +14,7 @@ import { RelatedContentList } from "@/components/studies/RelatedContentList";
 import { useAuth } from "@/hooks/use-auth";
 import { useContentAccess } from "@/hooks/use-content-access";
 import { AccessModal } from "@/components/auth/AccessModal";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -125,22 +125,30 @@ export default function StudyDetailPage() {
   return (
     <>
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="mb-4 md:hidden"
-        >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-        </Button>
+        <div className="flex justify-between items-center mb-4">
+            <Button
+                variant="ghost"
+                onClick={() => router.back()}
+                className="md:hidden"
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+            </Button>
+            <div className="flex-grow md:hidden" />
+             <Button
+                size="sm"
+                onClick={handleShare}
+                className="bg-accent text-accent-foreground hover:bg-accent/90 ml-auto"
+            >
+                <Share2 className="mr-2 h-4 w-4" />
+                Compartilhar
+            </Button>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
             
             <div className="lg:col-span-2 space-y-8">
                 <div className="w-full">
-                    <AudioPlayer
-                        study={study}
-                        onShare={handleShare}
-                    />
+                    <AudioPlayer study={study} />
                 </div>
 
                 <StudyContentAccordion 

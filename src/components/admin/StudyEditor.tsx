@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 const studyFormSchema = z.object({
   title: z.string().min(5, { message: "O título deve ter pelo menos 5 caracteres." }),
   audioUrl: z.string().url({ message: "Por favor, insira uma URL válida." }),
-  content: z.string().min(50, { message: "O estudo deve ter pelo menos 50 caracteres." }),
+  content: z.string().optional(),
   thumbnailUrl: z.string().url({ message: "Por favor, insira uma URL de imagem válida." }).optional().or(z.literal('')),
   practicalChallenge: z.string().optional(),
   tags: z.string().optional(), // Accepting as a comma-separated string for simplicity
@@ -145,7 +145,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
 
       const dataToSave: any = {
         title: values.title,
-        content: values.content,
+        content: values.content || "",
         audioUrl: values.audioUrl,
         thumbnailUrl: finalThumbnailUrl,
         practicalChallenge: values.practicalChallenge || null,
@@ -240,10 +240,10 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                 name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg">Conteúdo Principal</FormLabel>
+                    <FormLabel className="text-lg">Conteúdo Principal (Opcional)</FormLabel>
                     <FormControl>
                         <MarkdownEditor
-                            value={field.value}
+                            value={field.value || ""}
                             onChange={field.onChange}
                         />
                     </FormControl>

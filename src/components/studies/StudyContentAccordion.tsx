@@ -11,28 +11,36 @@ interface StudyContentAccordionProps {
 }
 
 export function StudyContentAccordion({ markdownContent, practicalChallenge }: StudyContentAccordionProps) {
-  const htmlContent = marked.parse(markdownContent) as string;
+  const htmlContent = markdownContent ? marked.parse(markdownContent) as string : "";
+  const hasContent = htmlContent.trim().length > 0;
+  const hasChallenge = practicalChallenge && practicalChallenge.trim().length > 0;
+
+  if (!hasContent && !hasChallenge) {
+    return null;
+  }
 
   return (
     <Accordion type="multiple" className="w-full space-y-4">
-      <AccordionItem value="item-1" className="border rounded-lg bg-card overflow-hidden">
-        <AccordionTrigger className="p-4 hover:no-underline text-lg">
-            <div className="flex items-center gap-3">
-                <BookText className="h-5 w-5 text-primary" />
-                Ler o Artigo Completo
+      {hasContent && (
+        <AccordionItem value="item-1" className="border rounded-lg bg-card overflow-hidden">
+          <AccordionTrigger className="p-4 hover:no-underline text-lg">
+              <div className="flex items-center gap-3">
+                  <BookText className="h-5 w-5 text-primary" />
+                  Ler o Artigo Completo
+              </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="px-4 pb-4 border-t pt-4">
+               <div
+                  className="prose max-w-none text-card-foreground"
+                  dangerouslySetInnerHTML={{ __html: htmlContent }}
+              />
             </div>
-        </AccordionTrigger>
-        <AccordionContent>
-          <div className="px-4 pb-4 border-t pt-4">
-             <div
-                className="prose max-w-none text-card-foreground"
-                dangerouslySetInnerHTML={{ __html: htmlContent }}
-            />
-          </div>
-        </AccordionContent>
-      </AccordionItem>
+          </AccordionContent>
+        </AccordionItem>
+      )}
       
-      {practicalChallenge && (
+      {hasChallenge && (
         <AccordionItem value="item-2" className="border rounded-lg bg-card overflow-hidden">
              <AccordionTrigger className="p-4 hover:no-underline text-lg">
                 <div className="flex items-center gap-3">

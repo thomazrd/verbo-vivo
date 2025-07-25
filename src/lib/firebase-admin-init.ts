@@ -13,9 +13,7 @@ if (!admin.apps.length) {
     // Esta inicialização simplificada funciona para ambientes do Google Cloud
     // (onde as credenciais são descobertas automaticamente) e para desenvolvimento
     // local com 'gcloud auth application-default login'.
-    console.log("Initializing Firebase Admin SDK...");
     admin.initializeApp();
-    console.log("Firebase Admin SDK initialized successfully.");
   } catch (error: any) {
     console.error('Firebase admin initialization error', error.stack);
   }

@@ -1,16 +1,10 @@
-    // === REGRAS DO MÓDULO DE ESTUDOS (ADMIN) ===
-    match /studies/{studyId} {
-      // Qualquer um pode ler estudos publicados
-      allow read: if resource.data.status == 'PUBLISHED';
-      
-      // Admins podem ler e escrever em qualquer estudo
-      allow read, write: if isUserAdmin();
-    }
-    
-    // Sugestões de estudo
-    match /suggestions/{suggestionId} {
-        // Usuários logados podem criar
-        allow create: if isUserAuthenticated() && request.resource.data.submittedBy == request.auth.uid;
-        // Admins podem ler e atualizar
-        allow read, update: if isUserAdmin();
-    }
+
+// --- Studies Rules ---
+// Published studies are public.
+// Drafts are only accessible by admins.
+// Writing is restricted to admins.
+match /studies/{studyId} {
+  allow read: if resource.data.status == 'published'
+              || (request.auth != null && getUserData(request.auth.uid).role == 'ADMIN');
+  allow write: if request.auth != null && getUserData(request.auth.uid).role == 'ADMIN';
+}

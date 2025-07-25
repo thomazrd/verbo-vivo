@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs } from "firestore";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchBar } from "@/components/studies/SearchBar";

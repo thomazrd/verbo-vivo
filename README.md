@@ -1,3 +1,4 @@
+
 # Verbo Vivo - Seu Assistente de Discipulado Digital
 
 Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jornada de fé e estudo bíblico. Combinando ferramentas de leitura, meditação, comunidade e inteligência artificial, o Verbo Vivo oferece uma experiência personalizada e enriquecedora para o seu crescimento espiritual.
@@ -35,7 +36,7 @@ Esta funcionalidade foi desenhada para ser um ambiente privado e seguro, incenti
 
 A prática da confissão é um pilar fundamental na vida cristã, baseada em promessas claras da Palavra de Deus.
 
-*   **Fundamento Principal (1 João 1:9):** *"Se confessarmos os nossos pecados, ele é fiel и justo para nos perdoar os pecados e nos purificar de toda injustiça."* O confessionário do Verbo Vivo é uma ferramenta para viver esta promessa. Ele não substitui a confissão a Deus ou a uma comunidade de irmãos, mas serve como um catalisador para que o crente se aproprie dessa verdade diariamente.
+*   **Fundamento Principal (1 João 1:9):** *"Se confessarmos os nossos pecados, ele é fiel e justo para nos perdoar os pecados e nos purificar de toda injustiça."* O confessionário do Verbo Vivo é uma ferramenta para viver esta promessa. Ele não substitui a confissão a Deus ou a uma comunidade de irmãos, mas serve como um catalisador para que o crente se aproprie dessa verdade diariamente.
 *   **Alcançar Misericórdia (Provérbios 28:13):** *"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia."* A funcionalidade incentiva a não esconder o pecado, mas a trazê-lo à luz para receber a misericórdia de Deus.
 *   **Foco no Perdão, Não na Penitência:** Diferente de um confessionário tradicional, o foco aqui não é na penitência, mas na celebração da graça. A resposta da IA é sempre direcionada para a obra consumada de Cristo na cruz, que é a fonte de todo perdão.
 
@@ -104,6 +105,22 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
    ```bash
    firebase emulators:start --only functions
    ```
+
+## 🔍 Debugando Erros de Produção
+
+Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) geralmente são erros do lado do servidor. Como a aplicação Next.js é servida por uma Cloud Function no Firebase, os logs detalhados desses erros podem ser encontrados no **Google Cloud Logging**.
+
+1.  **Acesse o Logs Explorer:** [Clique aqui para ir para o Google Cloud Logs Explorer](https://console.cloud.google.com/logs/viewer).
+2.  **Selecione o Projeto Correto:** Garanta que o projeto no topo da página seja o mesmo do seu Firebase.
+3.  **Filtre por Função e Severidade:** Use a caixa de consulta para filtrar os erros da sua aplicação. Uma consulta útil é:
+    ```
+    resource.type="cloud_function"
+    resource.labels.function_name="ssrinovai-pr4x6"
+    severity>=ERROR
+    ```
+    *Substitua `ssrinovai-pr4x6` pelo nome da função do seu projeto, se for diferente.*
+
+Isso mostrará os erros detalhados, incluindo o "stack trace", que indica exatamente onde o código falhou.
 
 ## Firestore Data Model
 

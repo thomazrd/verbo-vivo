@@ -14,7 +14,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    // serverComponentsExternalPackages: ['@opentelemetry/api', '@genkit-ai/googleai'],
+    serverComponentsExternalPackages: ['firebase-admin'],
   },
   images: {
     unoptimized: true,

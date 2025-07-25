@@ -110,6 +110,8 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
 
 Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) geralmente são erros do lado do servidor. Como a aplicação Next.js é servida por uma Cloud Function no Firebase, os logs detalhados desses erros podem ser encontrados no **Google Cloud Logging**.
 
+### Passo a Passo para Encontrar a Causa do Erro
+
 1.  **Acesse o Logs Explorer:** [Clique aqui para ir para o Google Cloud Logs Explorer](https://console.cloud.google.com/logs/viewer).
 2.  **Selecione o Projeto Correto:** Garanta que o projeto no topo da página seja o mesmo do seu Firebase.
 3.  **Filtre por Função e Severidade:** Use a caixa de consulta para filtrar os erros da sua aplicação. Uma consulta útil é:
@@ -118,9 +120,20 @@ Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) gera
     resource.labels.function_name="ssrinovai-pr4x6"
     severity>=ERROR
     ```
-    *Substitua `ssrinovai-pr4x6` pelo nome da função do seu projeto, se for diferente.*
+    *Substitua `ssrinovai-pr4x6` pelo nome da função do seu projeto, se for diferente. Você pode encontrar o nome da função no seu [Painel do Firebase](https://console.firebase.google.com/project/_/functions).*
 
-Isso mostrará os erros detalhados, incluindo o "stack trace", que indica exatamente onde o código falhou.
+4.  **Interprete o Log de Erro:** Ao encontrar um erro, clique nele para expandir os detalhes. Procure por duas informações cruciais:
+    *   **Mensagem de Erro:** A primeira linha, geralmente em vermelho, que descreve *o que* deu errado.
+    *   **Stack Trace (Rastreamento da Pilha):** Uma lista de arquivos e números de linha que mostra *onde* o erro ocorreu.
+
+    **Exemplo Prático de Stack Trace:**
+    ```
+    Error: Value for argument "document" is not a valid Firestore document. ...
+        at WriteBatch.set (node_modules/@google-cloud/firestore/build/src/write-batch.js:288:23)
+        at /srv/src/app/(main)/community/page.tsx:154:19  <-- FOQUE AQUI
+        at ...
+    ```
+    Neste exemplo, o erro `not a valid Firestore document` aconteceu no seu código, no arquivo `src/app/(main)/community/page.tsx`, na linha `154`. Vá até essa linha no seu editor de código para encontrar e corrigir o problema.
 
 ## Firestore Data Model
 

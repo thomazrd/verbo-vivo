@@ -1,177 +1,74 @@
 
-"use client";
+import { type Metadata, type ResolvingMetadata } from 'next';
+import { notFound } from 'next/navigation';
+import { db } from '@/lib/firebase-admin';
+import type { Study } from '@/lib/types';
+import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
 
-import { useState, useEffect } from "react";
-import { useParams, notFound, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
-import type { Study } from "@/lib/types";
+type Props = {
+  params: { studyId: string };
+};
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { AudioPlayer } from "@/components/studies/AudioPlayer";
-import { StudyContentAccordion } from "@/components/studies/StudyContentAccordion";
-import { RelatedContentList } from "@/components/studies/RelatedContentList";
-import { useAuth } from "@/hooks/use-auth";
-import { useContentAccess } from "@/hooks/use-content-access";
-import { AccessModal } from "@/components/auth/AccessModal";
-import { ArrowLeft, Share2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+const DEFAULT_IMAGE_URL = "https://dynamic.tiggomark.com.br/images/logo-192.png";
 
 async function getStudy(id: string): Promise<Study | null> {
-  const docRef = doc(db, "studies", id);
+  const docRef = db.collection('studies').doc(id);
+  const docSnap = await docRef.get();
 
-  try {
-    // Increment view count. It's safe to call this on every render on the client,
-    // but a better approach would gate it. This is a reasonable implementation.
-    await updateDoc(docRef, { viewCount: increment(1) });
-  } catch (e) {
-    // This can fail if the document doesn't exist yet, which is fine.
-    // We'll catch that with the getDoc call.
-    console.log("Could not increment view count (document might not exist yet).");
-  }
-
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists() && docSnap.data().status === 'PUBLISHED') {
+  if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
+    // Note: We are not incrementing view count here on the server to avoid
+    // inflating numbers from bots/crawlers. View count is handled on the client.
     return { id: docSnap.id, ...docSnap.data() } as Study;
   }
   return null;
 }
 
-export default function StudyDetailPage() {
-  const params = useParams();
-  const studyId = params.studyId as string;
-  const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const router = useRouter();
-  
-  const [study, setStudy] = useState<Study | null | 'not-found'>(null);
-  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
-  
-  const shouldCheckAccess = !authLoading && !user;
-  const { canView, isLoading: isAccessLoading } = useContentAccess(studyId, shouldCheckAccess);
-  
-  useEffect(() => {
-    if (authLoading || isAccessLoading) return;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const study = await getStudy(params.studyId);
 
-    if (!canView) {
-      setIsAccessModalOpen(true);
-    }
-    
-    if (studyId) {
-      getStudy(studyId).then(data => {
-        setStudy(data || 'not-found');
-      });
-    }
-  }, [studyId, canView, isAccessLoading, authLoading]);
-
-  const handleShare = async () => {
-    if (!study || study === 'not-found') return;
-    const shareData = {
-      title: `Estudo: ${study.title}`,
-      text: `Confira este estudo edificante do Verbo Vivo: ${study.title}`,
-      url: window.location.href,
+  if (!study) {
+    return {
+      title: 'Estudo não encontrado',
     };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: "Link Copiado!",
-          description: "O link para este estudo foi copiado para sua área de transferência.",
-        });
-      }
-    } catch (error: any) {
-        if (error.name !== 'NotAllowedError') {
-            console.error('Error sharing study:', error);
-            toast({
-                variant: "destructive",
-                title: "Erro ao compartilhar",
-                description: "Não foi possível compartilhar este estudo.",
-            });
-        }
-    }
+  }
+  
+  const excerpt = study.content 
+    ? study.content.substring(0, 150) + '...'
+    : 'Um estudo edificante para fortalecer sua fé.';
+
+  return {
+    title: `${study.title} | Verbo Vivo`,
+    description: excerpt,
+    openGraph: {
+      title: study.title,
+      description: excerpt,
+      url: `https://verbo-vivo.app/studies/${study.id}`, // Replace with your actual domain
+      siteName: 'Verbo Vivo',
+      images: [
+        {
+          url: study.thumbnailUrl || DEFAULT_IMAGE_URL,
+          width: 1200,
+          height: 630,
+        },
+      ],
+      locale: 'pt_BR',
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: study.title,
+      description: excerpt,
+      images: [study.thumbnailUrl || DEFAULT_IMAGE_URL],
+    },
   };
+}
 
+export default async function StudyDetailPage({ params }: Props) {
+  const study = await getStudy(params.studyId);
 
-  if (study === 'not-found') {
+  if (!study) {
     notFound();
   }
-  
-  if (study === null || authLoading || isAccessLoading) {
-    return (
-        <div className="container mx-auto max-w-7xl px-4 py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    <Skeleton className="w-full h-28 rounded-lg" />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                    </div>
-                    <Skeleton className="h-20 w-full rounded-lg" />
-                </div>
-                <div className="lg:col-span-1 space-y-4">
-                     <Skeleton className="h-8 w-1/2 mb-4" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                </div>
-            </div>
-        </div>
-    );
-  }
 
-  return (
-    <>
-      <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="flex justify-between items-center mb-4">
-            <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="md:hidden"
-            >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-            </Button>
-            <div className="flex-grow md:hidden" />
-             <Button
-                size="sm"
-                onClick={handleShare}
-                className="bg-accent text-accent-foreground hover:bg-accent/90 ml-auto"
-            >
-                <Share2 className="mr-2 h-4 w-4" />
-                Compartilhar
-            </Button>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">
-            
-            <div className="lg:col-span-2 space-y-8">
-                <div className="w-full">
-                    <AudioPlayer study={study} />
-                </div>
-
-                <StudyContentAccordion 
-                    markdownContent={study.content}
-                    practicalChallenge={study.practicalChallenge}
-                />
-            </div>
-
-            <aside className="lg:col-span-1 space-y-6">
-                 <h2 className="text-xl font-bold tracking-tight">Próximos Estudos</h2>
-                 <RelatedContentList
-                    user={user}
-                    currentStudyId={study.id}
-                    tags={study.tags}
-                 />
-            </aside>
-
-        </div>
-      </div>
-      <AccessModal 
-        isOpen={isAccessModalOpen} 
-        onClose={() => setIsAccessModalOpen(false)} 
-      />
-    </>
-  );
+  return <StudyDetailClient study={study} />;
 }

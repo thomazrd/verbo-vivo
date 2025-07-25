@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@genkit-ai/googleai'],
   typescript: {
     // !! ATENÇÃO !!
     // Permite que builds de produção sejam concluídas com sucesso mesmo que
@@ -13,7 +14,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ['@opentelemetry/api', '@genkit-ai/googleai'],
+    // serverComponentsExternalPackages: ['@opentelemetry/api', '@genkit-ai/googleai'],
   },
   images: {
     unoptimized: true,

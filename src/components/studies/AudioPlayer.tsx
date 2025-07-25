@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, Bookmark, Share2 } from 'lucide-react';
 import type { Study } from '@/lib/types';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface AudioPlayerProps {
   study: Study;
   onShare: () => void;
 }
+
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';
@@ -28,6 +32,8 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+
+  const imageUrl = study.thumbnailUrl || DEFAULT_THUMBNAIL;
 
   useEffect(() => {
     const audio = new Audio(study.audioUrl);
@@ -96,15 +102,13 @@ export function AudioPlayer({ study, onShare }: AudioPlayerProps) {
       {/* Album Art & Title */}
       <div className="flex items-center gap-4 w-full sm:w-1/3">
         <div className="relative w-16 h-16 shrink-0">
-            {study.thumbnailUrl && (
-                <Image
-                src={study.thumbnailUrl}
-                alt={study.title}
-                fill
-                className="object-cover rounded-md"
-                data-ai-hint="study album art"
-                />
-            )}
+            <Image
+            src={imageUrl}
+            alt={study.title}
+            fill
+            className="object-cover rounded-md"
+            data-ai-hint="study album art"
+            />
         </div>
         <div className="min-w-0">
           <h2 className="font-bold text-sm truncate">{study.title}</h2>

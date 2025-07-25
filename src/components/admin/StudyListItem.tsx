@@ -30,6 +30,8 @@ interface StudyListItemProps {
   study: Study;
 }
 
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+
 export function StudyListItem({ study }: StudyListItemProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -55,22 +57,18 @@ export function StudyListItem({ study }: StudyListItemProps) {
     ? formatDistanceToNow(study.updatedAt.toDate(), { addSuffix: true, locale: ptBR })
     : "data desconhecida";
 
+  const imageUrl = study.thumbnailUrl || DEFAULT_THUMBNAIL;
+
   return (
     <Card className="flex items-center p-4 gap-4 hover:bg-muted/50 transition-colors">
       <div className="relative w-24 h-24 sm:w-32 sm:h-20 shrink-0 bg-muted rounded-md overflow-hidden">
-        {study.thumbnailUrl ? (
-          <Image
-            src={study.thumbnailUrl}
-            alt={study.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 96px, 128px"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <BookCopy className="h-8 w-8 text-muted-foreground" />
-          </div>
-        )}
+        <Image
+          src={imageUrl}
+          alt={study.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 96px, 128px"
+        />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">

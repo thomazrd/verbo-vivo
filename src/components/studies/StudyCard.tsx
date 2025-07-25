@@ -13,25 +13,23 @@ interface StudyCardProps {
   className?: string;
 }
 
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+
 export function StudyCard({ study, className }: StudyCardProps) {
+  const imageUrl = study.thumbnailUrl || DEFAULT_THUMBNAIL;
+
   return (
     <Link href={`/studies/${study.id}`} className={cn("group block h-full", className)}>
       <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-lg">
         <div className="aspect-video overflow-hidden relative bg-muted">
-          {study.thumbnailUrl ? (
-             <Image
-                src={study.thumbnailUrl}
-                alt={study.title}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                data-ai-hint="study lesson"
-             />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-                <BookCopy className="h-12 w-12 text-muted-foreground" />
-            </div>
-          )}
+          <Image
+            src={imageUrl}
+            alt={study.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            data-ai-hint="study lesson"
+          />
         </div>
         <CardHeader>
           <CardTitle className="text-base font-semibold line-clamp-2">{study.title}</CardTitle>

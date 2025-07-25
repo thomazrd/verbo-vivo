@@ -1,10 +1,29 @@
 
-// --- Studies Rules ---
-// Published studies are public.
-// Drafts are only accessible by admins.
-// Writing is restricted to admins.
-match /studies/{studyId} {
-  allow read: if resource.data.status == 'published'
-              || (request.auth != null && getUserData(request.auth.uid).role == 'ADMIN');
-  allow write: if request.auth != null && getUserData(request.auth.uid).role == 'ADMIN';
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Coleção: studies (Estudos / Pílulas de Sabedoria)
+    match /studies/{studyId} {
+      // Leitura: Permitida para todos se o status for 'PUBLISHED'.
+      // Apenas admins podem ler rascunhos.
+      allow read: if resource.data.status == 'PUBLISHED' ||
+                   (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
+
+      // Escrita (criar, atualizar, deletar): Apenas para administradores.
+      allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+    }
+
+    // Coleção: suggestions (Sugestões de temas para estudos)
+    match /suggestions/{suggestionId} {
+      // Qualquer usuário autenticado pode criar uma sugestão.
+      allow create: if request.auth != null;
+      
+      // Apenas administradores podem ler e atualizar (para arquivar/processar).
+      allow read, update: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+
+      // Ninguém pode deletar sugestões diretamente.
+      allow delete: if false;
+    }
+  }
 }

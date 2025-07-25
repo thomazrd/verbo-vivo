@@ -1,28 +1,24 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // --- Funções de Ajuda Globais ---
 
-    // Funções de utilidade globais
-    function isUserAuthenticated() {
-      return request.auth != null;
+    // Retorna os dados de um perfil de usuário
+    function userData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    function isUserAdmin() {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
-    }
-
+    // Verifica se o usuário autenticado é o dono do documento
     function isOwner(userId) {
-      return isUserAuthenticated() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
-
-    function isCongregationMember(congregationId) {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
-          && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'MEMBER'
-           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN');
+    
+    // Verifica se o usuário autenticado é um administrador global
+    function isAdmin() {
+        return request.auth != null && userData(request.auth.uid).role == 'ADMIN';
     }
-
-    function isCongregationAdmin(congregationId) {
-      return isUserAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationId == congregationId
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.congregationStatus == 'ADMIN';
-    }
+  }
+}

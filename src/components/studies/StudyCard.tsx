@@ -30,8 +30,8 @@ export function StudyCard({ study, className }: StudyCardProps) {
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint="study lesson"
           />
-           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <PlayCircle className="h-12 w-12 text-white/70" />
+           <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity duration-300">
+                <PlayCircle className="h-12 w-12 text-white/80 opacity-80 group-hover:opacity-100 transition-opacity" />
             </div>
         </div>
         <CardHeader>

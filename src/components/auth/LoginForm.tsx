@@ -12,7 +12,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,6 +56,8 @@ const GoogleIcon = () => (
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -68,11 +70,15 @@ export function LoginForm() {
     },
   });
 
+  const handleRedirect = () => {
+    router.push(redirectUrl);
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push("/");
+      handleRedirect();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -109,7 +115,7 @@ export function LoginForm() {
         }
       }
 
-      router.push("/");
+      handleRedirect();
     } catch (error: any) {
       console.error("Google Sign-In Error: ", error);
       toast({

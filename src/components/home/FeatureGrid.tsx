@@ -12,6 +12,11 @@ import {
   NotebookText,
   Share2,
   Smile,
+  Shield,
+  LockKeyhole,
+  HandHeart,
+  Newspaper,
+  Presentation,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -19,14 +24,6 @@ export function FeatureGrid() {
   const { t } = useTranslation();
 
   const features = [
-    {
-      icon: HeartHandshake,
-      title: t('feature_prayer_sanctuary_title'),
-      description: t('feature_prayer_sanctuary_desc'),
-      linkTo: "/prayer-sanctuary",
-      imageUrl: "https://dynamic.tiggomark.com.br/images/santuario.jpg",
-      imageHint: "serene prayer light",
-    },
     {
       icon: MessageSquare,
       title: t('feature_chat_title'),
@@ -36,20 +33,12 @@ export function FeatureGrid() {
       imageHint: "person phone cafe",
     },
     {
-      icon: Users,
-      title: t('feature_community_title'),
-      description: t('feature_community_desc'),
-      linkTo: "/community",
-      imageUrl: "https://dynamic.tiggomark.com.br/images/comunidade.jpg",
-      imageHint: "community picnic laughing",
-    },
-     {
-      icon: Smile,
-      title: t('feature_feeling_journey_title'),
-      description: t('feature_feeling_journey_desc'),
-      linkTo: "/feeling-journey",
-      imageUrl: "https://dynamic.tiggomark.com.br/images/jornada.jpg",
-      imageHint: "calm sunrise path",
+      icon: Presentation,
+      title: t('nav_studies'),
+      description: 'Explore pílulas de sabedoria e estudos aprofundados sobre diversos temas da vida cristã.',
+      linkTo: "/studies",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "sermon presentation",
     },
     {
       icon: BookMarked,
@@ -60,6 +49,22 @@ export function FeatureGrid() {
       imageHint: "open bible coffee",
     },
     {
+      icon: Shield,
+      title: 'Minha Armadura',
+      description: 'Crie e gerencie suas armaduras espirituais com versículos para as batalhas diárias.',
+      linkTo: "/armor",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "knight armor shield",
+    },
+     {
+      icon: Smile,
+      title: t('feature_feeling_journey_title'),
+      description: t('feature_feeling_journey_desc'),
+      linkTo: "/feeling-journey",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/jornada.jpg",
+      imageHint: "calm sunrise path",
+    },
+    {
       icon: BookOpen,
       title: t('feature_study_plans_title'),
       description: t('feature_study_plans_desc'),
@@ -67,13 +72,37 @@ export function FeatureGrid() {
       imageUrl: "https://dynamic.tiggomark.com.br/images/planos.jpg",
       imageHint: "person walking trail",
     },
+     {
+      icon: LockKeyhole,
+      title: 'Confessionário',
+      description: 'Um espaço privado e seguro para confessar seus pecados e receber uma palavra de graça e perdão.',
+      linkTo: "/confession",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "private quiet room"
+    },
     {
-      icon: BookUser,
-      title: t('feature_characters_title'),
-      description: t('feature_characters_desc'),
-      linkTo: "/characters",
-      imageUrl: "https://dynamic.tiggomark.com.br/images/personagens.jpg", 
-      imageHint: "ancient crown map",
+      icon: HandHeart,
+      title: 'Confissão de Fé',
+      description: 'Declare e fortaleça as verdades fundamentais da sua fé em uma jornada interativa.',
+      linkTo: "/faith-confession",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "uplifted hands worship"
+    },
+    {
+      icon: HeartHandshake,
+      title: "Círculos de Oração",
+      description: "Junte-se a grupos de oração, compartilhe pedidos e interceda por outros em um ambiente de fé e comunidade.",
+      linkTo: "/prayer-circles",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "community prayer group"
+    },
+    {
+      icon: Users,
+      title: t('feature_community_title'),
+      description: t('feature_community_desc'),
+      linkTo: "/community",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/comunidade.jpg",
+      imageHint: "community picnic laughing",
     },
     {
       icon: NotebookText,
@@ -82,6 +111,22 @@ export function FeatureGrid() {
       linkTo: "/journal",
       imageUrl: "https://dynamic.tiggomark.com.br/images/diario.jpg",
       imageHint: "writing leather journal",
+    },
+     {
+      icon: Newspaper,
+      title: "Artigos",
+      description: "Explore artigos e reflexões aprofundadas sobre diversos temas da fé cristã, escritos pela liderança.",
+      linkTo: "/blog",
+      imageUrl: "https://placehold.co/600x400.png",
+      imageHint: "person reading article"
+    },
+    {
+      icon: BookUser,
+      title: t('feature_characters_title'),
+      description: t('feature_characters_desc'),
+      linkTo: "/characters",
+      imageUrl: "https://dynamic.tiggomark.com.br/images/personagens.jpg", 
+      imageHint: "ancient crown map",
     },
     {
       icon: Share2,

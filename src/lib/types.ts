@@ -89,6 +89,7 @@ export interface UserProfile {
   prayerCircleOnboardingCompleted?: boolean;
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
+  role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
   favoriteArmorIds?: string[];
@@ -316,6 +317,33 @@ export interface Article {
   updatedAt: Timestamp;
   publishedAt?: Timestamp;
 }
+
+// --- Tipos do Portal Administrativo ---
+export interface Study {
+  id: string;
+  title: string;
+  audioUrl: string;
+  thumbnailUrl: string | null;
+  content: string;
+  authorId: string;
+  authorName: string;
+  practicalChallenge?: string | null;
+  tags?: string[];
+  status: 'DRAFT' | 'PUBLISHED';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  publishedAt: Timestamp | null;
+  viewCount?: number;
+}
+
+export interface Suggestion {
+  id: string;
+  text: string;
+  submittedBy: string; // UserID
+  submittedAt: Timestamp;
+  status: 'NEW' | 'VIEWED' | 'ARCHIVED' | 'ACTIONED';
+}
+
 
 // --- Tipos da API da Bíblia ---
 

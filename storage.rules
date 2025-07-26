@@ -1,11 +1,23 @@
 rules_version = '2';
+
+// Default rules for Cloud Storage.
 service firebase.storage {
   match /b/{bucket}/o {
-    // Permite leitura pública para exibição no feed
-    // Permite a escrita apenas se o usuário estiver autenticado e o caminho corresponder ao seu userId.
-    match /media/{congId}/{userId}/{postId}/{allPaths=**} {
-      allow read: if true;
+    // Permite que qualquer usuário autenticado leia e escreva na pasta 'studies'
+    match /studies/{studyId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regra para avatares de usuários (exemplo, se necessário no futuro)
+    match /avatars/{userId}/{allPaths=**} {
+      allow read;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Regra para mídia da comunidade (exemplo)
+    match /media/{congregationId}/{userId}/{allPaths=**} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -12,34 +13,33 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Aguarda a conclusão do carregamento do estado de autenticação
+    // Wait until the authentication check is complete
     if (authLoading) {
       return;
     }
 
-    // Se o carregamento terminou e não há usuário, redireciona para o login
+    // If the check is done and there's no user, redirect to login.
+    // This is the primary entry point for unauthenticated users.
     if (!user) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
 
-    // Se há um usuário, verifica o status de onboarding
+    // If there is a user, check their onboarding status to direct them correctly.
     const checkOnboardingStatus = async () => {
       try {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists() && userDocSnap.data().onboardingCompleted) {
-          router.push("/home");
+          router.replace("/home");
         } else {
-          // Isso lida com novos cadastros (onde o doc existe com 'false')
-          // e casos onde o documento pode ainda não ter sido criado.
-          router.push("/onboarding");
+          // This handles new sign-ups or cases where the doc might not be created yet.
+          router.replace("/onboarding");
         }
       } catch (error) {
-        console.error("Erro ao verificar o status de onboarding, redirecionando para home:", error);
-        // Fallback para home para evitar que o usuário fique preso
-        router.push("/home");
+        console.error("Error checking onboarding status, redirecting to home as a fallback:", error);
+        router.replace("/home");
       }
     };
 
@@ -47,6 +47,7 @@ export default function Home() {
     
   }, [user, authLoading, router]);
 
+  // Render a loading state while the logic in useEffect determines the correct route.
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center bg-background gap-4">
         <div className="flex items-center gap-3 text-primary">

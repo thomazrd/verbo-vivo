@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, increment } from "firebase/firestore";
+import { doc, updateDoc, increment, onSnapshot } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 
 import { AudioPlayer } from "@/components/studies/AudioPlayer";
@@ -17,20 +18,32 @@ import { ArrowLeft, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { HomePageSkeleton } from "../home/HomePageSkeleton";
+import { ReactionButtons } from "./ReactionButtons";
 
 interface StudyDetailClientProps {
   study: Study;
 }
 
-export function StudyDetailClient({ study }: StudyDetailClientProps) {
+export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProps) {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
+  const [study, setStudy] = useState(initialStudy);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   
   const shouldCheckAccess = !authLoading && !user;
   const { canView, isLoading: isAccessLoading } = useContentAccess(study.id, shouldCheckAccess);
+  
+  useEffect(() => {
+    // This effect listens for real-time updates to the study document (e.g., reactions)
+    const unsub = onSnapshot(doc(db, "studies", study.id), (doc) => {
+      if (doc.exists()) {
+        setStudy({ id: doc.id, ...doc.data() } as Study);
+      }
+    });
+    return () => unsub();
+  }, [study.id]);
   
   useEffect(() => {
     if (authLoading || isAccessLoading) return;
@@ -38,9 +51,13 @@ export function StudyDetailClient({ study }: StudyDetailClientProps) {
     if (!canView) {
       setIsAccessModalOpen(true);
     } else {
-        // Increment view count only if user can view
-        const studyRef = doc(db, "studies", study.id);
-        updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
+        // Increment view count only if user can view. We only do this once.
+        const viewedKey = `viewed-${study.id}`;
+        if (!sessionStorage.getItem(viewedKey)) {
+          const studyRef = doc(db, "studies", study.id);
+          updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
+          sessionStorage.setItem(viewedKey, 'true');
+        }
     }
   }, [study.id, canView, isAccessLoading, authLoading]);
 
@@ -105,6 +122,8 @@ export function StudyDetailClient({ study }: StudyDetailClientProps) {
                 <div className="w-full">
                     <AudioPlayer study={study} />
                 </div>
+
+                <ReactionButtons study={study} user={user} />
 
                 <StudyContentAccordion 
                     markdownContent={study.content}

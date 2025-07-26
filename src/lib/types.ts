@@ -334,6 +334,7 @@ export interface Study {
   updatedAt: Timestamp;
   publishedAt: Timestamp | null;
   viewCount?: number;
+  reactions?: { [key: string]: string[] };
 }
 
 export interface Suggestion {

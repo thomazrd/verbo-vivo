@@ -13,9 +13,6 @@ const nextConfig = {
     // mesmo que seu projeto tenha erros de ESLint.
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
-  },
   images: {
     unoptimized: true,
     remotePatterns: [

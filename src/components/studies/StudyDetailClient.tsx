@@ -7,7 +7,6 @@ import { db } from "@/lib/firebase";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { AudioPlayer } from "@/components/studies/AudioPlayer";
 import { StudyContentAccordion } from "@/components/studies/StudyContentAccordion";
 import { RelatedContentList } from "@/components/studies/RelatedContentList";
@@ -17,6 +16,7 @@ import { AccessModal } from "@/components/auth/AccessModal";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { HomePageSkeleton } from "../home/HomePageSkeleton";
 
 interface StudyDetailClientProps {
   study: Study;
@@ -74,26 +74,7 @@ export function StudyDetailClient({ study }: StudyDetailClientProps) {
   };
 
   if (authLoading || isAccessLoading) {
-    return (
-        <div className="container mx-auto max-w-7xl px-4 py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    <Skeleton className="w-full h-28 rounded-lg" />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                    </div>
-                    <Skeleton className="h-20 w-full rounded-lg" />
-                </div>
-                <div className="lg:col-span-1 space-y-4">
-                     <Skeleton className="h-8 w-1/2 mb-4" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                </div>
-            </div>
-        </div>
-    );
+    return <HomePageSkeleton />;
   }
 
   return (

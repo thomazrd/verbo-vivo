@@ -1,71 +1,44 @@
-import { type Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { db } from '@/lib/firebase-admin';
+
+"use client";
+
+import { useEffect, useState } from 'react';
+import { useParams, notFound } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import type { Study } from '@/lib/types';
 import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
+import { HomePageSkeleton } from '@/components/home/HomePageSkeleton';
 
-type Props = {
-  params: { studyId: string };
-};
 
-const DEFAULT_IMAGE_URL = "https://dynamic.tiggomark.com.br/images/logo-192.png";
-
-async function getStudy(id: string): Promise<Study | null> {
-  const docRef = db.collection('studies').doc(id);
-  const docSnap = await docRef.get();
-
-  if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
-    // Note: We are not incrementing view count here on the server to avoid
-    // inflating numbers from bots/crawlers. View count is handled on the client.
-    return { id: docSnap.id, ...docSnap.data() } as Study;
-  }
-  return null;
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const study = await getStudy(params.studyId);
-
-  if (!study) {
-    return {
-      title: 'Estudo não encontrado',
-    };
-  }
+export default function StudyDetailPage() {
+  const params = useParams();
+  const studyId = params.studyId as string;
+  const [study, setStudy] = useState<Study | null | undefined>(undefined);
   
-  const excerpt = study.content 
-    ? study.content.substring(0, 150) + '...'
-    : 'Um estudo edificante para fortalecer sua fé.';
+  useEffect(() => {
+    if (!studyId) return;
 
-  return {
-    title: `${study.title} | Verbo Vivo`,
-    description: excerpt,
-    openGraph: {
-      title: study.title,
-      description: excerpt,
-      url: `https://verbo-vivo.app/studies/${study.id}`, // Replace with your actual domain
-      siteName: 'Verbo Vivo',
-      images: [
-        {
-          url: study.thumbnailUrl || DEFAULT_IMAGE_URL,
-          width: 1200,
-          height: 630,
-        },
-      ],
-      locale: 'pt_BR',
-      type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: study.title,
-      description: excerpt,
-      images: [study.thumbnailUrl || DEFAULT_IMAGE_URL],
-    },
-  };
-}
+    const fetchStudy = async () => {
+        const docRef = doc(db, 'studies', studyId);
+        const docSnap = await getDoc(docRef);
 
-export default async function StudyDetailPage({ params }: Props) {
-  const study = await getStudy(params.studyId);
+        if (docSnap.exists() && docSnap.data()?.status === 'PUBLISHED') {
+            setStudy({ id: docSnap.id, ...docSnap.data() } as Study);
+        } else {
+            setStudy(null); // Mark as not found
+        }
+    }
+    fetchStudy();
+  }, [studyId]);
 
-  if (!study) {
+
+  if (study === undefined) {
+    // Loading state
+    return <HomePageSkeleton />;
+  }
+
+  if (study === null) {
+    // Not found state
     notFound();
   }
 

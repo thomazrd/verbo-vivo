@@ -1,0 +1,42 @@
+    // === REGRAS PARA COMUNIDADE (CONGREGAÇÕES) ===
+    match /congregations/{congregationId} {
+      // Leitura: Membros da congregação podem ler os dados da congregação.
+      allow read: if userData(request.auth.uid).congregationId == congregationId;
+      
+      // Atualização: Apenas administradores da congregação podem editar os dados.
+      allow update: if userData(request.auth.uid).congregationStatus == 'ADMIN';
+      
+      // Criação: Regra gerenciada pela Cloud Function `createCongregation`.
+      allow create: if request.auth != null;
+      
+      // --- SUBCOLEÇÕES ---
+      
+      // Membros
+      match /members/{memberId} {
+        // Leitura: Outros membros podem ver a lista de membros.
+        allow read: if userData(request.auth.uid).congregationId == congregationId;
+        
+        // Escrita: Administradores podem adicionar/remover/atualizar membros. O próprio usuário pode sair.
+        allow write: if userData(request.auth.uid).congregationStatus == 'ADMIN' || isOwner(memberId);
+      }
+      
+      // Posts
+      match /posts/{postId} {
+        // Leitura: Membros podem ler todos os posts.
+        allow read: if userData(request.auth.uid).congregationId == congregationId;
+        
+        // Criação: Membros podem criar posts.
+        allow create: if isOwner(request.resource.data.authorId) && userData(request.auth.uid).congregationId == congregationId;
+        
+        // Atualização/Exclusão: Apenas o autor do post pode editar/excluir.
+        allow update, delete: if isOwner(resource.data.authorId);
+        
+        // Likes e Comentários
+        match /{subcollection}/{docId} {
+           // Leitura: Membros podem ler likes e comentários.
+           allow read: if userData(request.auth.uid).congregationId == congregationId;
+           // Escrita: Membros podem dar like e comentar.
+           allow write: if userData(request.auth.uid).congregationId == congregationId;
+        }
+      }
+    }

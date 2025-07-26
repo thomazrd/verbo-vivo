@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,13 @@ interface ContentPreviewModalProps {
 export function ContentPreviewModal({ isOpen, onClose, content, contentId }: ContentPreviewModalProps) {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
-  
-  // Ensure we are in a browser environment before accessing window.location
-  const shareableLink = typeof window !== 'undefined'
-    ? `${window.location.origin}/ponte/${contentId}`
-    : '';
+  const [shareableLink, setShareableLink] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareableLink(`${window.location.origin}/ponte/${contentId}`);
+    }
+  }, [contentId]);
 
   const handleCopy = () => {
     if (!shareableLink) return;
@@ -49,7 +51,6 @@ export function ContentPreviewModal({ isOpen, onClose, content, contentId }: Con
         console.error('Error sharing:', error);
       }
     } else {
-      // Fallback for browsers that don't support Web Share API
       handleCopy();
     }
   }

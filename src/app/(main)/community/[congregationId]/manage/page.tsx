@@ -6,18 +6,29 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc, where, query, getDocs } from 'firebase/firestore';
+import { collection, doc, onSnapshot, writeBatch, increment, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { Congregation, CongregationMember } from '@/lib/types';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
-import { ArrowLeft, Check, ShieldCheck, UserX, X } from 'lucide-react';
+import { ArrowLeft, Check, ShieldCheck, UserX, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { MemberCard } from '@/components/community/MemberCard';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 
+const congregationFormSchema = z.object({
+  name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }).max(50, { message: "O nome não pode ter mais de 50 caracteres." }),
+});
+
+type CongregationFormValues = z.infer<typeof congregationFormSchema>;
 
 export default function ManageCongregationPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -30,7 +41,20 @@ export default function ManageCongregationPage() {
   const [members, setMembers] = useState<CongregationMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<Record<string, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
+  const form = useForm<CongregationFormValues>({
+    resolver: zodResolver(congregationFormSchema),
+    defaultValues: {
+      name: '',
+    },
+  });
+
+  useEffect(() => {
+    if (congregation) {
+      form.reset({ name: congregation.name });
+    }
+  }, [congregation, form]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -40,7 +64,6 @@ export default function ManageCongregationPage() {
         return;
     }
     
-    // Once auth is done, check the profile
     if(userProfile) {
         const isAdmin = userProfile?.congregationStatus === 'ADMIN' && userProfile?.congregationId === congregationId;
         if (!isAdmin) {
@@ -53,7 +76,9 @@ export default function ManageCongregationPage() {
 
         const unsubCongregation = onSnapshot(congRef, (doc) => {
           if (doc.exists()) {
-            setCongregation({ id: doc.id, ...doc.data() } as Congregation);
+            const data = { id: doc.id, ...doc.data() } as Congregation;
+            setCongregation(data);
+            form.setValue('name', data.name);
           } else {
             router.push('/community');
           }
@@ -67,7 +92,6 @@ export default function ManageCongregationPage() {
           setMembers(allMembers);
           setLoading(false);
         }, () => {
-            // Error fetching members
             setLoading(false);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar os membros.'});
         });
@@ -77,11 +101,25 @@ export default function ManageCongregationPage() {
             unsubMembers();
         };
     } else if (!authLoading && !userProfile) {
-        // Auth is done, but profile doesn't exist, they can't be an admin.
         router.push('/community');
     }
 
-  }, [congregationId, router, authLoading, user, userProfile, toast]);
+  }, [congregationId, router, authLoading, user, userProfile, toast, form]);
+
+  const handleUpdateCongregation = async (values: CongregationFormValues) => {
+    if (!congregationId) return;
+    setIsSaving(true);
+    try {
+        const congRef = doc(db, 'congregations', congregationId);
+        await updateDoc(congRef, { name: values.name });
+        toast({ title: 'Sucesso!', description: 'O nome da congregação foi atualizado.' });
+    } catch(error) {
+        console.error("Error updating congregation name:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o nome.' });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   const handleMemberAction = async (
     targetUserId: string, 
@@ -89,60 +127,62 @@ export default function ManageCongregationPage() {
   ) => {
     setActionInProgress(prev => ({ ...prev, [targetUserId]: true }));
     try {
-      const batch = writeBatch(db);
-      const congregationRef = doc(db, 'congregations', congregationId);
-      const memberRef = doc(db, 'congregations', congregationId, 'members', targetUserId);
-      const userRef = doc(db, 'users', targetUserId);
-
-      switch (action) {
-        case 'approve':
-          batch.update(memberRef, { status: 'MEMBER', joinedAt: serverTimestamp() });
-          batch.update(userRef, { congregationStatus: 'MEMBER' });
-          batch.update(congregationRef, { memberCount: increment(1) });
+      if (action === 'approve') {
+          const functions = getFunctions();
+          const approveMember = httpsCallable(functions, 'approveCongregationMemberRequest');
+          await approveMember({ congregationId, targetUserId });
           toast({ title: "Membro Aprovado!", description: "O usuário agora faz parte da congregação." });
-          break;
-        case 'reject':
-          batch.delete(memberRef);
-          batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-          toast({ title: "Solicitação Rejeitada." });
-          break;
-        case 'promote':
-            batch.update(memberRef, { status: 'ADMIN' });
-            batch.update(userRef, { congregationStatus: 'ADMIN' });
-            toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
-            break;
-        case 'remove':
-            const currentMemberDoc = await getDoc(memberRef);
-            if (!currentMemberDoc.exists()) {
-                throw new Error("Member not found");
-            }
-            const currentMember = currentMemberDoc.data();
-
+      } else {
+        const batch = writeBatch(db);
+        const congregationRef = doc(db, 'congregations', congregationId);
+        const memberRef = doc(db, 'congregations', congregationId, 'members', targetUserId);
+        const userRef = doc(db, 'users', targetUserId);
+  
+        switch (action) {
+          case 'reject':
             batch.delete(memberRef);
             batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            
-            if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+            toast({ title: "Solicitação Rejeitada." });
+            break;
+          case 'promote':
+              batch.update(memberRef, { status: 'ADMIN' });
+              batch.update(userRef, { congregationStatus: 'ADMIN' });
+              toast({ title: "Membro Promovido!", description: "O usuário agora é um administrador." });
+              break;
+          case 'remove':
+              const currentMemberDoc = await getDoc(memberRef);
+              if (!currentMemberDoc.exists()) {
+                  throw new Error("Member not found");
+              }
+              const currentMember = currentMemberDoc.data();
+  
+              batch.delete(memberRef);
+              batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
+              
+              if(currentMember && (currentMember.status === 'MEMBER' || currentMember.status === 'ADMIN')) {
+                batch.update(congregationRef, { memberCount: increment(-1) });
+              }
+              toast({ title: "Membro Removido." });
+              break;
+          case 'leave':
+               const memberLeaveDoc = await getDoc(memberRef);
+              if (!memberLeaveDoc.exists()) throw new Error("Member not found");
+  
+              batch.delete(memberRef);
+              batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
               batch.update(congregationRef, { memberCount: increment(-1) });
-            }
-            toast({ title: "Membro Removido." });
-            break;
-        case 'leave':
-             const memberLeaveDoc = await getDoc(memberRef);
-            if (!memberLeaveDoc.exists()) throw new Error("Member not found");
-
-            batch.delete(memberRef);
-            batch.update(userRef, { congregationId: null, congregationStatus: 'NONE' });
-            batch.update(congregationRef, { memberCount: increment(-1) });
-            toast({ title: "Você saiu da congregação." });
-            router.push('/community');
-            break;
+              toast({ title: "Você saiu da congregação." });
+              router.push('/community');
+              break;
+        }
+        
+        await batch.commit();
       }
-      
-      await batch.commit();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error performing action ${action} on user ${targetUserId}:`, error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível completar a ação. Verifique as permissões.' });
+      const errorMessage = error.message || 'Não foi possível completar a ação. Verifique as permissões.';
+      toast({ variant: 'destructive', title: 'Erro', description: errorMessage });
     } finally {
       setActionInProgress(prev => ({ ...prev, [targetUserId]: false }));
     }
@@ -283,7 +323,39 @@ export default function ManageCongregationPage() {
             </Card>
         </TabsContent>
         
-        <TabsContent value="settings" className="mt-6">
+        <TabsContent value="settings" className="mt-6 space-y-6">
+            <Card>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleUpdateCongregation)}>
+                        <CardHeader>
+                            <CardTitle>Configurações Gerais</CardTitle>
+                            <CardDescription>Altere as informações básicas da sua congregação.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nome da Congregação</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Nome da sua igreja" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                        <CardFooter className="border-t px-6 py-4">
+                             <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar Alterações
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Form>
+            </Card>
+
             <Card className="border-destructive">
                 <CardHeader>
                     <CardTitle className="text-destructive">Zona de Perigo</CardTitle>

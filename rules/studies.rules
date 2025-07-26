@@ -1,0 +1,8 @@
+    // === REGRAS PARA ESTUDOS (PÍLULAS DE SABEDORIA) ===
+    match /studies/{studyId} {
+        // Leitura: Qualquer um pode ler se estiver publicado. Rascunhos só para admins.
+        allow read: if resource.data.status == 'PUBLISHED' || (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
+        
+        // Escrita: Apenas admins.
+        allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
+    }

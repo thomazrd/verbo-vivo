@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -20,6 +21,13 @@ import {
   Menu,
   BookMarked,
   Share2,
+  Home,
+  Smile,
+  Newspaper,
+  Shield,
+  LockKeyhole,
+  HandHeart,
+  Presentation,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -37,22 +45,34 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-
-const navItems = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/plans", label: "Planos", icon: BookOpen },
-  { href: "/bible", label: "Bíblia", icon: BookMarked },
-  { href: "/journal", label: "Diário", icon: NotebookText },
-  { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
-  { href: "/community", label: "Comunidade", icon: Users },
-  { href: "/characters", label: "Personagens", icon: BookUser },
-  { href: "/ponte-da-esperanca", label: "Ponte da Esperança", icon: Share2 },
-];
+import { NotificationBell } from "../notifications/NotificationBell";
+import { WisdomPearl } from "./WisdomPearl";
+import { useTranslation } from "react-i18next";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, userProfile } = useAuth();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { href: "/home", label: t('nav_home'), icon: Home },
+    { href: "/studies", label: t('nav_studies'), icon: Presentation },
+    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
+    { href: "/armor", label: 'Minha Armadura', icon: Shield },
+    { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
+    { href: "/confession", label: 'Confessionário', icon: LockKeyhole },
+    { href: "/faith-confession", label: 'Confissão de Fé', icon: HandHeart },
+    { href: "/plans", label: t('nav_plans'), icon: BookOpen },
+    { href: "/bible", label: t('nav_bible'), icon: BookMarked },
+    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
+    { href: "/prayer-circles", label: "Círculos de Oração", icon: HeartHandshake },
+    { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
+    { href: "/community", label: t('nav_community'), icon: Users },
+    { href: "/blog", label: "Artigos", icon: Newspaper },
+    { href: "/characters", label: t('nav_characters'), icon: BookUser },
+    { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
+  ];
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -60,7 +80,7 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -69,13 +89,13 @@ export function Header() {
             className="shrink-0 md:hidden"
           >
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Abrir menu de navegação</span>
+            <span className="sr-only">{t('toggle_nav_menu')}</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
           <nav className="grid gap-2 text-lg font-medium">
             <Link
-              href="/chat"
+              href="/home"
               className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
               <BookHeart className="h-6 w-6 text-primary" />
@@ -98,43 +118,48 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-        <div className="ml-auto flex-1 sm:flex-initial">
-          {/* A search bar could go here in the future */}
-        </div>
+
+      <div className="flex-1 items-center justify-center hidden md:flex">
+         <WisdomPearl />
+      </div>
+
+      <div className="flex items-center gap-4">
         {user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || ''} />
-                  <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                    {userProfile?.displayName?.[0]?.toUpperCase() || <User />}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userProfile?.displayName || 'Minha Conta'}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || ''} />
+                    <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                      {userProfile?.displayName?.[0]?.toUpperCase() || <User />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{userProfile?.displayName || t('my_account')}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>{t('nav_settings')}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>{t('sign_out_button')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
     </header>

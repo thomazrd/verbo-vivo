@@ -3,12 +3,11 @@
 
 import { Inter as FontSans, JetBrains_Mono as FontMono } from "next/font/google";
 import "./globals.css";
+import "@/i18n"; // Import to initialize i18next
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";
 import I18nInitializer from "@/components/layout/I18nInitializer";
-import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -25,18 +24,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { i18n } = useTranslation();
-
-  useEffect(() => {
-    if (document.documentElement.lang !== i18n.language) {
-      document.documentElement.lang = i18n.language;
-    }
-  }, [i18n.language]);
-
 
   return (
-    // O atributo `lang` será definido dinamicamente pelo useEffect para evitar erros de hidratação.
-    <html suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <title>Verbo Vivo</title>
         <meta name="description" content="Seu assistente de discipulado digital." />

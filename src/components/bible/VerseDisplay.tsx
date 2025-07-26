@@ -1,27 +1,41 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/use-auth';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFocusMode } from '@/contexts/focus-mode-context';
+import { useWindowSize } from '@/hooks/use-window-size';
+import { SelectionPopover } from './SelectionPopover';
 
 interface VerseDisplayProps {
   version: BibleVersion;
   book: BibleBook;
   chapter: number;
-  onBack: () => void;
   onNextChapter: () => void;
   onPrevChapter: () => void;
+  onBackToChapters: () => void;
+  onToggleFullscreen: () => void;
 }
 
-export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, onPrevChapter }: VerseDisplayProps) {
+export function VerseDisplay({ 
+  version, 
+  book, 
+  chapter, 
+  onNextChapter, 
+  onPrevChapter, 
+  onBackToChapters, 
+  onToggleFullscreen
+}: VerseDisplayProps) {
   const [chapterData, setChapterData] = useState<BibleChapter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +46,15 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
   const { toast } = useToast();
   const { i18n } = useTranslation();
+  const { userProfile } = useAuth();
+  const { isFocusMode } = useFocusMode();
+  const { width } = useWindowSize();
+  const isDesktop = width >= 768;
+
+  const contentRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
-    // Reset states on chapter change
     setSummary(null);
     setSummaryError(null);
     setIsSummaryLoading(false);
@@ -61,7 +81,6 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
     if (book && chapter) {
       fetchChapter();
-      window.scrollTo(0, 0); // Scroll to top on chapter change
     }
   }, [book, chapter, version, toast]);
 
@@ -74,20 +93,20 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
     const chapterText = chapterData.verses.map(v => v.text).join(' ');
 
     try {
-        // Use the app's current language for the summary
         const langCode = i18n.language.split('-')[0];
         const result = await generateChapterSummary({ 
+            model: userProfile?.preferredModel,
             chapterText,
             language: langCode,
         });
         setSummary(result.summary);
     } catch (error: any) {
         console.error("Error generating summary:", error);
-        setSummaryError("Não foi possível gerar o resumo.");
+        setSummaryError("Não foi possível gerar a explicação.");
         toast({
             variant: "destructive",
             title: "Erro de IA",
-            description: error.message || "Não foi possível gerar o resumo neste momento. Tente novamente."
+            description: error.message || "Não foi possível gerar a explicação neste momento. Tente novamente."
         });
     } finally {
         setIsSummaryLoading(false);
@@ -99,14 +118,9 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
 
   if (loading) {
     return (
-        <div className="space-y-4 p-4">
-            <div className="flex items-center gap-4">
-                 <Skeleton className="h-8 w-8 rounded-md" />
-                 <div className="space-y-2">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                 </div>
-            </div>
+        <div className="p-8 space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-5 w-1/4 mb-6" />
             <div className="pt-4 space-y-3">
                 <Skeleton className="h-5 w-full" />
                 <Skeleton className="h-5 w-full" />
@@ -118,7 +132,7 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   }
 
   if (error) {
-    return <p className="text-destructive">{error}</p>;
+    return <p className="text-destructive p-8">{error}</p>;
   }
 
   if (!chapterData) {
@@ -126,48 +140,66 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
   }
 
   return (
-    <Card>
-         <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={onBack}>
+    <div className="p-4 sm:p-6 md:p-8">
+        <header className="mb-8">
+            <div className="flex items-center justify-between gap-4">
+                {(!isDesktop || isFocusMode) && (
+                     <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onBackToChapters}>
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Voltar para capítulos</span>
                     </Button>
-                    <div>
-                        <CardTitle className="text-2xl">{chapterData.book.name} {chapterData.chapter.number}</CardTitle>
-                        <CardDescription>{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</CardDescription>
-                    </div>
-                </div>
-                {!summary && !isSummaryLoading && (
-                    <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
-                        {isSummaryLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="mr-2 h-4 w-4" />
-                        )}
-                        Resumir
-                    </Button>
                 )}
-              </div>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight truncate">{chapterData.book.name} {chapterData.chapter.number}</h1>
+                    <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    {!summary && (
+                        <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
+                            {isSummaryLoading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="mr-2 h-4 w-4" />
+                            )}
+                            Explicar
+                        </Button>
+                    )}
+                     {isDesktop && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={onToggleFullscreen} className="h-9 w-9">
+                                        {isFocusMode ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isFocusMode ? "Sair da Tela Cheia" : "Modo Foco"}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
             </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </header>
+
         <SummaryDisplay 
             summary={summary}
             isLoading={isSummaryLoading}
             onHide={() => setSummary(null)}
         />
-
-        {chapterData.verses.map(verse => (
-          <p key={verse.number} className="leading-relaxed">
-            <sup className="font-bold text-primary mr-2">{verse.number}</sup>
-            {verse.text}
-          </p>
-        ))}
-      </CardContent>
-      <CardFooter className="flex justify-between">
+        
+        <SelectionPopover containerRef={contentRef}>
+            <div ref={contentRef} className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
+                {chapterData.verses.map(verse => (
+                  <p key={verse.number} className="text-card-foreground">
+                    <sup className="font-bold text-primary mr-2 no-underline select-none">{verse.number}</sup>
+                    <span>{verse.text}</span>
+                  </p>
+                ))}
+            </div>
+        </SelectionPopover>
+        
+        <footer className="mt-12 flex justify-between border-t pt-6">
             <Button variant="outline" onClick={onPrevChapter} disabled={!hasPrevChapter}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Anterior
@@ -176,7 +208,9 @@ export function VerseDisplay({ version, book, chapter, onBack, onNextChapter, on
                 Próximo
                 <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-      </CardFooter>
-    </Card>
+      </footer>
+    </div>
   );
 }
+
+    

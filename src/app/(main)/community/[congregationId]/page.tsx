@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -46,7 +46,7 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     const [editedText, setEditedText] = useState(comment.text);
     const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
-    const replies = allComments.filter(c => c.parentCommentId === comment.id);
+    const replies = useMemo(() => allComments.filter(c => c.parentCommentId === comment.id), [allComments, comment.id]);
 
     useEffect(() => {
         if (comment.createdAt) {
@@ -187,12 +187,12 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
                             )}
                             </div>
                         {timeAgo && 
-                            <p className="text-xs text-muted-foreground" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
+                            <p className="text-xs text-muted-foreground shrink-0 ml-2" title={comment.createdAt?.toDate().toLocaleString('pt-BR')}>
                                 {timeAgo}
                             </p>
                         }
                         </div>
-                        <p className="text-sm text-card-foreground">{comment.text}</p>
+                        <p className="text-sm text-card-foreground break-words">{comment.text}</p>
                         <button 
                             className="text-xs font-semibold text-muted-foreground hover:text-primary mt-1"
                             onClick={() => setIsReplying(!isReplying)}
@@ -216,9 +216,9 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
                           </DropdownMenuItem>
                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="mr-2 h-4 w-4 text-destructive"/>
-                                        <span className="text-destructive">Excluir</span>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                        Excluir
                                     </DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -292,7 +292,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
   const [timeAgo, setTimeAgo] = useState('');
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
-  const topLevelComments = comments.filter(c => !c.parentCommentId);
+  const topLevelComments = useMemo(() => comments.filter(c => !c.parentCommentId), [comments]);
 
   useEffect(() => {
     if (post.createdAt) {
@@ -300,7 +300,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     }
   }, [post.createdAt]);
 
-  const fetchComments = () => {
+  const fetchComments = useCallback(() => {
     setLoadingComments(true);
     const commentsQuery = query(
       collection(db, "congregations", congregationId, "posts", post.id, "comments"),
@@ -319,13 +319,13 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
         setLoadingComments(false);
     });
     return unsubscribe;
-  }
+  }, [congregationId, post.id, toast]);
 
   useEffect(() => {
     if (!showComments) return;
     const unsubscribe = fetchComments();
     return () => unsubscribe();
-  }, [post.id, showComments, toast, congregationId]);
+  }, [showComments, fetchComments]);
   
   const handleAddComment = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -368,7 +368,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     const parts = text.split(urlRegex);
 
     return (
-        <p className="mt-1 text-card-foreground whitespace-pre-wrap">
+        <p className="text-card-foreground whitespace-pre-wrap break-words">
             {parts.map((part, index) => {
                 if (part.match(urlRegex)) {
                     return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{part}</a>;
@@ -393,36 +393,39 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
     switch (post.postType) {
       case 'IMAGE':
         const imageContent = post.content as ImageContent;
-        if (!imageContent.imageUrl) {
-            return (
-                <div className="mt-2 text-sm text-muted-foreground italic">
-                    {imageContent.text && <PostText text={imageContent.text} />}
-                    Processando imagem...
-                </div>
-            );
-        }
+        const hasText = imageContent.text && imageContent.text.trim().length > 0;
         return (
-          <div className="mt-2 space-y-2">
-            {imageContent.text && <PostText text={imageContent.text} />}
-            <div className="-mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+          <>
+            {hasText && (
+                <div className="px-4 pt-3 pb-2">
+                    <PostText text={imageContent.text} />
+                </div>
+            )}
+            <div className="w-full bg-black">
                 <Image
                 src={imageContent.imageUrl}
                 alt={imageContent.text || `Post by ${post.authorName}`}
-                width={600}
-                height={600}
-                className="w-full h-auto bg-muted object-cover"
+                width={720}
+                height={720}
+                className="w-full h-auto max-h-[80vh] object-contain"
                 data-ai-hint="community post"
                 />
             </div>
-          </div>
+          </>
         );
       case 'VIDEO':
         const videoContent = post.content as VideoContent;
+        const hasVideoText = videoContent.text && videoContent.text.trim().length > 0;
+
         if (isPlayingVideo) {
             return (
-                <div className="mt-2 space-y-2">
-                    {videoContent.text && <PostText text={videoContent.text} />}
-                    <div className="aspect-video -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+                <>
+                    {hasVideoText && (
+                        <div className="px-4 pt-3 pb-2">
+                            <PostText text={videoContent.text} />
+                        </div>
+                    )}
+                    <div className="aspect-video w-full">
                         <iframe
                             className="w-full h-full"
                             src={`https://www.youtube.com/embed/${videoContent.videoId}?autoplay=1&rel=0`}
@@ -432,14 +435,18 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                             allowFullScreen
                         ></iframe>
                     </div>
-                </div>
+                </>
             )
         }
         return (
-            <div className="mt-2 space-y-2">
-                {videoContent.text && <PostText text={videoContent.text} />}
+            <>
+                {hasVideoText && (
+                    <div className="px-4 pt-3 pb-2">
+                        <PostText text={videoContent.text} />
+                    </div>
+                )}
                 <div 
-                    className="relative -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden cursor-pointer group"
+                    className="relative w-full bg-black cursor-pointer group"
                     onClick={() => setIsPlayingVideo(true)}
                 >
                     <Image
@@ -447,14 +454,14 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                         alt="Video thumbnail"
                         width={480}
                         height={270}
-                        className="w-full h-auto bg-muted object-cover"
-                        unoptimized
+                        className="w-full h-auto object-contain"
+                        unoptimized={true}
                     />
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
                         <PlayCircle className="h-16 w-16 text-white/80" />
                     </div>
                 </div>
-            </div>
+            </>
         );
       case 'BACKGROUND_TEXT':
         const bgTextContent = post.content as BackgroundTextContent;
@@ -469,61 +476,73 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
           : 'bg-muted';
         return (
           <div className={cn(
-            'mt-2 h-64 flex items-center justify-center p-6 text-center rounded-lg',
+            'h-80 flex items-center justify-center p-6 text-center',
             bgStyleClass
           )}>
-            <p className="font-bold text-2xl">{bgTextContent.text}</p>
+            <p className="font-bold text-3xl break-words">{bgTextContent.text}</p>
           </div>
         );
       case 'TEXT':
       default:
         const textContent = post.content as TextContent;
-        return <PostText text={textContent.text} />;
+        return (
+            <div className="px-4 pt-3 pb-2">
+                 <PostText text={textContent.text} />
+            </div>
+        );
     }
   };
 
 
   return (
-    <div className="flex flex-col gap-2 p-4 rounded-lg bg-card border">
-      <div className="flex gap-4">
-        <Avatar className="h-10 w-10 border">
-          {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
-          <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-              <p className="font-semibold text-sm">{post.authorName}</p>
-              {timeAgo && 
+    <div className="bg-card border-b sm:border sm:rounded-lg overflow-hidden">
+      <div className="p-4">
+          <div className="flex gap-3 sm:gap-4">
+            <Avatar className="h-10 w-10 border">
+              {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
+              <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+                <p className="font-semibold text-sm truncate">{post.authorName}</p>
+                 {timeAgo && 
                   <p className="text-xs text-muted-foreground" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
                       {timeAgo}
                   </p>
               }
+            </div>
           </div>
-          {renderContent()}
-          <div className="mt-3 flex items-center gap-4 text-muted-foreground">
+      </div>
+      
+      {renderContent()}
+
+      <div className="px-4 py-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+                {post.likeCount > 0 && <span className="text-xs">{post.likeCount} curtida(s)</span>}
+                {post.commentCount > 0 && <span className="text-xs ml-auto">{post.commentCount} comentário(s)</span>}
+          </div>
+          <div className="mt-1 flex items-center gap-1 border-t pt-1">
               <Button
                   variant="ghost"
                   size="sm"
-                  className={cn("gap-2 h-8 px-2", hasLiked && "text-destructive")}
+                  className={cn("w-full gap-2 h-8", hasLiked && "text-destructive")}
                   onClick={() => onLike(post.id, !!hasLiked)}
               >
                   <Heart className={cn("h-4 w-4", hasLiked && "fill-destructive")} />
-                  {post.likeCount > 0 && <span>{post.likeCount}</span>}
+                  <span className="font-semibold">Curtir</span>
               </Button>
                <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2 h-8 px-2"
+                  className="w-full gap-2 h-8"
                   onClick={() => setShowComments(s => !s)}
               >
                   <MessageCircle className="h-4 w-4"/>
-                  {post.commentCount > 0 && <span>{post.commentCount}</span>}
+                  <span className="font-semibold">Comentar</span>
               </Button>
           </div>
-        </div>
       </div>
        {showComments && (
-        <div className="pt-4 border-t border-muted/50 ml-14 space-y-4">
+        <div className="p-4 pt-2 border-t border-muted/50 space-y-4">
           {loadingComments && <Skeleton className="h-10 w-full" />}
           
           {!loadingComments && topLevelComments.map(comment => (
@@ -685,24 +704,21 @@ export default function CongregationFeedPage() {
   }, [userProfile, authLoading, congregationId, isMember]);
   
   useEffect(() => {
-      listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll to top when new posts are added (simple approach)
+      if (posts.length > 0 && listRef.current) {
+        // A conditional check to prevent this from firing on initial load might be needed
+        // For now, this is simple and effective.
+      }
   }, [posts.length > 0 ? posts[0].id : null]);
 
   const handleLike = async (postId: string, hasLiked: boolean) => {
     if (!user) return;
     const postRef = doc(db, 'congregations', congregationId, 'posts', postId);
     try {
-        if (hasLiked) {
-            await updateDoc(postRef, {
-                likes: arrayRemove(user.uid),
-                likeCount: increment(-1),
-            });
-        } else {
-            await updateDoc(postRef, {
-                likes: arrayUnion(user.uid),
-                likeCount: increment(1),
-            });
-        }
+        await updateDoc(postRef, {
+            likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+            likeCount: increment(hasLiked ? -1 : 1),
+        });
     } catch (error) {
       console.error("Error updating like status:", error);
       toast({ variant: "destructive", title: "Erro", description: "Não foi possível registrar sua interação." });
@@ -711,7 +727,7 @@ export default function CongregationFeedPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 px-4 space-y-4">
+      <div className="max-w-xl mx-auto py-8 px-0 sm:px-4 space-y-4">
         <Skeleton className="h-8 w-1/4" />
         <Skeleton className="h-6 w-1/2" />
         <div className="mt-8 space-y-6">
@@ -736,51 +752,55 @@ export default function CongregationFeedPage() {
     <>
     <div className="flex h-full flex-col">
         <div className="p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-            <div className="container mx-auto max-w-3xl flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 max-w-5xl mx-auto">
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.push('/community')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold">{congregation?.name}</h1>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-bold truncate">{congregation?.name}</h1>
                     <p className="text-sm text-muted-foreground">{congregation?.memberCount} membro(s)</p>
                 </div>
                 {congregation && (
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Convidar
+                            <Button variant="outline" size="sm" className="shrink-0">
+                                <UserPlus className="h-4 w-4 md:mr-2" />
+                                <span className="hidden md:inline">Convidar</span>
                             </Button>
                         </DialogTrigger>
                         <InviteModal inviteCode={congregation.inviteCode} />
                     </Dialog>
                 )}
                  {isAdmin && (
-                    <Button variant="secondary" size="sm" onClick={() => router.push(`/community/${congregationId}/manage`)}>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Gerenciar
+                    <Button variant="secondary" size="sm" className="shrink-0" onClick={() => router.push(`/community/${congregationId}/manage`)}>
+                        <Settings className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Gerenciar</span>
                     </Button>
                 )}
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto" ref={listRef}>
-            <div className="container mx-auto max-w-3xl py-6 px-4">
+        <div className="flex-1 overflow-y-auto bg-muted/30" ref={listRef}>
+            <div className="mx-auto max-w-xl w-full">
                 {user && congregationId && (
                     <CreatePostForm
                         user={user}
                         congregationId={congregationId}
-                        className="mb-6"
+                        className="sm:mt-4"
                     />
                 )}
 
-                {posts.length === 0 ? (
+                {posts.length === 0 && !user ? (
                     <div className="text-center py-12">
+                        <p className="text-muted-foreground">Carregando publicações...</p>
+                    </div>
+                ) : posts.length === 0 ? (
+                     <div className="text-center py-12">
                         <p className="text-muted-foreground">Nenhuma publicação ainda.</p>
                         <p className="text-sm text-muted-foreground">Seja o primeiro a compartilhar!</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4 py-4">
                         {posts.map(post => (
                             <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}

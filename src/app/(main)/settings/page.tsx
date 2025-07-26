@@ -38,7 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, BrainCircuit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -49,6 +49,11 @@ const languages = [
     { code: 'es', name: 'Español' },
     { code: 'zh', name: '中文 (Chinês)' },
     { code: 'ja', name: '日本語 (Japonês)' },
+];
+
+const aiModels = [
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Rápido)' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Avançado)' },
 ];
 
 const profileFormSchema = z.object({
@@ -62,11 +67,14 @@ export default function SettingsPage() {
   const { user, userProfile } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
-  const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
+  const [selectedModel, setSelectedModel] = React.useState(userProfile?.preferredModel || 'gemini-1.5-flash');
   
+  const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
+  const [isSavingModel, setIsSavingModel] = React.useState(false);
   const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+
   const [newAvatarFile, setNewAvatarFile] = React.useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -81,42 +89,64 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (userProfile) {
       form.setValue("displayName", userProfile.displayName || "");
+      setSelectedModel(userProfile.preferredModel || 'gemini-1.5-flash');
+      setSelectedLanguage(userProfile.preferredLanguage || i18n.language);
     }
-  }, [userProfile, form]);
+  }, [userProfile, form, i18n.language]);
   
   React.useEffect(() => {
     if (newAvatarFile) {
-        setAvatarPreview(URL.createObjectURL(newAvatarFile));
+        const objectUrl = URL.createObjectURL(newAvatarFile);
+        setAvatarPreview(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
     }
-    return () => {
-        if(avatarPreview) {
-            URL.revokeObjectURL(avatarPreview);
-        }
-    }
-  }, [newAvatarFile, avatarPreview]);
+  }, [newAvatarFile]);
 
 
   const handleLanguageChange = async (newLang: string) => {
     if (!user) return;
     setIsSavingLanguage(true);
-    setSelectedLanguage(newLang);
     try {
         await i18n.changeLanguage(newLang);
+        setSelectedLanguage(newLang);
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, { preferredLanguage: newLang });
         toast({
-            title: "Idioma atualizado!",
-            description: `O idioma foi alterado para ${languages.find(l => l.code === newLang)?.name}.`,
+            title: t('toast_language_updated_title'),
+            description: t('toast_language_updated_desc', { lang: languages.find(l => l.code === newLang)?.name }),
         });
     } catch (error) {
         console.error("Error changing language:", error);
         toast({
             variant: "destructive",
-            title: "Erro",
-            description: "Não foi possível alterar o idioma.",
+            title: t('toast_error'),
+            description: t('toast_language_error'),
         });
     } finally {
         setIsSavingLanguage(false);
+    }
+  };
+  
+  const handleModelChange = async (newModel: string) => {
+    if (!user) return;
+    setIsSavingModel(true);
+    setSelectedModel(newModel);
+    try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, { preferredModel: newModel });
+        toast({
+            title: t('toast_model_updated_title'),
+            description: t('toast_model_updated_desc', { model: aiModels.find(m => m.id === newModel)?.name }),
+        });
+    } catch (error) {
+        console.error("Error changing AI model:", error);
+        toast({
+            variant: "destructive",
+            title: t('toast_error'),
+            description: t('toast_model_error'),
+        });
+    } finally {
+        setIsSavingModel(false);
     }
   };
 
@@ -152,19 +182,18 @@ export default function SettingsPage() {
             }
         }
 
-        toast({ title: "Perfil atualizado com sucesso!" });
+        toast({ title: t('toast_profile_updated_title') });
       }
 
       setNewAvatarFile(null);
-      if(avatarPreview) URL.revokeObjectURL(avatarPreview);
       setAvatarPreview(null);
 
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao atualizar perfil',
-        description: 'Não foi possível salvar suas alterações. Tente novamente.',
+        title: t('toast_profile_error_title'),
+        description: t('toast_profile_error_desc'),
       });
     } finally {
       setIsSavingProfile(false);
@@ -179,8 +208,8 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = () => {
     toast({
-      title: "Conta excluída (simulação)",
-      description: "Sua conta e dados foram removidos com sucesso.",
+      title: t('toast_account_deleted_title'),
+      description: t('toast_account_deleted_desc'),
     })
     router.push("/login")
   }
@@ -188,9 +217,9 @@ export default function SettingsPage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
-      <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{t('settings_title')}</h1>
       <p className="mt-1 text-muted-foreground">
-        Gerencie suas preferências e sua conta.
+        {t('settings_subtitle')}
       </p>
 
       <div className="mt-8 space-y-6">
@@ -198,9 +227,9 @@ export default function SettingsPage() {
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onProfileSubmit)}>
                 <CardHeader>
-                    <CardTitle>Perfil</CardTitle>
+                    <CardTitle>{t('profile_title')}</CardTitle>
                     <CardDescription>
-                    Atualize seu nome e foto de perfil.
+                    {t('profile_subtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -234,9 +263,9 @@ export default function SettingsPage() {
                             name="displayName"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Nome de Exibição</FormLabel>
+                                <FormLabel>{t('display_name_label')}</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Seu nome" {...field} />
+                                    <Input placeholder={t('display_name_placeholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -245,30 +274,30 @@ export default function SettingsPage() {
                         </div>
                     </div>
                      <div className="flex items-center justify-between">
-                        <Label>Email</Label>
+                        <Label>{t('email_label')}</Label>
                         <span className="text-sm text-muted-foreground">{user?.email}</span>
                     </div>
                 </CardContent>
                 <CardFooter className="justify-end">
                     <Button type="submit" disabled={isSavingProfile}>
                     {isSavingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar Alterações
+                    {t('save_changes_button')}
                     </Button>
                 </CardFooter>
             </form>
             </Form>
         </Card>
-
+        
         <Card>
           <CardHeader>
-            <CardTitle>Idioma</CardTitle>
+            <CardTitle>{t('preferences_title')}</CardTitle>
             <CardDescription>
-              Escolha o idioma de sua preferência para a interface.
+              {t('preferences_subtitle')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-                <Label htmlFor="language-select">Idioma</Label>
+                <Label htmlFor="language-select">{t('language_label')}</Label>
                 <div className="flex items-center gap-2">
                     {isSavingLanguage && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                     <Select
@@ -277,7 +306,7 @@ export default function SettingsPage() {
                         disabled={isSavingLanguage}
                     >
                         <SelectTrigger id="language-select" className="w-[200px]">
-                            <SelectValue placeholder="Selecione o idioma" />
+                            <SelectValue placeholder={t('select_language_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
                             {languages.map((lang) => (
@@ -289,36 +318,60 @@ export default function SettingsPage() {
                     </Select>
                 </div>
             </div>
+             <div className="flex items-center justify-between">
+                <Label htmlFor="model-select" className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    {t('ai_model_label')}
+                </Label>
+                <div className="flex items-center gap-2">
+                    {isSavingModel && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Select
+                        value={selectedModel}
+                        onValueChange={handleModelChange}
+                        disabled={isSavingModel}
+                    >
+                        <SelectTrigger id="model-select" className="w-[240px]">
+                            <SelectValue placeholder={t('select_model_placeholder')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {aiModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                    {model.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Conta</CardTitle>
+            <CardTitle>{t('account_title')}</CardTitle>
             <CardDescription>
-              Gerenciamento da sua conta.
+              {t('account_subtitle')}
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={handleSignOut}>
-              Sair
+              {t('sign_out_button')}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">Deletar Conta</Button>
+                <Button variant="destructive">{t('delete_account_button')}</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('delete_account_confirm_title')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso excluirá permanentemente
-                    sua conta e removerá seus dados de nossos servidores.
+                    {t('delete_account_confirm_desc')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel>{t('cancel_button')}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAccount}>
-                    Continuar
+                    {t('continue_button')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

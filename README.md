@@ -1,3 +1,4 @@
+
 # Verbo Vivo - Seu Assistente de Discipulado Digital
 
 Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jornada de fé e estudo bíblico. Combinando ferramentas de leitura, meditação, comunidade e inteligência artificial, o Verbo Vivo oferece uma experiência personalizada e enriquecedora para o seu crescimento espiritual.
@@ -5,19 +6,44 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
 ## ✨ Funcionalidades
 
 *   **Leitura da Bíblia:** Acesse diversas versões da Bíblia, navegue por livros, capítulos e versículos de forma intuitiva.
-*   **Resumos Inteligentes:** Obtenha resumos de capítulos gerados por IA para uma compreensão rápida dos principais temas.
+*   **Resumos e Explicações com IA:** Obtenha resumos e explicações de capítulos ou trechos bíblicos gerados por IA para uma compreensão rápida dos principais temas e contextos.
 *   **Chat com IA:** Converse com um assistente virtual para tirar dúvidas, explorar temas bíblicos e receber insights.
 *   **Planos de Estudo Personalizados:** Crie ou receba sugestões de planos de estudo bíblico adaptados aos seus interesses e ritmo.
-*   **Meditações Guiadas:** Desfrute de meditações baseadas em passagens bíblicas, geradas para promover reflexão e paz interior.
+*   **Jornada de Sentimentos:** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras, oferecendo conforto e perspectiva bíblica.
+*   **Santuário de Oração:** Um espaço para orar em voz alta e receber uma reflexão devocional baseada em sua oração, gerada por IA.
 *   **Diário Espiritual:** Registre suas reflexões, orações e aprendizados em um espaço pessoal e seguro.
-*   **Círculos de Oração:** Conecte-se com outros usuários, compartilhe pedidos de oração e ore em comunidade.
-*   **Comunidade e Compartilhamento:** Interaja com outros membros, discuta passagens e compartilhe suas descobertas (funcionalidade em desenvolvimento).
+*   **Comunidade (Congregação):** Crie ou junte-se a uma comunidade (congregação) para compartilhar postagens, fotos, vídeos, comentários e interagir com outros membros.
+*   **Artigos e Reflexões:** Um módulo de blog onde administradores da comunidade podem criar e publicar artigos, com um editor de texto completo (Markdown) e imagens de capa.
+*   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de personagens bíblicos, com resumos, versículos-chave e planos de estudo.
+*   **Ponte da Esperança:** Gere mensagens de esperança e conforto, baseadas em versículos, para compartilhar com amigos que estão passando por dificuldades.
+*   **Confessionário:** Um espaço privado e seguro para confessar pecados e receber uma palavra de perdão e graça, fundamentada nas escrituras.
 *   **Onboarding Personalizado:** Configure suas preferências e objetivos para uma experiência adaptada desde o início.
+*   **Configurações de Idioma e IA:** Personalize sua experiência escolhendo o idioma da interface e o modelo de IA (rápido ou avançado) de sua preferência.
+
+### Confessionário: Um Espaço Seguro para a Graça
+
+Esta funcionalidade foi desenhada para ser um ambiente privado e seguro, incentivando a prática espiritual da confissão.
+
+#### Como Funciona?
+
+1.  **Acesso Intencional:** Para entrar, o usuário precisa pressionar e segurar um ícone de cadeado. Esse ato simbólico garante que a entrada no confessionário seja um passo deliberado.
+2.  **Confissão por Voz ou Texto:** O usuário pode confessar seus pecados falando ao microfone ou digitando. A interface foi projetada para ser um ouvinte passivo e sem julgamentos.
+3.  **Privacidade Absoluta:** A confissão, seja em áudio ou texto, **não é salva em nenhum lugar**. Ela é processada em memória e descartada imediatamente após a interação, garantindo total privacidade e segurança.
+4.  **Resposta de Graça:** Após a submissão, a IA analisa a confissão e gera uma resposta pastoral. Em vez de penitências, a IA oferece uma reflexão compassiva, fundamentada em 2 a 3 versículos bíblicos relevantes que falam sobre o perdão, a misericórdia e o amor incondicional de Deus.
+5.  **Foco na Promessa:** O objetivo é reforçar a certeza do perdão que é oferecido em Cristo, transformando um ato de vulnerabilidade em um momento de encontro com a graça.
+
+#### O Valor Bíblico
+
+A prática da confissão é um pilar fundamental na vida cristã, baseada em promessas claras da Palavra de Deus.
+
+*   **Fundamento Principal (1 João 1:9):** *"Se confessarmos os nossos pecados, ele é fiel e justo para nos perdoar os pecados e nos purificar de toda injustiça."* O confessionário do Verbo Vivo é uma ferramenta para viver esta promessa. Ele não substitui a confissão a Deus ou a uma comunidade de irmãos, mas serve como um catalisador para que o crente se aproprie dessa verdade diariamente.
+*   **Alcançar Misericórdia (Provérbios 28:13):** *"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia."* A funcionalidade incentiva a não esconder o pecado, mas a trazê-lo à luz para receber a misericórdia de Deus.
+*   **Foco no Perdão, Não na Penitência:** Diferente de um confessionário tradicional, o foco aqui não é na penitência, mas na celebração da graça. A resposta da IA é sempre direcionada para a obra consumada de Cristo na cruz, que é a fonte de todo perdão.
 
 ## 🛠️ Tecnologias Utilizadas
 
 *   **Frontend:** [Next.js](https://nextjs.org/) (React)
-*   **Backend & Autenticação:** [Firebase](https://firebase.google.com/) (Firestore, Authentication)
+*   **Backend & Autenticação:** [Firebase](https://firebase.google.com/) (Firestore, Authentication, Cloud Functions, Storage)
 *   **Inteligência Artificial:** [Genkit (Google AI)](https://firebase.google.com/docs/genkit)
 *   **UI Framework:** [Shadcn UI](https://ui.shadcn.com/) (construído sobre Tailwind CSS e Radix UI)
 *   **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
@@ -26,28 +52,18 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
 
 ### Pré-requisitos
 
-*   [Node.js](https://nodejs.org/) (versão 18 ou superior recomendada)
+*   [Node.js](https://nodejs.org/) (versão 20 ou superior)
 *   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
+*   [Firebase CLI](https://firebase.google.com/docs/cli)
 
 ### Configuração do Firebase
 
 1.  Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
-2.  Ative os serviços de **Authentication** (com o provedor Google) e **Firestore**.
+2.  Ative os serviços de **Authentication** (com o provedor Google), **Firestore** e **Storage**.
 3.  Nas configurações do seu projeto Firebase, adicione um aplicativo da Web.
 4.  Copie as credenciais do Firebase (apiKey, authDomain, etc.).
-5.  Renomeie o arquivo `.env.example` (se existir) para `.env.local` ou crie um novo arquivo `.env.local` na raiz do projeto.
-6.  Adicione suas credenciais do Firebase ao arquivo `.env.local`, seguindo o formato das variáveis de ambiente usadas em `src/lib/firebase.ts`. (Nota: Atualmente, as credenciais estão diretamente no código em `src/lib/firebase.ts`, o que não é recomendado para produção. O ideal é movê-las para variáveis de ambiente).
-
-    Exemplo de como as variáveis de ambiente seriam configuradas (se o código fosse refatorado para usá-las):
-    ```bash
-    NEXT_PUBLIC_FIREBASE_API_KEY=SUA_API_KEY
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=SEU_AUTH_DOMAIN
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID=SEU_PROJECT_ID
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=SEU_STORAGE_BUCKET
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=SEU_MESSAGING_SENDER_ID
-    NEXT_PUBLIC_FIREBASE_APP_ID=SEU_APP_ID
-    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=SEU_MEASUREMENT_ID
-    ```
+5.  Atualize o arquivo `src/lib/firebase.ts` com as credenciais do seu projeto.
+6.  Para as Cloud Functions, configure a autenticação do Firebase CLI no seu ambiente local executando `firebase login`.
 
 ### Configuração do Genkit (Google AI)
 
@@ -63,59 +79,101 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
     cd <NOME_DO_DIRETORIO>
     ```
 
-2.  **Instale as dependências:**
+2.  **Instale as dependências (raiz e functions):**
     ```bash
     npm install
-    # ou
-    yarn install
+    cd functions
+    npm install
+    cd ..
     ```
 
 3.  **Execute o servidor de desenvolvimento do Next.js:**
     ```bash
     npm run dev
-    # ou
-    yarn dev
     ```
     A aplicação Next.js estará disponível em `http://localhost:3000`.
 
 4.  **Execute o servidor de desenvolvimento do Genkit (para as funcionalidades de IA):**
     Em um novo terminal, na raiz do projeto:
     ```bash
-    npm run genkit:dev
-    # ou
-    yarn genkit:dev
+    npm run genkit:watch
     ```
     O servidor Genkit (ferramentas de IA) estará disponível em `http://localhost:4000` (ou outra porta, verifique o output do terminal).
+    
+5. **Execute o emulador de Cloud Functions:**
+   Para testar as funções de notificações e gerenciamento de comunidade localmente, execute em um novo terminal:
+   ```bash
+   firebase emulators:start --only functions
+   ```
 
-    Para desenvolvimento com recarregamento automático dos fluxos de IA:
-    ```bash
-    npm run genkit:watch
-    # ou
-    yarn genkit:watch
+## 🔍 Debugando Erros de Produção
+
+Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) geralmente são erros do lado do servidor. Como a aplicação Next.js é servida por uma Cloud Function no Firebase, os logs detalhados desses erros podem ser encontrados no **Google Cloud Logging**.
+
+### Passo a Passo para Encontrar a Causa do Erro
+
+1.  **Acesse o Logs Explorer:** [Clique aqui para ir para o Google Cloud Logs Explorer](https://console.cloud.google.com/logs/viewer).
+2.  **Selecione o Projeto Correto:** Garanta que o projeto no topo da página seja o mesmo do seu Firebase.
+3.  **Filtre pela Função e Severidade:** Use a caixa de consulta para filtrar os erros da sua aplicação. Uma consulta útil é:
     ```
+    resource.type="cloud_function"
+    resource.labels.function_name="ssrinovai-pr4x6"
+    severity>=ERROR
+    ```
+    *Substitua `ssrinovai-pr4x6` pelo nome da função do seu projeto, se for diferente. Você pode encontrar o nome da função no seu [Painel do Firebase](https://console.firebase.google.com/project/_/functions).*
+4.  **Encontre o Log do Erro da Aplicação:** O Google Cloud mostra dois tipos de logs para uma função:
+    *   **Logs de Requisição (`run.googleapis.com/requests`):** Estes logs apenas confirmam que uma requisição HTTP aconteceu e qual foi seu status (ex: 200 para sucesso, 500 para erro). **Eles não contêm a causa do erro**.
+    *   **Logs da Aplicação (`run.googleapis.com/stdout` ou `stderr`):** **É AQUI QUE ESTÁ O ERRO.** Procure por uma entrada que não seja um log de requisição. Ela terá a mensagem de erro detalhada e o "stack trace".
+5.  **Interprete o Stack Trace:** Ao encontrar o log de erro da aplicação, clique nele para expandir os detalhes. Procure por duas informações cruciais:
+    *   **Mensagem de Erro:** A primeira linha, geralmente em vermelho, que descreve *o que* deu errado.
+    *   **Stack Trace (Rastreamento da Pilha):** Uma lista de arquivos e números de linha que mostra *onde* o erro ocorreu.
+
+    **Exemplo Prático de Stack Trace:**
+    ```
+    Error: Value for argument "document" is not a valid Firestore document. ...
+        at WriteBatch.set (node_modules/@google-cloud/firestore/build/src/write-batch.js:288:23)
+        at /srv/src/app/(main)/community/page.tsx:154:19  <-- FOQUE AQUI
+        at ...
+    ```
+    Neste exemplo, o erro `not a valid Firestore document` aconteceu no seu código, no arquivo `src/app/(main)/community/page.tsx`, na linha `154`. Vá até essa linha no seu editor de código para encontrar e corrigir o problema.
 
 ## Firestore Data Model
 
-This section outlines key collections and their structures in Firestore.
+Esta seção descreve as coleções e estruturas chave no Firestore.
 
 ### `users` Collection
 
-*   **Document ID:** `userId` (same as Firebase Auth UID)
-*   **Description:** Stores user profile information.
-*   **Fields:**
-    *   `uid`: (string) User ID.
-    *   `email`: (string|null) User's email address.
-    *   `displayName`: (string|null) User's display name.
-    *   `photoURL`: (string|null) URL of the user's profile picture.
-    *   `createdAt`: (Timestamp) Timestamp of account creation.
-    *   `onboardingCompleted`: (boolean) Flag indicating if the user has completed the onboarding process.
-    *   `congregationId`: (string|null) ID of the congregation the user belongs to or has requested to join.
-    *   `congregationStatus`: (string|null) User's status within a congregation ('MEMBER', 'PENDING', 'ADMIN', 'NONE').
-    *   `preferredLanguage`: (string|null) User's preferred language code for the application (e.g., "pt", "en", "es", "ja", "zh"). Defaults to `null` (app then uses detection or fallback).
+*   **Document ID:** `userId` (o mesmo do Firebase Auth UID)
+*   **Descrição:** Armazena informações de perfil do usuário.
+*   **Campos:**
+    *   `uid`: (string) ID do Usuário.
+    *   `email`: (string|null) Endereço de e-mail do usuário.
+    *   `displayName`: (string|null) Nome de exibição do usuário.
+    *   `photoURL`: (string|null) URL da foto de perfil do usuário.
+    *   `createdAt`: (Timestamp) Data de criação da conta.
+    *   `onboardingCompleted`: (boolean) Flag que indica se o usuário completou o onboarding.
+    *   `congregationId`: (string|null) ID da congregação à qual o usuário pertence ou solicitou entrada.
+    *   `congregationStatus`: (string|null) Status do usuário na congregação ('MEMBER', 'PENDING', 'ADMIN', 'NONE').
+    *   `preferredLanguage`: (string|null) Código do idioma de preferência do usuário (ex: "pt", "en").
+    *   `preferredModel`: (string|null) Modelo de IA de preferência do usuário (ex: "gemini-1.5-flash").
 
-### Other Collections
-(Details for other collections like `prayers`, `congregations`, `posts`, etc., can be added here as needed.)
+### `congregations` Collection
 
+*   **Document ID:** ID único gerado automaticamente.
+*   **Descrição:** Armazena informações sobre as comunidades.
+*   **Campos:** `name`, `city`, `pastorName`, `admins` (mapa), `memberCount`, `inviteCode`, etc.
+*   **Subcoleções:**
+    *   `members`: Documentos para cada membro da congregação.
+    *   `posts`: Publicações da comunidade.
+        *   **Subcoleções de `posts`:** `comments`, `likes`.
+
+### Outras Coleções Principais
+
+*   `articles`: Armazena os artigos do blog.
+*   `journals`: Entradas do diário pessoal de cada usuário.
+*   `notifications`: Notificações no aplicativo para os usuários.
+*   `prayers`: Orações gravadas no Santuário de Oração.
+*   e mais...
 
 ## 🤝 Como Contribuir
 
@@ -132,4 +190,4 @@ Algumas áreas onde futuras contribuições seriam bem-vindas:
 
 ## 📄 Licença
 
-Este projeto é distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes (Nota: Adicionar um arquivo LICENSE ao projeto).
+Este projeto é distribuído sob a licença MIT. (Nota: Adicionar um arquivo LICENSE ao projeto).

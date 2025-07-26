@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  transpilePackages: ['@genkit-ai/googleai'],
   typescript: {
     // !! ATENÇÃO !!
     // Permite que builds de produção sejam concluídas com sucesso mesmo que
@@ -11,6 +13,23 @@ const nextConfig = {
     // mesmo que seu projeto tenha erros de ESLint.
     ignoreDuringBuilds: true,
   },
+  images: {
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      }
+    ],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

@@ -18,7 +18,7 @@ export function SummaryDisplay({ summary, isLoading, onHide }: SummaryDisplayPro
         <CardHeader>
             <CardTitle className="flex items-center text-lg gap-2">
                 <BookText className="h-5 w-5" />
-                Resumo do Capítulo
+                Explicação do Capítulo
             </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -40,11 +40,11 @@ export function SummaryDisplay({ summary, isLoading, onHide }: SummaryDisplayPro
         <div className="flex items-start justify-between">
             <CardTitle className="flex items-center text-lg gap-2">
                 <BookText className="h-5 w-5" />
-                Resumo do Capítulo
+                Explicação do Capítulo
             </CardTitle>
             <Button variant="ghost" size="icon" className="h-7 w-7 -mr-2 -mt-2 shrink-0" onClick={onHide}>
                 <X className="h-4 w-4" />
-                <span className="sr-only">Esconder Resumo</span>
+                <span className="sr-only">Esconder Explicação</span>
             </Button>
         </div>
       </CardHeader>

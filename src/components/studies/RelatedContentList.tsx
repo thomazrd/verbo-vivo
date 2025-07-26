@@ -43,7 +43,14 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
             return study.tags?.some(studyTag => tags.includes(studyTag)) ?? false;
           });
         
-        setRelatedStudies(filtered.slice(0, 4));
+        // If filtering by tag results in few studies, supplement with recent ones
+        const finalStudies = [...filtered];
+        if (finalStudies.length < 4) {
+          const recentFiltered = recentStudies.filter(s => s.id !== currentStudyId && !finalStudies.find(fs => fs.id === s.id));
+          finalStudies.push(...recentFiltered.slice(0, 4 - finalStudies.length));
+        }
+
+        setRelatedStudies(finalStudies.slice(0, 4));
 
       } catch (err) {
         console.error("Error fetching related studies:", err);
@@ -60,7 +67,7 @@ export function RelatedContentList({ user, currentStudyId, tags }: RelatedConten
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex gap-4">
-                <Skeleton className="h-20 w-28 shrink-0 rounded-lg" />
+                <Skeleton className="h-20 w-32 shrink-0 rounded-lg" />
                 <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-2/3" />

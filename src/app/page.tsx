@@ -5,15 +5,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2, BookHeart } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
 
 export default function Home() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Wait until the authentication check is complete
+    // Wait until the authentication check and profile fetch is complete.
     if (authLoading) {
       return;
     }
@@ -24,28 +22,22 @@ export default function Home() {
       router.replace("/login");
       return;
     }
-
-    // If there is a user, check their onboarding status to direct them correctly.
-    const checkOnboardingStatus = async () => {
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists() && userDocSnap.data().onboardingCompleted) {
-          router.replace("/home");
-        } else {
-          // This handles new sign-ups or cases where the doc might not be created yet.
-          router.replace("/onboarding");
-        }
-      } catch (error) {
-        console.error("Error checking onboarding status, redirecting to home as a fallback:", error);
-        router.replace("/home");
-      }
-    };
-
-    checkOnboardingStatus();
     
-  }, [user, authLoading, router]);
+    // If there is a user, we also need to wait for their profile to decide on onboarding.
+    // The useAuth hook ensures userProfile is loaded when authLoading is false.
+    if (userProfile) {
+       if (userProfile.onboardingCompleted) {
+         router.replace("/home");
+       } else {
+         router.replace("/onboarding");
+       }
+    } else {
+        // This case can happen for a brand new user whose document hasn't been created yet.
+        // Directing to onboarding is a safe default, as it will create the user document.
+        router.replace("/onboarding");
+    }
+    
+  }, [user, userProfile, authLoading, router]);
 
   // Render a loading state while the logic in useEffect determines the correct route.
   return (

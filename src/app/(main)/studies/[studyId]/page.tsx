@@ -28,7 +28,7 @@ export default function StudyDetailPage() {
             setStudy(null); // Mark as not found
         }
     }
-    fetchStudy();
+    fetchStudy().catch(() => setStudy(null));
   }, [studyId]);
 
 

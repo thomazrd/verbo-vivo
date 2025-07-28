@@ -13,7 +13,6 @@ import { Loader2 } from 'lucide-react';
 
 function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const { isFocusMode } = useFocusMode();
@@ -22,7 +21,8 @@ function AppLayout({ children }: { children: ReactNode }) {
   // This hook is safe to call here as it handles its own user state logic.
   useNotifications();
 
-  // Show a global loader while the auth state is being determined.
+  // Primary guard for the main application layout.
+  // It waits for the auth state to be resolved before rendering anything.
   if (loading) {
     return (
         <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -31,37 +31,13 @@ function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const publicPaths = ['/studies', '/ponte', '/blog'];
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
-  // If loading is complete and there's no user on a protected route,
-  // we return a loader. The redirection logic is now primarily handled
-  // by the root page.tsx, preventing race conditions here.
-  if (!user && !isPublicPath) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If a non-authenticated user tries to access a public path,
-  // we render the content without the main layout (sidebar, header).
-  if (!user && isPublicPath) {
-    return <main className="flex-1 overflow-y-auto h-screen">{children}</main>;
+  // If loading is complete and there is still no user, we return null.
+  // The redirection logic is handled by the root page.tsx, which will redirect to /login.
+  // This prevents the protected layout from ever rendering for an unauthenticated user.
+  if (!user) {
+    return null;
   }
   
-  // This case should ideally not be hit if redirection from page.tsx is working,
-  // but it's a safe fallback.
-  if (!user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };

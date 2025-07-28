@@ -1,44 +1,69 @@
 
-"use client";
-
-import { useEffect, useState } from 'react';
-import { useParams, notFound } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { db } from '@/lib/firebase-admin';
 import type { Study } from '@/lib/types';
 import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
-import { HomePageSkeleton } from '@/components/home/HomePageSkeleton';
 
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
-export default function StudyDetailPage() {
-  const params = useParams();
-  const studyId = params.studyId as string;
-  const [study, setStudy] = useState<Study | null | undefined>(undefined);
-  
-  useEffect(() => {
-    if (!studyId) return;
+async function getStudy(id: string): Promise<Study | null> {
+  const docRef = db.collection('studies').doc(id);
+  const docSnap = await docRef.get();
 
-    const fetchStudy = async () => {
-        const docRef = doc(db, 'studies', studyId);
-        const docSnap = await getDoc(docRef);
+  if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
+    return { id: docSnap.id, ...docSnap.data() } as Study;
+  }
+  return null;
+}
 
-        if (docSnap.exists() && docSnap.data()?.status === 'PUBLISHED') {
-            setStudy({ id: docSnap.id, ...docSnap.data() } as Study);
-        } else {
-            setStudy(null); // Mark as not found
-        }
+type Props = {
+  params: { studyId: string }
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const study = await getStudy(params.studyId);
+
+  if (!study) {
+    return {
+      title: 'Estudo não encontrado',
     }
-    fetchStudy().catch(() => setStudy(null));
-  }, [studyId]);
-
-
-  if (study === undefined) {
-    // Loading state
-    return <HomePageSkeleton />;
   }
 
-  if (study === null) {
-    // Not found state
+  const studyTitle = study.title;
+  const studyImage = study.thumbnailUrl || DEFAULT_THUMBNAIL;
+  const description = "Ouça este estudo edificante e fortaleça sua fé. Disponível no app Verbo Vivo.";
+
+  return {
+    title: `${studyTitle} | Verbo Vivo`,
+    description,
+    openGraph: {
+      title: studyTitle,
+      description: description,
+      images: [
+        {
+          url: studyImage,
+          width: 1200,
+          height: 630,
+          alt: studyTitle,
+        },
+      ],
+      locale: 'pt_BR',
+      type: 'article',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: studyTitle,
+        description: description,
+        images: [studyImage],
+    },
+  }
+}
+
+export default async function StudyDetailPage({ params }: Props) {
+  const study = await getStudy(params.studyId);
+
+  if (!study) {
     notFound();
   }
 

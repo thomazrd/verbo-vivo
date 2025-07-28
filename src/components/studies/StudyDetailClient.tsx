@@ -12,8 +12,6 @@ import { AudioPlayer } from "@/components/studies/AudioPlayer";
 import { StudyContentAccordion } from "@/components/studies/StudyContentAccordion";
 import { RelatedContentList } from "@/components/studies/RelatedContentList";
 import { useAuth } from "@/hooks/use-auth";
-import { useContentAccess } from "@/hooks/use-content-access";
-import { AccessModal } from "@/components/auth/AccessModal";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -30,10 +28,6 @@ export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProp
   const router = useRouter();
 
   const [study, setStudy] = useState(initialStudy);
-  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
-  
-  const shouldCheckAccess = !authLoading && !user;
-  const { canView, isLoading: isAccessLoading } = useContentAccess(study.id, shouldCheckAccess);
   
   useEffect(() => {
     // This effect listens for real-time updates to the study document (e.g., reactions)
@@ -46,20 +40,16 @@ export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProp
   }, [study.id]);
   
   useEffect(() => {
-    if (authLoading || isAccessLoading) return;
-
-    if (!canView) {
-      setIsAccessModalOpen(true);
-    } else {
-        // Increment view count only if user can view. We only do this once.
-        const viewedKey = `viewed-${study.id}`;
-        if (!sessionStorage.getItem(viewedKey)) {
-          const studyRef = doc(db, "studies", study.id);
-          updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
-          sessionStorage.setItem(viewedKey, 'true');
-        }
+    if (authLoading) return;
+    
+    // Increment view count only if user can view. We only do this once per session.
+    const viewedKey = `viewed-${study.id}`;
+    if (!sessionStorage.getItem(viewedKey)) {
+      const studyRef = doc(db, "studies", study.id);
+      updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
+      sessionStorage.setItem(viewedKey, 'true');
     }
-  }, [study.id, canView, isAccessLoading, authLoading]);
+  }, [study.id, authLoading]);
 
   const handleShare = async () => {
     if (!study) return;
@@ -90,7 +80,7 @@ export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProp
     }
   };
 
-  if (authLoading || isAccessLoading) {
+  if (authLoading) {
     return <HomePageSkeleton />;
   }
 
@@ -142,10 +132,6 @@ export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProp
 
         </div>
       </div>
-      <AccessModal 
-        isOpen={isAccessModalOpen} 
-        onClose={() => setIsAccessModalOpen(false)} 
-      />
     </>
   );
 }

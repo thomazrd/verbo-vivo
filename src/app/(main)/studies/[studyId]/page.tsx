@@ -1,4 +1,3 @@
-
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/firebase-admin';
@@ -26,13 +25,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!study) {
     return {
-      title: 'Estudo não encontrado',
+      title: 'Estudo não encontrado | Verbo Vivo',
     }
   }
 
   const studyTitle = study.title;
   const studyImage = study.thumbnailUrl || DEFAULT_THUMBNAIL;
-  const description = "Ouça este estudo edificante e fortaleça sua fé. Disponível no app Verbo Vivo.";
+  // Usar o início do conteúdo ou uma descrição padrão
+  const description = study.content 
+    ? study.content.substring(0, 150) + '...'
+    : "Ouça este estudo edificante e fortaleça sua fé. Disponível no app Verbo Vivo.";
 
   return {
     title: `${studyTitle} | Verbo Vivo`,
@@ -50,6 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ],
       locale: 'pt_BR',
       type: 'article',
+      siteName: 'Verbo Vivo',
     },
     twitter: {
         card: 'summary_large_image',

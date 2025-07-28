@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,16 +39,14 @@ export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProp
   }, [study.id]);
   
   useEffect(() => {
-    if (authLoading) return;
-    
-    // Increment view count only if user can view. We only do this once per session.
+    // Increment view count. We only do this once per session.
     const viewedKey = `viewed-${study.id}`;
     if (!sessionStorage.getItem(viewedKey)) {
       const studyRef = doc(db, "studies", study.id);
       updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
       sessionStorage.setItem(viewedKey, 'true');
     }
-  }, [study.id, authLoading]);
+  }, [study.id]);
 
   const handleShare = async () => {
     if (!study) return;

@@ -39,6 +39,30 @@ const studyFormSchema = z.object({
 type StudyFormValues = z.infer<typeof studyFormSchema>;
 type SubmitAction = 'DRAFT' | 'PUBLISHED';
 
+const generateMetaTagsHtml = (title: string, description: string, imageUrl: string, studyUrl: string): string => {
+    const esc = (str: string) => str.replace(/"/g, '&quot;');
+    const desc = esc(description.substring(0, 150) + '...');
+    const img = esc(imageUrl);
+    const url = esc(studyUrl);
+    const siteName = "Verbo Vivo";
+    const titleText = esc(title);
+
+    return `
+      <meta name="description" content="${desc}" />
+      <meta property="og:title" content="${titleText}" />
+      <meta property="og:description" content="${desc}" />
+      <meta property="og:image" content="${img}" />
+      <meta property="og:url" content="${url}" />
+      <meta property="og:type" content="article" />
+      <meta property="og:site_name" content="${siteName}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${titleText}" />
+      <meta name="twitter:description" content="${desc}" />
+      <meta name="twitter:image" content="${img}" />
+    `.trim();
+};
+
+
 export function StudyEditor({ studyId }: { studyId?: string }) {
   const { user, userProfile } = useAuth();
   const router = useRouter();
@@ -129,7 +153,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     const status = submitActionRef.current;
     if (!user || !userProfile) return;
     setIsSaving(true);
-    let finalThumbnailUrl = values.thumbnailUrl || null;
+    let finalThumbnailUrl = values.thumbnailUrl || study?.thumbnailUrl || "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
     try {
       const docId = studyId || study?.id || doc(collection(db, "studies")).id;
@@ -142,6 +166,10 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       }
       
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      
+      const studyUrl = `${window.location.origin}/studies/${docId}`;
+      const metaTags = generateMetaTagsHtml(values.title, values.content || values.title, finalThumbnailUrl, studyUrl);
+
 
       const dataToSave: any = {
         title: values.title,
@@ -150,6 +178,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
         thumbnailUrl: finalThumbnailUrl,
         practicalChallenge: values.practicalChallenge || null,
         tags: tagsArray,
+        metaTags: metaTags, // Salva as meta tags pré-geradas
         authorId: user.uid,
         authorName: userProfile.displayName,
         updatedAt: serverTimestamp(),

@@ -1,5 +1,4 @@
 
-
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
@@ -335,6 +334,7 @@ export interface Study {
   publishedAt: Timestamp | null;
   viewCount?: number;
   reactions?: { [key: string]: string[] };
+  metaTags?: string;
 }
 
 export interface Suggestion {

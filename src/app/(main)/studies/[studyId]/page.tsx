@@ -1,74 +1,65 @@
-import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { db } from '@/lib/firebase-admin';
-import type { Study } from '@/lib/types';
+"use client";
+
 import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
+import { useParams, notFound } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Study } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { HomePageSkeleton } from '@/components/home/HomePageSkeleton';
 
-const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+// This page is now a Client Component to avoid server-side Firebase Admin issues.
+// It fetches the initial data and then passes it to the main client component.
 
-async function getStudy(id: string): Promise<Study | null> {
-  const docRef = db.collection('studies').doc(id);
-  const docSnap = await docRef.get();
+export default function StudyDetailPage() {
+  const params = useParams();
+  const studyId = params.studyId as string;
+  const { user, loading: authLoading } = useAuth();
 
-  if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
-    return { id: docSnap.id, ...docSnap.data() } as Study;
+  const [study, setStudy] = useState<Study | null | 'not-found'>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    const fetchStudy = async () => {
+      try {
+        const docRef = doc(db, 'studies', studyId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists() && docSnap.data()?.status === 'PUBLISHED') {
+          setStudy({ id: docSnap.id, ...docSnap.data() } as Study);
+        } else {
+          // If the user is not authenticated, we should not immediately call notFound(),
+          // as they might not have permission. For a client component, a simple
+          // state change is better.
+          setStudy('not-found');
+        }
+      } catch (error) {
+        console.error("Error fetching study on client:", error);
+        setStudy('not-found');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudy();
+  }, [studyId, authLoading, user]);
+
+
+  if (isLoading || authLoading) {
+    return <HomePageSkeleton />;
   }
-  return null;
-}
 
-type Props = {
-  params: { studyId: string }
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const study = await getStudy(params.studyId);
-
-  if (!study) {
-    return {
-      title: 'Estudo não encontrado | Verbo Vivo',
-    }
-  }
-
-  const studyTitle = study.title;
-  const studyImage = study.thumbnailUrl || DEFAULT_THUMBNAIL;
-  // Usar o início do conteúdo ou uma descrição padrão
-  const description = study.content 
-    ? study.content.substring(0, 150) + '...'
-    : "Ouça este estudo edificante e fortaleça sua fé. Disponível no app Verbo Vivo.";
-
-  return {
-    title: `${studyTitle} | Verbo Vivo`,
-    description,
-    openGraph: {
-      title: studyTitle,
-      description: description,
-      images: [
-        {
-          url: studyImage,
-          width: 1200,
-          height: 630,
-          alt: studyTitle,
-        },
-      ],
-      locale: 'pt_BR',
-      type: 'article',
-      siteName: 'Verbo Vivo',
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: studyTitle,
-        description: description,
-        images: [studyImage],
-    },
-  }
-}
-
-export default async function StudyDetailPage({ params }: Props) {
-  const study = await getStudy(params.studyId);
-
-  if (!study) {
+  if (study === 'not-found') {
     notFound();
   }
+  
+  if (!study) {
+    // This case handles the brief moment before the 'not-found' state is set
+    return <HomePageSkeleton />;
+  }
 
-  return <StudyDetailClient study={study} />;
+  return <StudyDetailClient initialStudy={study} />;
 }

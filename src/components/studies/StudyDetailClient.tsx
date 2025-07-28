@@ -18,10 +18,10 @@ import { HomePageSkeleton } from "../home/HomePageSkeleton";
 import { ReactionButtons } from "./ReactionButtons";
 
 interface StudyDetailClientProps {
-  study: Study;
+  initialStudy: Study;
 }
 
-export function StudyDetailClient({ study: initialStudy }: StudyDetailClientProps) {
+export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();

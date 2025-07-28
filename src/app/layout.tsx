@@ -25,11 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
+  // Este componente não tem mais a responsabilidade de gerar meta tags dinâmicas.
+  // A função `generateMetadata` foi movida para as páginas específicas que precisam dela,
+  // como a página de detalhes do estudo.
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Verbo Vivo</title>
-        <meta name="description" content="Seu assistente de discipulado digital." />
+        {/* As meta tags dinâmicas serão injetadas pelo Next.js aqui */}
       </head>
       <body
         className={cn(

@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@genkit-ai/googleai'],
+  experimental: {
+    // Essencial para garantir que dependências do lado do servidor não sejam incorretamente empacotadas.
+    // Isso resolve problemas de autenticação com o Firebase Admin SDK em produção.
+    serverComponentsExternalPackages: ['firebase-admin'],
+  },
   typescript: {
     // !! ATENÇÃO !!
     // Permite que builds de produção sejam concluídas com sucesso mesmo que
@@ -27,6 +32,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
+      },
+       {
+        protocol: 'https',
+        hostname: 'dynamic.tiggomark.com.br',
       }
     ],
   },

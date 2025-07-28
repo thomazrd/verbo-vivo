@@ -59,6 +59,7 @@ function AppLayout({ children }: { children: ReactNode }) {
       <div
         className={cn(
           "flex flex-col h-screen",
+          "transition-[margin-left] duration-300 ease-in-out",
           isCollapsed
             ? "md:ml-[68px]"
             : "md:ml-[220px] lg:ml-[280px]"

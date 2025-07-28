@@ -1,27 +1,39 @@
 
 import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
-import { db } from '@/lib/firebase-admin';
 import type { Study } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { type Metadata } from 'next';
-import { JSDOM } from 'jsdom';
+import { db } from '@/lib/firebase-admin';
 
+// NOTE: The database call is commented out to prevent server-side auth errors in production.
+// This function will now generate generic meta tags for sharing previews.
+// A more advanced solution (like pre-rendering at build time or using a different
+// server-side architecture) would be needed for fully dynamic tags without hitting auth issues.
+async function getStudy(id: string): Promise<Partial<Study> | null> {
+    try {
+        // This server-side fetch is causing authentication issues in the current production environment.
+        // const docRef = db.collection('studies').doc(id);
+        // const docSnap = await docRef.get();
 
-// Esta função busca os dados no servidor, ANTES da página ser renderizada.
-async function getStudy(id: string): Promise<Study | null> {
-  const docRef = db.collection('studies').doc(id);
-  const docSnap = await docRef.get();
+        // if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
+        //     return { id: docSnap.id, ...docSnap.data() } as Study;
+        // }
+        
+        // As a fallback, we return a partial object to avoid breaking the page.
+        // This is a temporary measure until the root cause of the server auth issue is resolved.
+        return { id: id, title: "Estudo Bíblico" };
 
-  if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
-    return { id: docSnap.id, ...docSnap.data() } as Study;
-  }
-  return null;
+    } catch (error) {
+        console.error("Server-side getStudy failed:", error);
+        // Return a generic object to allow the page to render without dynamic metadata.
+        return { id: id, title: "Estudo Bíblico" };
+    }
 }
 
-// Esta função usa os dados buscados para gerar as meta tags
+
 export async function generateMetadata({ params }: { params: { studyId: string } }): Promise<Metadata> {
   const study = await getStudy(params.studyId);
-  const defaultTitle = "Estudo | Verbo Vivo";
+  const defaultTitle = "Um Estudo Edificante | Verbo Vivo";
   const defaultDescription = "Aprofunde sua fé com estudos e pílulas de sabedoria.";
   const defaultImageUrl = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
@@ -36,61 +48,31 @@ export async function generateMetadata({ params }: { params: { studyId: string }
       },
     };
   }
-
-  // Se o estudo tiver meta tags pré-geradas, use-as
-  if (study.metaTags) {
-    const dom = new JSDOM(study.metaTags);
-    const meta: { [key: string]: string } = {};
-    dom.window.document.querySelectorAll('meta').forEach(tag => {
-      const key = tag.getAttribute('property') || tag.getAttribute('name');
-      const value = tag.getAttribute('content');
-      if (key && value) {
-        meta[key] = value;
-      }
-    });
-    
-    return {
-        title: meta['og:title'] || study.title,
-        description: meta['og:description'] || defaultDescription,
-        openGraph: {
-            title: meta['og:title'] || study.title,
-            description: meta['og:description'] || defaultDescription,
-            images: [meta['og:image'] || defaultImageUrl],
-            url: meta['og:url'],
-            type: 'article',
-        },
-        twitter: {
-            card: 'summary_large_image',
-            title: meta['twitter:title'] || study.title,
-            description: meta['twitter:description'] || defaultDescription,
-            images: [meta['twitter:image'] || defaultImageUrl],
-        }
-    }
-  }
-
-  // Fallback para estudos mais antigos que não têm o campo metaTags
-  const description = study.content ? study.content.substring(0, 150) + '...' : defaultDescription;
-  const imageUrl = study.thumbnailUrl || defaultImageUrl;
-
+  
+  // Since we cannot reliably fetch all study data, we use a generic fallback.
+  // The specific title is omitted to prevent showing a generic title for all shares.
   return {
-    title: study.title,
-    description: description,
+    title: defaultTitle,
+    description: defaultDescription,
     openGraph: {
-      title: study.title,
-      description: description,
-      images: [imageUrl],
+      title: defaultTitle,
+      description: defaultDescription,
+      images: [defaultImageUrl],
+      type: 'article',
     },
+    twitter: {
+        card: 'summary_large_image',
+        title: defaultTitle,
+        description: defaultDescription,
+        images: [defaultImageUrl],
+    }
   };
 }
 
 
-// A página principal agora passa os dados iniciais para o componente cliente
+// The client component will now be responsible for fetching all the data.
 export default async function StudyDetailPage({ params }: { params: { studyId: string } }) {
-  const study = await getStudy(params.studyId);
-
-  if (!study) {
-    notFound();
-  }
-
-  return <StudyDetailClient initialStudy={study} />;
+  // We pass a minimal initial object. The client will fetch the full data.
+  const study = { id: params.studyId };
+  return <StudyDetailClient initialStudy={study as Study} />;
 }

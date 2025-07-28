@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, increment, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, increment, onSnapshot, getDoc } from "firebase/firestore";
 import type { Study } from "@/lib/types";
 
 import { AudioPlayer } from "@/components/studies/AudioPlayer";
@@ -18,7 +18,7 @@ import { HomePageSkeleton } from "../home/HomePageSkeleton";
 import { ReactionButtons } from "./ReactionButtons";
 
 interface StudyDetailClientProps {
-  initialStudy: Study;
+  initialStudy: Partial<Study>; // Now accepts a partial study object
 }
 
 export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
@@ -26,19 +26,29 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [study, setStudy] = useState(initialStudy);
-  
+  const [study, setStudy] = useState<Study | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    // This effect listens for real-time updates to the study document (e.g., reactions)
-    const unsub = onSnapshot(doc(db, "studies", study.id), (doc) => {
-      if (doc.exists()) {
+    if (!initialStudy.id) return;
+    
+    // Listener for real-time updates (reactions, etc.)
+    const unsub = onSnapshot(doc(db, "studies", initialStudy.id), (doc) => {
+      if (doc.exists() && doc.data().status === 'PUBLISHED') {
         setStudy({ id: doc.id, ...doc.data() } as Study);
+        setIsLoading(false);
+      } else {
+        // Handle case where study is not found or not published
+        setIsLoading(false);
+        setStudy(null);
       }
     });
+
     return () => unsub();
-  }, [study.id]);
+  }, [initialStudy.id]);
   
   useEffect(() => {
+    if (!study) return;
     // Increment view count. We only do this once per session.
     const viewedKey = `viewed-${study.id}`;
     if (!sessionStorage.getItem(viewedKey)) {
@@ -46,7 +56,7 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
       updateDoc(studyRef, { viewCount: increment(1) }).catch(console.error);
       sessionStorage.setItem(viewedKey, 'true');
     }
-  }, [study.id]);
+  }, [study]);
 
   const handleShare = async () => {
     if (!study) return;
@@ -77,8 +87,18 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
     }
   };
 
-  if (authLoading) {
+  if (isLoading || authLoading) {
     return <HomePageSkeleton />;
+  }
+  
+  if (!study) {
+    return (
+        <div className="container mx-auto text-center py-10">
+            <h1 className="text-2xl font-bold">Estudo não encontrado</h1>
+            <p className="text-muted-foreground">Este estudo pode ter sido removido ou não está mais disponível.</p>
+            <Button variant="link" onClick={() => router.push('/studies')}>Ver outros estudos</Button>
+        </div>
+    )
   }
 
   return (

@@ -3,23 +3,13 @@ import { StudyDetailClient } from '@/components/studies/StudyDetailClient';
 import type { Study } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { type Metadata } from 'next';
-import { db } from '@/lib/firebase-admin';
 
 // NOTE: The database call is commented out to prevent server-side auth errors in production.
 // This function will now generate generic meta tags for sharing previews.
-// A more advanced solution (like pre-rendering at build time or using a different
-// server-side architecture) would be needed for fully dynamic tags without hitting auth issues.
 async function getStudy(id: string): Promise<Partial<Study> | null> {
     try {
         // This server-side fetch is causing authentication issues in the current production environment.
-        // const docRef = db.collection('studies').doc(id);
-        // const docSnap = await docRef.get();
-
-        // if (docSnap.exists && docSnap.data()?.status === 'PUBLISHED') {
-        //     return { id: docSnap.id, ...docSnap.data() } as Study;
-        // }
-        
-        // As a fallback, we return a partial object to avoid breaking the page.
+        // For now, we return a partial object to allow the page to render.
         // This is a temporary measure until the root cause of the server auth issue is resolved.
         return { id: id, title: "Estudo Bíblico" };
 
@@ -33,8 +23,8 @@ async function getStudy(id: string): Promise<Partial<Study> | null> {
 
 export async function generateMetadata({ params }: { params: { studyId: string } }): Promise<Metadata> {
   const study = await getStudy(params.studyId);
-  const defaultTitle = "Um Estudo Edificante | Verbo Vivo";
-  const defaultDescription = "Aprofunde sua fé com estudos e pílulas de sabedoria.";
+  const defaultTitle = "Pílula de Sabedoria: Ouça um estudo para edificar sua fé | Verbo Vivo";
+  const defaultDescription = "Uma mensagem de esperança e sabedoria espera por você. Clique para ouvir este estudo em áudio e fortalecer sua jornada espiritual.";
   const defaultImageUrl = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
   if (!study) {
@@ -50,7 +40,6 @@ export async function generateMetadata({ params }: { params: { studyId: string }
   }
   
   // Since we cannot reliably fetch all study data, we use a generic fallback.
-  // The specific title is omitted to prevent showing a generic title for all shares.
   return {
     title: defaultTitle,
     description: defaultDescription,

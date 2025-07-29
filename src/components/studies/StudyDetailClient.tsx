@@ -26,6 +26,16 @@ interface StudyDetailClientProps {
   initialStudy: Partial<Study>; 
 }
 
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+
+// Função para normalizar texto (remover acentos e converter para minúsculas)
+const normalizeText = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+
 export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -84,9 +94,9 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
             const snapshot = await getDocs(q);
             const allStudies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Study));
 
-            // Simple client-side search for now
+            const normalizedSearch = normalizeText(searchQuery);
             const filtered = allStudies.filter(s => 
-                s.title.toLowerCase().includes(searchQuery.toLowerCase())
+                normalizeText(s.title).includes(normalizedSearch)
             );
             setSearchResults(filtered);
 
@@ -201,7 +211,7 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
                                     <CommandItem key={s.id} onSelect={() => handleSelectResult(s.id)} value={s.title}>
                                         <div className="flex items-center gap-3">
                                             <div className="relative w-16 h-10 shrink-0 bg-muted rounded-md overflow-hidden">
-                                                <Image src={s.thumbnailUrl || ''} alt={s.title} fill className="object-cover" />
+                                                <Image src={s.thumbnailUrl || DEFAULT_THUMBNAIL} alt={s.title} fill className="object-cover" />
                                             </div>
                                             <span className="truncate">{s.title}</span>
                                         </div>

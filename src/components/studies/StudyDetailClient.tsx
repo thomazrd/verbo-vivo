@@ -4,22 +4,37 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, increment, onSnapshot, getDoc } from "firebase/firestore";
+import { doc, updateDoc, increment, onSnapshot, getDoc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import type { Study } from "@/lib/types";
+import Image from "next/image";
 
 import { AudioPlayer } from "@/components/studies/AudioPlayer";
 import { StudyContentAccordion } from "@/components/studies/StudyContentAccordion";
 import { RelatedContentList } from "@/components/studies/RelatedContentList";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Share2 } from "lucide-react";
+import { Home, Share2, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { HomePageSkeleton } from "../home/HomePageSkeleton";
 import { ReactionButtons } from "./ReactionButtons";
+import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "../ui/popover";
+import Link from "next/link";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
 
 interface StudyDetailClientProps {
-  initialStudy: Partial<Study>; // Now accepts a partial study object
+  initialStudy: Partial<Study>; 
 }
+
+const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+
+// Função para normalizar texto (remover acentos e converter para minúsculas)
+const normalizeText = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 
 export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   const { user, loading: authLoading } = useAuth();
@@ -28,17 +43,21 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
 
   const [study, setStudy] = useState<Study | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Study[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
 
   useEffect(() => {
     if (!initialStudy.id) return;
     
-    // Listener for real-time updates (reactions, etc.)
     const unsub = onSnapshot(doc(db, "studies", initialStudy.id), (doc) => {
       if (doc.exists() && doc.data().status === 'PUBLISHED') {
         setStudy({ id: doc.id, ...doc.data() } as Study);
         setIsLoading(false);
       } else {
-        // Handle case where study is not found or not published
         setIsLoading(false);
         setStudy(null);
       }
@@ -49,7 +68,6 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   
   useEffect(() => {
     if (!study) return;
-    // Increment view count. We only do this once per session.
     const viewedKey = `viewed-${study.id}`;
     if (!sessionStorage.getItem(viewedKey)) {
       const studyRef = doc(db, "studies", study.id);
@@ -57,6 +75,43 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
       sessionStorage.setItem(viewedKey, 'true');
     }
   }, [study]);
+
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    const fetchResults = async () => {
+        setIsSearchLoading(true);
+        try {
+            const q = query(
+                collection(db, "studies"),
+                where("status", "==", "PUBLISHED"),
+                orderBy("title"),
+                limit(10)
+            );
+            const snapshot = await getDocs(q);
+            const allStudies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Study));
+
+            const normalizedSearch = normalizeText(searchQuery);
+            const filtered = allStudies.filter(s => 
+                normalizeText(s.title).includes(normalizedSearch)
+            );
+            setSearchResults(filtered);
+
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSearchLoading(false);
+        }
+    };
+
+    const debounce = setTimeout(() => fetchResults(), 300);
+    return () => clearTimeout(debounce);
+
+  }, [searchQuery]);
+
 
   const handleShare = async () => {
     if (!study) return;
@@ -86,6 +141,13 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
         }
     }
   };
+  
+  const handleSelectResult = (studyId: string) => {
+    router.push(`/studies/${studyId}`);
+    setIsSearchOpen(false);
+    setSearchQuery("");
+  }
+
 
   if (isLoading || authLoading) {
     return <HomePageSkeleton />;
@@ -104,23 +166,71 @@ export function StudyDetailClient({ initialStudy }: StudyDetailClientProps) {
   return (
     <>
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center gap-2 mb-4">
             <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="md:hidden"
+                variant="outline"
+                size="icon"
+                onClick={() => router.push('/home')}
+                className="shrink-0"
             >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
+                <Home className="h-4 w-4" />
+                <span className="sr-only">Início</span>
             </Button>
-            <div className="flex-grow md:hidden" />
+            
+            <div className="relative flex-1">
+                 <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                    <PopoverAnchor asChild>
+                         <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Buscar outro estudo..."
+                                className="pl-10"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => setIsSearchOpen(true)}
+                            />
+                             {searchQuery && (
+                                <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                                    onClick={() => setSearchQuery('')}
+                                >
+                                    <X className="h-4 w-4"/>
+                                </Button>
+                             )}
+                        </div>
+                    </PopoverAnchor>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                       <Command shouldFilter={false}>
+                            <CommandList>
+                                {isSearchLoading && <CommandEmpty>Buscando...</CommandEmpty>}
+                                {!isSearchLoading && searchResults.length === 0 && searchQuery.length > 1 && <CommandEmpty>Nenhum resultado.</CommandEmpty>}
+                                <CommandGroup>
+                                {searchResults.map(s => (
+                                    <CommandItem key={s.id} onSelect={() => handleSelectResult(s.id)} value={s.title}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative w-16 h-10 shrink-0 bg-muted rounded-md overflow-hidden">
+                                                <Image src={s.thumbnailUrl || DEFAULT_THUMBNAIL} alt={s.title} fill className="object-cover" />
+                                            </div>
+                                            <span className="truncate">{s.title}</span>
+                                        </div>
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
              <Button
                 size="sm"
                 onClick={handleShare}
-                className="bg-accent text-accent-foreground hover:bg-accent/90 ml-auto"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0"
             >
                 <Share2 className="mr-2 h-4 w-4" />
-                Compartilhar
+                <span className="hidden sm:inline">Compartilhar</span>
             </Button>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-8">

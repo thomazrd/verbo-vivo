@@ -249,11 +249,5 @@ function BibleReaderContent() {
 }
 
 export default function BibleReaderPage() {
-  return (
-    <Suspense fallback={<div className="flex h-full items-center justify-center">Carregando...</div>}>
-      <BibleReaderContent />
-    </Suspense>
-  )
+  return <BibleReaderContent />;
 }
-
-    

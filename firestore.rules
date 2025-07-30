@@ -15,7 +15,7 @@ function isOwner(userId) {
 function userData(userId) {
   return get(/databases/$(database)/documents/users/$(userId)).data;
 }
-\n\n    // === REGRAS PARA USUÁRIOS ===
+\n    // === REGRAS PARA USUÁRIOS ===
     match /users/{userId} {
       // Leitura: Qualquer usuário autenticado pode ler perfis de outros para funcionalidades da comunidade.
       allow read: if request.auth != null;
@@ -23,7 +23,7 @@ function userData(userId) {
       // Escrita: Apenas o próprio usuário pode atualizar seu perfil.
       allow write: if isOwner(userId);
     }
-\n\n    // === REGRAS PARA ESTUDOS (PÍLULAS DE SABEDORIA) ===
+\n    // === REGRAS PARA ESTUDOS (PÍLULAS DE SABEDORIA) ===
     match /studies/{studyId} {
         // Leitura: Qualquer um pode ler se estiver publicado. Rascunhos só para admins.
         allow read: if resource.data.status == 'PUBLISHED' || (request.auth != null && userData(request.auth.uid).role == 'ADMIN');
@@ -31,7 +31,7 @@ function userData(userId) {
         // Escrita: Apenas admins.
         allow write: if request.auth != null && userData(request.auth.uid).role == 'ADMIN';
     }
-\n\n    // === REGRAS PARA COMUNIDADE (CONGREGAÇÕES) ===
+\n    // === REGRAS PARA COMUNIDADE (CONGREGAÇÕES) ===
     match /congregations/{congregationId} {
       // Leitura: Membros da congregação podem ler os dados da congregação.
       allow read: if userData(request.auth.uid).congregationId == congregationId;
@@ -73,12 +73,12 @@ function userData(userId) {
         }
       }
     }
-\n\n    // === REGRAS PARA CHAT ===
+\n    // === REGRAS PARA CHAT ===
     match /users/{userId}/messages/{messageId} {
       // Apenas o próprio usuário pode ler e escrever suas mensagens.
       allow read, write: if request.auth.uid == userId;
     }
-\n\nmatch /sharedContent/{contentId} {
+\nmatch /sharedContent/{contentId} {
   // Qualquer pessoa pode ler um conteúdo compartilhado que está ativo
   allow read: if resource.data.status == 'ACTIVE';
 
@@ -91,7 +91,7 @@ function userData(userId) {
   // Ninguém pode deletar diretamente
   allow delete: if false;
 }
-\n\n    // === REGRAS GERAIS ===
+\n    // === REGRAS GERAIS ===
 
     // Diário Pessoal
     match /journals/{journalId} {
@@ -127,7 +127,7 @@ function userData(userId) {
     match /notifications/{notificationId} {
       allow read, update: if isOwner(resource.data.recipientId);
     }
-\n\n
+\n
 
   }
 }

@@ -22,7 +22,7 @@ const orderedFiles = [
 orderedFiles.forEach(file => {
   const filePath = path.join(rulesDir, file);
   if (fs.existsSync(filePath)) {
-    rulesContent += fs.readFileSync(filePath, 'utf8') + '\\n\\n';
+    rulesContent += fs.readFileSync(filePath, 'utf8') + '\\n';
   }
 });
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -9,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { JournalEntry } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,8 +53,9 @@ import {
 
 interface JournalEditorProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean, wasSaved?: boolean) => void;
+  onOpenChange: () => void;
   entry: JournalEntry | null;
+  missionUserPlanId?: string | null;
 }
 
 const formSchema = z.object({
@@ -65,8 +66,9 @@ const formSchema = z.object({
   }),
 });
 
-export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProps) {
+export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }: JournalEditorProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -121,7 +123,13 @@ export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProp
         });
         toast({ title: "Entrada criada com sucesso!" });
       }
-      onOpenChange(false, true); // Signal that save was successful
+      
+      onOpenChange(); // Close the sheet
+
+      if (missionUserPlanId) {
+        router.push(`/?missionCompleted=${missionUserPlanId}`);
+      }
+
     } catch (error) {
       console.error("Error saving journal entry:", error);
       toast({
@@ -140,7 +148,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProp
     try {
       await deleteDoc(doc(db, 'journals', entry.id));
       toast({ title: "Entrada excluída com sucesso." });
-      onOpenChange(false);
+      onOpenChange();
     } catch (error) {
        console.error("Error deleting journal entry:", error);
        toast({
@@ -154,7 +162,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProp
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => onOpenChange(open, false)}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{entry ? 'Editar Entrada' : 'Nova Entrada no Diário'}</SheetTitle>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,13 +23,16 @@ export default function JournalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-
-  const isMission = searchParams.get('mission') === 'true';
-  const userPlanId = searchParams.get('userPlanId');
+  
+  // State to hold mission context
+  const [missionUserPlanId, setMissionUserPlanId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if the page was opened from a mission
-    if (isMission) {
+    // This effect runs only once on mount to check if it's a mission
+    const missionParam = searchParams.get('mission');
+    const planIdParam = searchParams.get('userPlanId');
+    if (missionParam === 'true' && planIdParam) {
+      setMissionUserPlanId(planIdParam);
       handleNewEntry();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,15 +72,15 @@ export default function JournalPage() {
 
   const handleEditEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
+    // Clear mission context if editing a regular entry
+    setMissionUserPlanId(null);
     setIsEditorOpen(true);
   };
-
-  const handleEditorClose = (wasSaved?: boolean) => {
+  
+  const handleEditorClose = () => {
     setIsEditorOpen(false);
-    if (wasSaved && isMission && userPlanId) {
-      // Redirect to home with completion flag and plan ID
-      router.push(`/?missionCompleted=${userPlanId}`);
-    }
+    // Reset mission context when editor is closed manually
+    setMissionUserPlanId(null); 
   };
 
   const getCategoryBadgeColor = (category: string) => {
@@ -150,6 +152,7 @@ export default function JournalPage() {
         isOpen={isEditorOpen}
         onOpenChange={handleEditorClose}
         entry={selectedEntry}
+        missionUserPlanId={missionUserPlanId}
       />
     </>
   );

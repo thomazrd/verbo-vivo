@@ -90,7 +90,11 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
     }, [user, userPlanId, onClose]);
     
     const handleCompleteMission = async () => {
-        if (!user || !userPlan || !planDef || !missionToComplete || !selectedFeeling) {
+        if (!user || !userPlan || !planDef || !missionToComplete) {
+            return;
+        }
+
+        if (!selectedFeeling) {
              toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
             return;
         }

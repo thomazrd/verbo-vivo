@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +8,7 @@ import { FeatureGrid } from "@/components/home/FeatureGrid";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { TodayMissions } from "@/components/home/TodayMissions";
 
 export default function HomePage() {
   const { userProfile, loading } = useAuth();
@@ -35,6 +35,7 @@ export default function HomePage() {
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 space-y-8">
       <WelcomeHeader userName={userProfile.displayName || t('default_username')} />
+      <TodayMissions />
       <VerseOfTheDayCard />
       <FeatureGrid />
     </div>

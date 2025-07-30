@@ -24,11 +24,9 @@ export default function JournalPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   
-  // State to hold mission context
   const [missionUserPlanId, setMissionUserPlanId] = useState<string | null>(null);
 
   useEffect(() => {
-    // This effect runs only once on mount to check if it's a mission
     const missionParam = searchParams.get('mission');
     const planIdParam = searchParams.get('userPlanId');
     if (missionParam === 'true' && planIdParam) {
@@ -72,15 +70,18 @@ export default function JournalPage() {
 
   const handleEditEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
-    // Clear mission context if editing a regular entry
     setMissionUserPlanId(null);
     setIsEditorOpen(true);
   };
   
-  const handleEditorClose = () => {
-    setIsEditorOpen(false);
-    // Reset mission context when editor is closed manually
-    setMissionUserPlanId(null); 
+  const handleEditorClose = (open: boolean, wasSaved = false) => {
+    setIsEditorOpen(open);
+    if (!open) {
+      if (wasSaved && missionUserPlanId) {
+        router.push(`/?missionCompleted=${missionUserPlanId}`);
+      }
+      setMissionUserPlanId(null);
+    }
   };
 
   const getCategoryBadgeColor = (category: string) => {

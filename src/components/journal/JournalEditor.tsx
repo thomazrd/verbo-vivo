@@ -53,7 +53,7 @@ import {
 
 interface JournalEditorProps {
   isOpen: boolean;
-  onOpenChange: () => void;
+  onOpenChange: (isOpen: boolean, wasSaved?: boolean) => void;
   entry: JournalEntry | null;
   missionUserPlanId?: string | null;
 }
@@ -124,11 +124,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
         toast({ title: "Entrada criada com sucesso!" });
       }
       
-      onOpenChange(); // Close the sheet
-
-      if (missionUserPlanId) {
-        router.push(`/?missionCompleted=${missionUserPlanId}`);
-      }
+      onOpenChange(false, true); // Close sheet and signal save
 
     } catch (error) {
       console.error("Error saving journal entry:", error);
@@ -148,7 +144,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
     try {
       await deleteDoc(doc(db, 'journals', entry.id));
       toast({ title: "Entrada excluída com sucesso." });
-      onOpenChange();
+      onOpenChange(false);
     } catch (error) {
        console.error("Error deleting journal entry:", error);
        toast({

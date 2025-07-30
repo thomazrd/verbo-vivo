@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { BibleBook } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookMarked, Menu } from 'lucide-react';
+import { BookMarked, Menu, CheckCircle } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
 import BookSelector from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
@@ -14,6 +14,7 @@ import { useWindowSize } from '@/hooks/use-window-size';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { useFocusMode } from '@/contexts/focus-mode-context';
+import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 
 function BibleReaderContent() {
   const router = useRouter();
@@ -23,6 +24,7 @@ function BibleReaderContent() {
 
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
+  const missionUserPlanId = searchParams.get('userPlanId');
   
   const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
   const [selectedVersion, setSelectedVersion] = useState({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
@@ -32,6 +34,8 @@ function BibleReaderContent() {
   
   const { width } = useWindowSize();
   const isDesktop = width >= 768;
+
+  const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
   const updateUrlParams = useCallback((book: BibleBook | null, chapter: number | null) => {
     const params = new URLSearchParams(searchParams);
@@ -45,8 +49,12 @@ function BibleReaderContent() {
     } else {
       params.delete('chapter');
     }
+    // Preserve mission param if it exists
+    if(missionUserPlanId) {
+        params.set('userPlanId', missionUserPlanId);
+    }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [searchParams, router, pathname]);
+  }, [searchParams, router, pathname, missionUserPlanId]);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -89,7 +97,6 @@ function BibleReaderContent() {
   
   useEffect(() => {
     const handleFullscreenChange = () => {
-      // Exit focus mode if user presses Esc to exit fullscreen
       if (!document.fullscreenElement && isFocusMode) {
         toggleFocusMode();
       }
@@ -137,7 +144,7 @@ function BibleReaderContent() {
 
   const handlePrevChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter > 1) {
-      const prevChapter = selectedChapter - 1;
+      const prevChapter = selectedChapter + 1;
       setSelectedChapter(prevChapter);
       updateUrlParams(selectedBook, prevChapter);
     }
@@ -157,7 +164,6 @@ function BibleReaderContent() {
                     <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
                   </div>
                   <BookSelector allBooks={allBooks} onBookSelect={(book) => {
-                      // Use a SheetClose inside BookSelector or handle close manually if needed
                       handleBookSelect(book);
                   }} />
               </SheetContent>
@@ -208,11 +214,10 @@ function BibleReaderContent() {
      )
   }
 
-  // --- Desktop Layout ---
-  if (isDesktop) {
-    return (
+  return (
+    <>
       <div className="grid h-full md:grid-cols-[350px_1fr]">
-        <aside className="border-r flex flex-col">
+        <aside className="border-r flex-col hidden md:flex">
             <div className="p-4 border-b">
                 <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
             </div>
@@ -222,7 +227,7 @@ function BibleReaderContent() {
                  <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} />
             )}
         </aside>
-        <main className="overflow-y-auto">
+        <main className="overflow-y-auto h-full">
           {mainContent || (
             <div className="flex h-full items-center justify-center p-12 text-center">
                 <div className="flex flex-col items-center gap-4">
@@ -234,20 +239,33 @@ function BibleReaderContent() {
           )}
         </main>
       </div>
-    );
-  }
-  
-  // --- Mobile Layout ---
-  return (
-    <div className="h-full bg-background">
-      {mainContent ? mainContent : 
-       selectedBook ? <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} /> :
-       MobileInitialView
-      }
-    </div>
+
+       {missionUserPlanId && (
+        <>
+            <Button 
+              size="lg" 
+              className="fixed bottom-6 right-6 shadow-lg z-50"
+              onClick={() => setMissionToComplete(missionUserPlanId)}
+            >
+              <CheckCircle className="mr-2 h-5 w-5"/>
+              Marcar como Lido
+            </Button>
+            {missionToComplete && (
+              <MissionCompletionModal 
+                userPlanId={missionToComplete}
+                onClose={() => setMissionToComplete(null)}
+              />
+            )}
+        </>
+      )}
+    </>
   );
 }
 
 export default function BibleReaderPage() {
-  return <BibleReaderContent />;
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <BibleReaderContent />
+        </Suspense>
+    )
 }

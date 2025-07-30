@@ -20,9 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import type { Mission, MissionType, UserBattlePlan, BattlePlan } from "@/lib/types";
+import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook } from "@/lib/types";
 import Image from "next/image";
 import { Skeleton } from "../ui/skeleton";
+import axios from 'axios';
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -48,13 +49,109 @@ const planSchema = z.object({
 type PlanFormValues = z.infer<typeof planSchema>;
 
 const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
-    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'completed' },
-    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'completed' },
+    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, completionQueryParam: 'userPlanId' },
+    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'missionId' },
+    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'missionId' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'missionId' },
     JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
     FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'userPlanId' },
 };
+
+function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: { fieldNamePrefix: string, setValue: any, getValues: any, control: any }) {
+    const [books, setBooks] = useState<BibleBook[]>([]);
+    const [selectedBookChapters, setSelectedBookChapters] = useState(0);
+    
+    useEffect(() => {
+        const fetchBooks = async () => {
+            try {
+                const response = await axios.get('/api/bible/books');
+                setBooks(response.data);
+            } catch (error) {
+                console.error("Failed to fetch Bible books", error);
+            }
+        };
+        fetchBooks();
+    }, []);
+
+    const updateVerseReference = () => {
+        const bookName = getValues(`${fieldNamePrefix}.book`)?.name || '';
+        const chapter = getValues(`${fieldNamePrefix}.chapter`) || '';
+        const start = getValues(`${fieldNamePrefix}.startVerse`) || '';
+        const end = getValues(`${fieldNamePrefix}.endVerse`) || '';
+        let reference = `${bookName} ${chapter}`;
+        if (start && end) {
+            reference += `:${start}-${end}`;
+        } else if (start) {
+            reference += `:${start}`;
+        }
+        setValue(`missions.${fieldNamePrefix.split('.')[1]}.content.verse`, reference);
+    };
+
+
+    return (
+        <div className="space-y-3 p-3 bg-muted rounded-md border">
+            <Label>Definir Leitura</Label>
+             <Controller
+                control={control}
+                name={`${fieldNamePrefix}.book`}
+                render={({ field }) => (
+                    <Select onValueChange={(bookId) => {
+                        const book = books.find(b => b.id === bookId);
+                        field.onChange(book);
+                        setSelectedBookChapters(book?.chapters || 0);
+                        updateVerseReference();
+                    }} defaultValue={field.value?.id}>
+                        <SelectTrigger><SelectValue placeholder="Escolha um livro..." /></SelectTrigger>
+                        <SelectContent>
+                            {books.map(book => (
+                                <SelectItem key={book.id} value={book.id!}>{book.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            />
+            {selectedBookChapters > 0 && (
+                 <Controller
+                    control={control}
+                    name={`${fieldNamePrefix}.chapter`}
+                    render={({ field }) => (
+                        <Select onValueChange={(val) => { field.onChange(val); updateVerseReference(); }} defaultValue={field.value}>
+                            <SelectTrigger><SelectValue placeholder="Escolha um capítulo..." /></SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: selectedBookChapters }, (_, i) => i + 1).map(c => (
+                                    <SelectItem key={c} value={String(c)}>{c}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+            )}
+             <div className="grid grid-cols-2 gap-2">
+                <Controller
+                    control={control}
+                    name={`${fieldNamePrefix}.startVerse`}
+                    render={({ field }) => (
+                       <Input type="number" placeholder="Início" {...field} onChange={(e)=>{field.onChange(e); updateVerseReference();}} />
+                    )}
+                />
+                <Controller
+                    control={control}
+                    name={`${fieldNamePrefix}.endVerse`}
+                    render={({ field }) => (
+                       <Input type="number" placeholder="Fim" {...field} onChange={(e)=>{field.onChange(e); updateVerseReference();}} />
+                    )}
+                />
+            </div>
+             <Controller
+                control={control}
+                name={`missions.${fieldNamePrefix.split('.')[1]}.content.verse`}
+                render={({ field }) => (
+                    <Input readOnly disabled {...field} placeholder="Referência final aparecerá aqui" />
+                )}
+            />
+        </div>
+    );
+}
 
 
 function MissionEditor({ control, day, getValues, setValue }: { control: any, day: number, getValues: any, setValue: any }) {
@@ -79,7 +176,7 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
             type: defaultType,
             content: { 
                 path: MissionTypeDetails[defaultType].path, 
-                verse: "Filipenses 4:13",
+                verse: "",
                 completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
             },
             leaderNote: ""
@@ -91,10 +188,9 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
         
-        if (details.completionQueryParam === 'mission') {
-            setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'true');
-        } else if (details.completionQueryParam) {
-            setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
+        const completionParam = details.completionQueryParam;
+        if (completionParam) {
+            setValue(`missions.${fieldIndex}.content.completionQueryParam`, completionParam);
         } else {
              setValue(`missions.${fieldIndex}.content.completionQueryParam`, undefined);
         }
@@ -143,17 +239,13 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
                                 )}
                             />
                             
-                            {requiresVerse && (
-                                <div>
-                                    <Label>Referência Bíblica</Label>
-                                    <Controller
-                                        control={control}
-                                        name={`missions.${fieldIndex}.content.verse`}
-                                        render={({ field }) => (
-                                            <Input {...field} placeholder="Ex: Filipenses 4:13" />
-                                        )}
-                                    />
-                                </div>
+                             {requiresVerse && (
+                                <BibleVerseSelector
+                                    fieldNamePrefix={`missions.${fieldIndex}.contentDetails`}
+                                    setValue={setValue}
+                                    getValues={getValues}
+                                    control={control}
+                                />
                             )}
                             
                              <Label>Nota do Líder (Opcional)</Label>
@@ -248,7 +340,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                         title: `Missão do Dia ${i+1}`,
                         type: defaultType,
                         content: { 
-                            path: MissionTypeDetails[defaultType].path,
+                            path: MissionTypeDetails[defaultType].path, 
                             verse: "",
                             completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
                         },

@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { v4 as uuidv4 } from 'uuid';
@@ -58,9 +58,15 @@ const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: 
     FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'userPlanId' },
 };
 
-function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: { fieldNamePrefix: string, setValue: any, getValues: any, control: any }) {
+function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: number, control: any, setValue: any }) {
     const [books, setBooks] = useState<BibleBook[]>([]);
-    const [selectedBookChapters, setSelectedBookChapters] = useState(0);
+    
+    const details = useWatch({
+        control,
+        name: `missions.${fieldIndex}.content.details`
+    });
+
+    const selectedBook: BibleBook | undefined = details?.book;
     
     useEffect(() => {
         const fetchBooks = async () => {
@@ -74,24 +80,26 @@ function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: {
         fetchBooks();
     }, []);
 
-    const updateVerseReference = (fieldIndex: number) => {
-        const details = getValues(`missions.${fieldIndex}.content.details`);
-        if (!details || !details.book || !details.chapter) return;
+    useEffect(() => {
+        if (!details) return;
 
-        const bookName = details.book.name || '';
-        const chapter = details.chapter || '';
-        const start = details.startVerse || '';
-        const end = details.endVerse || '';
-        let reference = `${bookName} ${chapter}`;
-        if (start && end) {
-            reference += `:${start}-${end}`;
-        } else if (start) {
-            reference += `:${start}`;
+        const { book, chapter, startVerse, endVerse } = details;
+        if (!book || !chapter) {
+            setValue(`missions.${fieldIndex}.content.verse`, '');
+            return;
+        }
+
+        let reference = `${book.name} ${chapter}`;
+        if (startVerse) {
+            reference += `:${startVerse}`;
+            if (endVerse) {
+                reference += `-${endVerse}`;
+            }
         }
         setValue(`missions.${fieldIndex}.content.verse`, reference);
-    };
 
-    const fieldIndex = parseInt(fieldNamePrefix.split('.')[1]);
+    }, [details, fieldIndex, setValue]);
+
 
     return (
         <div className="space-y-3 p-3 bg-muted rounded-md border">
@@ -100,30 +108,32 @@ function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: {
                 control={control}
                 name={`missions.${fieldIndex}.content.details.book`}
                 render={({ field }) => (
-                    <Select onValueChange={(bookId) => {
-                        const book = books.find(b => b.id === bookId);
-                        field.onChange(book);
-                        setSelectedBookChapters(book?.chapters || 0);
-                        updateVerseReference(fieldIndex);
-                    }} defaultValue={field.value?.id}>
+                    <Select 
+                        onValueChange={(bookId) => {
+                            const book = books.find(b => b.abbrev.pt === bookId);
+                            field.onChange(book);
+                            setValue(`missions.${fieldIndex}.content.details.chapter`, undefined);
+                        }} 
+                        value={field.value?.abbrev?.pt}
+                    >
                         <SelectTrigger><SelectValue placeholder="Escolha um livro..." /></SelectTrigger>
                         <SelectContent>
                             {books.map(book => (
-                                <SelectItem key={book.id!} value={book.id!}>{book.name}</SelectItem>
+                                <SelectItem key={book.abbrev.pt} value={book.abbrev.pt}>{book.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 )}
             />
-            {selectedBookChapters > 0 && (
+            {selectedBook && (
                  <Controller
                     control={control}
                     name={`missions.${fieldIndex}.content.details.chapter`}
                     render={({ field }) => (
-                        <Select onValueChange={(val) => { field.onChange(val); updateVerseReference(fieldIndex); }} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger><SelectValue placeholder="Escolha um capítulo..." /></SelectTrigger>
                             <SelectContent>
-                                {Array.from({ length: selectedBookChapters }, (_, i) => i + 1).map(c => (
+                                {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map(c => (
                                     <SelectItem key={c} value={String(c)}>{c}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -136,14 +146,14 @@ function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: {
                     control={control}
                     name={`missions.${fieldIndex}.content.details.startVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Início" {...field} onChange={(e)=>{field.onChange(e); updateVerseReference(fieldIndex);}} />
+                       <Input type="number" placeholder="Início" {...field} />
                     )}
                 />
                 <Controller
                     control={control}
                     name={`missions.${fieldIndex}.content.details.endVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Fim" {...field} onChange={(e)=>{field.onChange(e); updateVerseReference(fieldIndex);}} />
+                       <Input type="number" placeholder="Fim" {...field} />
                     )}
                 />
             </div>
@@ -159,14 +169,13 @@ function BibleVerseSelector({ fieldNamePrefix, setValue, getValues, control }: {
 }
 
 
-function MissionEditor({ control, day, getValues, setValue, watch }: { control: any, day: number, getValues: any, setValue: any, watch: any }) {
+function MissionEditor({ control, day, setValue, watch }: { control: any, day: number, setValue: any, watch: any }) {
     const { fields, append, remove } = useFieldArray({
         control,
         name: `missions`
     });
     
-    // Watch all mission types
-    const missionTypes = watch('missions').map((m: Mission) => m.type);
+    const missions = watch('missions');
 
     const dayMissionIndices = fields.reduce((acc, field, index) => {
         if((field as any).day === day) acc.push(index);
@@ -212,12 +221,12 @@ function MissionEditor({ control, day, getValues, setValue, watch }: { control: 
         <div className="space-y-4 rounded-lg bg-muted/50 p-4 border">
             <h3 className="font-semibold text-lg">Dia {day}</h3>
             {dayMissionIndices.map((fieldIndex) => {
-                const mission = getValues().missions[fieldIndex];
-                const currentMissionType = missionTypes[fieldIndex];
-                const requiresVerse = MissionTypeDetails[currentMissionType]?.requiresVerse;
+                const missionType = missions[fieldIndex]?.type;
+                const requiresVerse = MissionTypeDetails[missionType]?.requiresVerse;
+                const key = (fields[fieldIndex] as any).id;
 
                 return (
-                    <Card key={mission.id}>
+                    <Card key={key}>
                         <CardContent className="p-4 space-y-3">
                              <div className="flex justify-between items-center">
                                <Label>Título da Missão</Label>
@@ -232,11 +241,11 @@ function MissionEditor({ control, day, getValues, setValue, watch }: { control: 
                             />
 
                             <Label>Tipo de Missão</Label>
-                            <Controller
+                             <Controller
                                 control={control}
                                 name={`missions.${fieldIndex}.type`}
                                 render={({ field }) => (
-                                    <Select onValueChange={(value) => handleTypeChange(value as MissionType, fieldIndex)} defaultValue={field.value}>
+                                    <Select onValueChange={(value) => handleTypeChange(value as MissionType, fieldIndex)} value={field.value}>
                                         <SelectTrigger><SelectValue placeholder="Escolha um tipo..." /></SelectTrigger>
                                         <SelectContent>
                                             {Object.entries(MissionTypeDetails).map(([key, value]) => (
@@ -249,9 +258,8 @@ function MissionEditor({ control, day, getValues, setValue, watch }: { control: 
                             
                              {requiresVerse && (
                                 <BibleVerseSelector
-                                    fieldNamePrefix={`missions.${fieldIndex}.content.details`}
+                                    fieldIndex={fieldIndex}
                                     setValue={setValue}
-                                    getValues={getValues}
                                     control={control}
                                 />
                             )}
@@ -522,7 +530,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           {currentStep === 1 && (
               <div className="space-y-4">
                   {Array.from({ length: duration }, (_, i) => (
-                      <MissionEditor key={i} control={control} day={i + 1} getValues={getValues} setValue={setValue} watch={watch} />
+                      <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
                   ))}
               </div>
           )}

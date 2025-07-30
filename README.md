@@ -106,6 +106,23 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
    firebase emulators:start --only functions
    ```
 
+## Firestore Security Rules
+
+As regras de segurança do Firestore são gerenciadas de forma modular para facilitar a manutenção e a colaboração. Os arquivos de regras estão localizados no diretório `firestore/rules`.
+
+### Estrutura
+
+- **`main.rules`**: O arquivo base que contém a estrutura principal das regras.
+- **`helpers.rules`**: Funções auxiliares que podem ser usadas em outras regras.
+- **Outros arquivos `.rules`**: Cada arquivo representa um módulo da aplicação (e.g., `users.rules`, `studies.rules`).
+
+### Como Adicionar Novas Regras
+
+1. Crie um novo arquivo `.rules` no diretório `firestore/rules` (e.g., `novo-modulo.rules`).
+2. Adicione as regras para o novo módulo nesse arquivo.
+3. Adicione o novo arquivo à lista `orderedFiles` no script `build-rules.js`.
+4. Execute `npm run build:rules` para gerar o arquivo `firestore.rules` final.
+
 ## 🔍 Debugando Erros de Produção
 
 Erros que ocorrem apenas no ambiente de produção (erros 500, por exemplo) geralmente são erros do lado do servidor. Como a aplicação Next.js é servida por uma Cloud Function no Firebase, os logs detalhados desses erros podem ser encontrados no **Google Cloud Logging**.

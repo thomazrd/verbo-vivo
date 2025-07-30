@@ -25,13 +25,6 @@
        allow read, write, delete: if isOwner(request.resource.data.userId);
     }
 
-    // Ponte da Esperança (Conteúdo Compartilhado)
-    match /sharedContent/{contentId} {
-      allow read: if resource.data.status == 'ACTIVE';
-      allow create: if isUserAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if isOwner(resource.data.creatorId); // Para marcar como deletado
-    }
-
     // Tokens para Notificações Push
     match /userPushTokens/{userId} {
       allow read, write: if isOwner(userId);

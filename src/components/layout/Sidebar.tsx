@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -21,7 +20,7 @@ import {
   Shield,
   LockKeyhole,
   HandHeart,
-  Presentation,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,7 +39,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/studies", label: t('nav_studies'), icon: Presentation },
+    { href: "/battle-plans", label: 'Treinamento', icon: GraduationCap },
     { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
     { href: "/armor", label: 'Minha Armadura', icon: Shield },
     { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },

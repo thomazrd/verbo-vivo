@@ -124,8 +124,10 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
             
             if (nextMission) {
                 router.push(`/battle-plans/mission/${userPlanId}`);
+                onClose();
+            } else {
+                router.push('/home'); // Go to home after the last mission of the day
             }
-            onClose(); 
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar seu progresso.' });

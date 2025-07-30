@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import { db, storage } from "@/lib/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain, Smile, LockKeyhole, HeartHandshake, NotebookText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import type { Mission, MissionType } from "@/lib/types";
+import type { Mission, MissionType, UserBattlePlan } from "@/lib/types";
 import Image from "next/image";
 
 const missionSchema = z.object({
@@ -238,8 +238,11 @@ export function CreateBattlePlanWizard() {
       setIsSaving(true);
       
       const values = getValues();
+      const planId = uuidv4(); // Generate a consistent ID for both documents
+      
       const planData = {
           ...values,
+          id: planId, // Add id to the data itself
           creatorId: user.uid,
           creatorName: userProfile.displayName || 'Anônimo',
           status,
@@ -247,8 +250,31 @@ export function CreateBattlePlanWizard() {
           updatedAt: serverTimestamp(),
       };
       
+      const userPlanData: UserBattlePlan = {
+          id: planId,
+          userId: user.uid,
+          planId: planId,
+          planTitle: values.title,
+          planCoverImageUrl: values.coverImageUrl,
+          planCreatorId: user.uid,
+          startDate: new Date() as any, // Firestore will convert this
+          status: 'IN_PROGRESS',
+          progressPercentage: 0,
+          consentToShareProgress: true, // Creator auto-consents
+          completedMissionIds: [],
+      };
+      
       try {
-          await addDoc(collection(db, "battlePlans"), planData);
+          const batch = writeBatch(db);
+          
+          const planRef = doc(db, "battlePlans", planId);
+          batch.set(planRef, planData);
+          
+          const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planId);
+          batch.set(userPlanRef, userPlanData);
+
+          await batch.commit();
+
           toast({ title: "Sucesso!", description: `Seu plano de batalha foi salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.`});
           router.push('/battle-plans');
       } catch (error) {

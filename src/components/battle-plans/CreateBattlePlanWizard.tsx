@@ -52,7 +52,7 @@ const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: 
 };
 
 
-function MissionEditor({ control, day }: { control: any, day: number }) {
+function MissionEditor({ control, day, getValues }: { control: any, day: number, getValues: any }) {
     const { fields, append, remove } = useFieldArray({
         control,
         name: `missions`
@@ -80,7 +80,7 @@ function MissionEditor({ control, day }: { control: any, day: number }) {
         <div className="space-y-4 rounded-lg bg-muted/50 p-4 border">
             <h3 className="font-semibold text-lg">Dia {day}</h3>
             {dayMissionIndices.map((fieldIndex, index) => {
-                const mission = control.getValues().missions[fieldIndex];
+                const mission = getValues().missions[fieldIndex];
                 return (
                     <Card key={mission.id}>
                         <CardContent className="p-4 space-y-3">
@@ -314,7 +314,7 @@ export function CreateBattlePlanWizard() {
           {currentStep === 1 && (
               <div className="space-y-4">
                   {Array.from({ length: duration }, (_, i) => (
-                      <MissionEditor key={i} control={control} day={i + 1} />
+                      <MissionEditor key={i} control={control} day={i + 1} getValues={getValues} />
                   ))}
               </div>
           )}
@@ -358,4 +358,3 @@ export function CreateBattlePlanWizard() {
   );
 }
 
-    

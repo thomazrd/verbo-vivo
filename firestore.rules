@@ -76,39 +76,35 @@ match /articles/{articleId} {
 
 match /congregations/{congregationId} {
   allow read: if isSignedIn();
-  allow create: if request.auth.uid == request.resource.data.createdBy;
+  allow create: if isSignedIn();
+  allow update: if isCongregationAdmin(congregationId);
 
-  // Membros de uma congregação
+  // --- Membros da Congregação ---
   match /members/{userId} {
     allow read: if isCongregationMember(congregationId);
-    allow create: if request.auth.uid == userId; // Ao solicitar entrada
-    allow update: if isCongregationAdmin(congregationId); // Admins podem aprovar/promover
-    allow delete: if request.auth.uid == userId || isCongregationAdmin(congregationId); // Usuário pode sair, admin pode remover
+    allow create: if request.auth.uid == userId; // Solicitar entrada
+    allow update: if isCongregationAdmin(congregationId) || request.auth.uid == userId; // Admin aprova, ou usuário sai
+    allow delete: if isCongregationAdmin(congregationId) || request.auth.uid == userId; // Admin remove, ou usuário sai
   }
 
-  // Posts dentro de uma congregação
+  // --- Posts da Congregação ---
   match /posts/{postId} {
     allow read: if isCongregationMember(congregationId);
-    // Apenas o autor do post pode criar, editar ou deletar o próprio post.
-    // A escrita em subcoleções (como comentários) é governada pelas próprias regras.
-    allow create, update, delete: if isProfileOwner(request.resource.data.authorId);
+    
+    // PERMITE a criação de documentos em subcoleções (comentários, likes) por membros.
+    allow write: if isCongregationMember(congregationId);
+    
+    // RESTRINGE a atualização e exclusão do próprio post ao seu autor.
+    allow update, delete: if isProfileOwner(resource.data.authorId);
 
-    // Comentários dentro de um post
+    // --- Comentários nos Posts ---
     match /comments/{commentId} {
       allow read: if isCongregationMember(congregationId);
-      // CORREÇÃO: Qualquer membro pode criar um comentário.
       allow create: if isCongregationMember(congregationId);
-      // APENAS o autor do comentário pode editar ou deletar.
       allow update, delete: if isProfileOwner(resource.data.authorId);
-
-      // Likes em comentários
-      match /likes/{userId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create, delete: if request.auth.uid == userId;
-      }
     }
-    
-    // Likes em posts
+
+    // --- Likes nos Posts ---
     match /likes/{userId} {
       allow read: if isCongregationMember(congregationId);
       allow create, delete: if request.auth.uid == userId;

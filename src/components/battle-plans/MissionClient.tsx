@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
 
 
 export function MissionClient({ userPlanId }: { userPlanId: string }) {
@@ -99,9 +100,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     let missionPath = mission.content.path;
     const completionParam = mission.content.completionQueryParam;
     
-    // For BIBLE_READING, we need to construct the URL differently.
     if (mission.type === 'BIBLE_READING' && mission.content.verse) {
-        // Example verse: "Gênesis 1:1-5"
         const refMatch = mission.content.verse.match(/^(.*?)\s(\d+):?(\d+)?-?(\d+)?$/);
         if (refMatch) {
             const [, bookName, chapter] = refMatch;
@@ -111,9 +110,13 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             }
         }
     } else if (completionParam) {
-        const paramValue = completionParam === 'mission' ? 'true' : userPlanId;
-        const paramKey = completionParam === 'mission' ? 'mission' : 'userPlanId';
-        missionPath = `${mission.content.path}?${paramKey}=${paramValue}`;
+        if (completionParam === 'mission') {
+            missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
+        } else {
+            const paramKey = completionParam;
+            const paramValue = userPlanId;
+            missionPath = `${mission.content.path}?${paramKey}=${paramValue}`;
+        }
     }
 
 
@@ -150,72 +153,3 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     );
 }
 
-// Minimal map to resolve book names to abbrevs for URL construction
-const bibleBooksByAbbrev: { [key: string]: { name: string, abbrev: { pt: string } } } = {
-  gn: { name: 'Gênesis', abbrev: { pt: 'gn' } },
-  ex: { name: 'Êxodo', abbrev: { pt: 'ex' } },
-  lv: { name: 'Levítico', abbrev: { pt: 'lv' } },
-  nm: { name: 'Números', abbrev: { pt: 'nm' } },
-  dt: { name: 'Deuteronômio', abbrev: { pt: 'dt' } },
-  js: { name: 'Josué', abbrev: { pt: 'js' } },
-  jz: { name: 'Juízes', abbrev: { pt: 'jz' } },
-  rt: { name: 'Rute', abbrev: { pt: 'rt' } },
-  '1sm': { name: '1º Samuel', abbrev: { pt: '1sm' } },
-  '2sm': { name: '2º Samuel', abbrev: { pt: '2sm' } },
-  '1rs': { name: '1º Reis', abbrev: { pt: '1rs' } },
-  '2rs': { name: '2º Reis', abbrev: { pt: '2rs' } },
-  '1cr': { name: '1º Crônicas', abbrev: { pt: '1cr' } },
-  '2cr': { name: '2º Crônicas', abbrev: { pt: '2cr' } },
-  ed: { name: 'Esdras', abbrev: { pt: 'ed' } },
-  ne: { name: 'Neemias', abbrev: { pt: 'ne' } },
-  et: { name: 'Ester', abbrev: { pt: 'et' } },
-  job: { name: 'Jó', abbrev: { pt: 'job' } },
-  sl: { name: 'Salmos', abbrev: { pt: 'sl' } },
-  pv: { name: 'Provérbios', abbrev: { pt: 'pv' } },
-  ec: { name: 'Eclesiastes', abbrev: { pt: 'ec' } },
-  ct: { name: 'Cânticos', abbrev: { pt: 'ct' } },
-  is: { name: 'Isaías', abbrev: { pt: 'is' } },
-  jr: { name: 'Jeremias', abbrev: { pt: 'jr' } },
-  lm: { name: 'Lamentações', abbrev: { pt: 'lm' } },
-  ez: { name: 'Ezequiel', abbrev: { pt: 'ez' } },
-  dn: { name: 'Daniel', abbrev: { pt: 'dn' } },
-  os: { name: 'Oséias', abbrev: { pt: 'os' } },
-  jl: { name: 'Joel', abbrev: { pt: 'jl' } },
-  am: { name: 'Amós', abbrev: { pt: 'am' } },
-  ob: { name: 'Obadias', abbrev: { pt: 'ob' } },
-  jn: { name: 'Jonas', abbrev: { pt: 'jn' } },
-  mq: { name: 'Miquéias', abbrev: { pt: 'mq' } },
-  na: { name: 'Naum', abbrev: { pt: 'na' } },
-  hc: { name: 'Habacuque', abbrev: { pt: 'hc' } },
-  sf: { name: 'Sofonias', abbrev: { pt: 'sf' } },
-  ag: { name: 'Ageu', abbrev: { pt: 'ag' } },
-  zc: { name: 'Zacarias', abbrev: { pt: 'zc' } },
-  ml: { name: 'Malaquias', abbrev: { pt: 'ml' } },
-  mt: { name: 'Mateus', abbrev: { pt: 'mt' } },
-  mc: { name: 'Marcos', abbrev: { pt: 'mc' } },
-  lc: { name: 'Lucas', abbrev: { pt: 'lc' } },
-  jo: { name: 'João', abbrev: { pt: 'jo' } },
-  at: { name: 'Atos', abbrev: { pt: 'at' } },
-  rm: { name: 'Romanos', abbrev: { pt: 'rm' } },
-  '1co': { name: '1ª Coríntios', abbrev: { pt: '1co' } },
-  '2co': { name: '2ª Coríntios', abbrev: { pt: '2co' } },
-  gl: { name: 'Gálatas', abbrev: { pt: 'gl' } },
-  ef: { name: 'Efésios', abbrev: { pt: 'ef' } },
-  fp: { name: 'Filipenses', abbrev: { pt: 'fp' } },
-  cl: { name: 'Colossenses', abbrev: { pt: 'cl' } },
-  '1ts': { name: '1ª Tessalonicenses', abbrev: { pt: '1ts' } },
-  '2ts': { name: '2ª Tessalonicenses', abbrev: { pt: '2ts' } },
-  '1tm': { name: '1ª Timóteo', abbrev: { pt: '1tm' } },
-  '2tm': { name: '2ª Timóteo', abbrev: { pt: '2tm' } },
-  tt: { name: 'Tito', abbrev: { pt: 'tt' } },
-  fm: { name: 'Filemom', abbrev: { pt: 'fm' } },
-  hb: { name: 'Hebreus', abbrev: { pt: 'hb' } },
-  tg: { name: 'Tiago', abbrev: { pt: 'tg' } },
-  '1pe': { name: '1ª Pedro', abbrev: { pt: '1pe' } },
-  '2pe': { name: '2ª Pedro', abbrev: { pt: '2pe' } },
-  '1jo': { name: '1ª João', abbrev: { pt: '1jo' } },
-  '2jo': { name: '2ª João', abbrev: { pt: '2jo' } },
-  '3jo': { name: '3ª João', abbrev: { pt: '3jo' } },
-  jd: { name: 'Judas', abbrev: { pt: 'jd' } },
-  ap: { name: 'Apocalipse', abbrev: { pt: 'ap' } },
-};

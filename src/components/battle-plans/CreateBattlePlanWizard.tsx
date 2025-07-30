@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import { db, storage } from "@/lib/firebase";
-import { addDoc, collection, doc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, writeBatch, getDoc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -18,10 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain, Smile, LockKeyhole, HeartHandshake, NotebookText } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import type { Mission, MissionType, UserBattlePlan } from "@/lib/types";
+import type { Mission, MissionType, UserBattlePlan, BattlePlan } from "@/lib/types";
 import Image from "next/image";
+import { Skeleton } from "../ui/skeleton";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -89,12 +90,9 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
         
-        // Define o parâmetro de conclusão com base no tipo
         if (details.completionQueryParam === 'mission') {
-            // Para o diário, apenas indicamos que é uma missão
             setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'true');
         } else if (details.completionQueryParam) {
-            // Para outros, usamos o ID do plano de usuário (que será preenchido no componente da missão)
             setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'completed');
         } else {
              setValue(`missions.${fieldIndex}.content.completionQueryParam`, undefined);
@@ -178,13 +176,15 @@ const steps = [
   { id: "review", name: "Revisão" },
 ];
 
-export function CreateBattlePlanWizard() {
+export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   const { user, userProfile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!planId);
+  const isEditing = !!planId;
 
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
@@ -197,8 +197,38 @@ export function CreateBattlePlanWizard() {
     },
   });
 
-  const { control, trigger, getValues, watch, setValue } = form;
+  const { control, trigger, getValues, watch, setValue, reset } = form;
   const duration = watch('durationDays');
+
+  useEffect(() => {
+    if (isEditing && user) {
+      const fetchPlan = async () => {
+        setIsLoading(true);
+        try {
+          const planRef = doc(db, 'battlePlans', planId);
+          const planSnap = await getDoc(planRef);
+          if (planSnap.exists()) {
+            const data = planSnap.data() as BattlePlan;
+            if (data.creatorId !== user.uid) {
+                toast({ variant: 'destructive', title: 'Acesso Negado', description: 'Você não tem permissão para editar este plano.'});
+                router.push('/battle-plans');
+                return;
+            }
+            reset(data);
+          } else {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Plano de Batalha não encontrado.'});
+            router.push('/battle-plans');
+          }
+        } catch (e) {
+          console.error(e);
+          toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar o plano para edição.'});
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      fetchPlan();
+    }
+  }, [planId, user, isEditing, reset, router, toast]);
 
   const goToNextStep = async () => {
     let fieldsToValidate: (keyof PlanFormValues)[] = [];
@@ -206,23 +236,25 @@ export function CreateBattlePlanWizard() {
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
-        if(currentStep === 0) { // After step 1, generate missions structure if not present
+        if(currentStep === 0) { 
             const currentMissions = getValues('missions');
             if(currentMissions.length !== duration) {
-                const defaultType: MissionType = 'BIBLE_READING';
-                const newMissions: Mission[] = Array.from({ length: duration }, (_, i) => ({
-                    id: uuidv4(),
-                    day: i + 1,
-                    title: `Missão do Dia ${i+1}`,
-                    type: defaultType,
-                    content: { 
-                        path: MissionTypeDetails[defaultType].path,
-                        verse: "",
-                        completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
-                    },
-                    leaderNote: ""
-                }));
-                 form.setValue('missions', newMissions);
+                const newMissions: Mission[] = Array.from({ length: duration }, (_, i) => {
+                    const defaultType: MissionType = 'BIBLE_READING';
+                    return {
+                        id: uuidv4(),
+                        day: i + 1,
+                        title: `Missão do Dia ${i+1}`,
+                        type: defaultType,
+                        content: { 
+                            path: MissionTypeDetails[defaultType].path,
+                            verse: "",
+                            completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
+                        },
+                        leaderNote: ""
+                    }
+                });
+                 setValue('missions', newMissions);
             }
         }
         setCurrentStep((prev) => prev + 1);
@@ -238,42 +270,46 @@ export function CreateBattlePlanWizard() {
       setIsSaving(true);
       
       const values = getValues();
-      const planId = uuidv4(); // Generate a consistent ID for both documents
-      
-      const planData = {
-          ...values,
-          id: planId, // Add id to the data itself
-          creatorId: user.uid,
-          creatorName: userProfile.displayName || 'Anônimo',
-          status,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-      };
-      
-      const userPlanData: UserBattlePlan = {
-          id: planId,
-          userId: user.uid,
-          planId: planId,
-          planTitle: values.title,
-          planCoverImageUrl: values.coverImageUrl,
-          planCreatorId: user.uid,
-          startDate: new Date() as any, // Firestore will convert this
-          status: 'IN_PROGRESS',
-          progressPercentage: 0,
-          consentToShareProgress: true, // Creator auto-consents
-          completedMissionIds: [],
-      };
-      
-      try {
-          const batch = writeBatch(db);
-          
-          const planRef = doc(db, "battlePlans", planId);
-          batch.set(planRef, planData);
-          
-          const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planId);
-          batch.set(userPlanRef, userPlanData);
 
-          await batch.commit();
+      try {
+        if (isEditing) {
+            const planRef = doc(db, 'battlePlans', planId);
+            await updateDoc(planRef, {
+                ...values,
+                status,
+                updatedAt: serverTimestamp(),
+            });
+        } else {
+            const planDocId = uuidv4();
+            const planData = {
+                ...values,
+                id: planDocId,
+                creatorId: user.uid,
+                creatorName: userProfile.displayName || 'Anônimo',
+                status,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+            const userPlanData: UserBattlePlan = {
+                id: planDocId,
+                userId: user.uid,
+                planId: planDocId,
+                planTitle: values.title,
+                planCoverImageUrl: values.coverImageUrl,
+                planCreatorId: user.uid,
+                startDate: new Date() as any,
+                status: 'IN_PROGRESS',
+                progressPercentage: 0,
+                consentToShareProgress: true,
+                completedMissionIds: [],
+            };
+            const batch = writeBatch(db);
+            const planRef = doc(db, "battlePlans", planDocId);
+            batch.set(planRef, planData);
+            const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planDocId);
+            batch.set(userPlanRef, userPlanData);
+            await batch.commit();
+        }
 
           toast({ title: "Sucesso!", description: `Seu plano de batalha foi salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.`});
           router.push('/battle-plans');
@@ -285,6 +321,16 @@ export function CreateBattlePlanWizard() {
       }
   }
 
+  if (isLoading) {
+      return (
+          <div className="container mx-auto max-w-4xl py-8 px-4 space-y-4">
+              <Skeleton className="h-9 w-48 mb-8" />
+              <Skeleton className="h-10 w-full mb-8" />
+              <Card><CardContent className="p-6 space-y-4"><Skeleton className="h-8 w-1/4"/><Skeleton className="h-10 w-full"/><Skeleton className="h-10 w-full"/></CardContent></Card>
+          </div>
+      )
+  }
+
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
@@ -294,7 +340,7 @@ export function CreateBattlePlanWizard() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Criar Plano de Batalha</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{isEditing ? 'Editar Plano de Batalha' : 'Criar Plano de Batalha'}</h1>
         </div>
       </div>
       
@@ -382,7 +428,7 @@ export function CreateBattlePlanWizard() {
           {currentStep === 2 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>3. Revisão e Publicação</CardTitle>
+                    <CardTitle>3. Revisão e Finalização</CardTitle>
                     <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

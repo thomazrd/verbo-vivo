@@ -9,7 +9,7 @@ import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import type { BattlePlan, Mission, UserBattlePlan } from "@/lib/types";
 
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Link from "next/link";
 
 
 function PlanSkeleton() {
@@ -111,6 +112,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
   }
   
   const hasStartedPlan = userPlan !== null && userPlan !== undefined;
+  const isCreator = user?.uid === plan?.creatorId;
 
   if (isLoading) {
     return <PlanSkeleton />;
@@ -132,6 +134,14 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
           data-ai-hint="training plan cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        {isCreator && (
+            <Button asChild className="absolute top-4 right-4 z-10">
+                <Link href={`/battle-plans/edit/${plan.id}`}>
+                    <Pencil className="mr-2 h-4 w-4"/>
+                    Editar
+                </Link>
+            </Button>
+        )}
       </div>
       <div className="px-4 -mt-16 relative z-10">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">

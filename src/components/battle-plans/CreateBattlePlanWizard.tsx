@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain, Smile, LockKeyhole, HeartHandshake } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType } from "@/lib/types";
 import Image from "next/image";
@@ -27,10 +27,11 @@ const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
   day: z.number(),
   title: z.string().min(3, "O título da missão é muito curto."),
-  type: z.enum(["BIBLE_READING", "PRAYER", "REFLECTION"]),
+  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION"]),
   content: z.object({
+    path: z.string(),
+    completionQueryParam: z.string().optional(),
     verse: z.string().optional(),
-    prompt: z.string().optional(),
   }),
   leaderNote: z.string().optional(),
 });
@@ -45,14 +46,15 @@ const planSchema = z.object({
 
 type PlanFormValues = z.infer<typeof planSchema>;
 
-const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, promptPlaceholder: string }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", promptPlaceholder: "" },
-    PRAYER: { icon: MessageSquare, label: "Oração", promptPlaceholder: "Ex: Ore por clareza e paz." },
-    REFLECTION: { icon: Brain, label: "Reflexão", promptPlaceholder: "Ex: Pense em uma área onde você pode aplicar isso." },
+const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
+    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
+    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'completed' },
+    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'completed' },
+    CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'completed' },
 };
 
 
-function MissionEditor({ control, day, getValues }: { control: any, day: number, getValues: any }) {
+function MissionEditor({ control, day, getValues, setValue }: { control: any, day: number, getValues: any, setValue: any }) {
     const { fields, append, remove } = useFieldArray({
         control,
         name: `missions`
@@ -66,21 +68,39 @@ function MissionEditor({ control, day, getValues }: { control: any, day: number,
 
 
     const addMission = () => {
+        const defaultType: MissionType = "BIBLE_READING";
         append({
             id: uuidv4(),
             day: day,
             title: `Missão para o Dia ${day}`,
-            type: "BIBLE_READING",
-            content: { verse: "Filipenses 4:13" },
+            type: defaultType,
+            content: { 
+                path: MissionTypeDetails[defaultType].path, 
+                verse: "Filipenses 4:13",
+                completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
+            },
             leaderNote: ""
         });
     };
+
+    const handleTypeChange = (newType: MissionType, fieldIndex: number) => {
+        const details = MissionTypeDetails[newType];
+        setValue(`missions.${fieldIndex}.type`, newType);
+        setValue(`missions.${fieldIndex}.content.path`, details.path);
+        setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
+        if(!details.requiresVerse) {
+            setValue(`missions.${fieldIndex}.content.verse`, '');
+        }
+    }
     
     return (
         <div className="space-y-4 rounded-lg bg-muted/50 p-4 border">
             <h3 className="font-semibold text-lg">Dia {day}</h3>
             {dayMissionIndices.map((fieldIndex, index) => {
                 const mission = getValues().missions[fieldIndex];
+                const currentMissionType = getValues().missions[fieldIndex].type;
+                const requiresVerse = MissionTypeDetails[currentMissionType]?.requiresVerse;
+
                 return (
                     <Card key={mission.id}>
                         <CardContent className="p-4 space-y-3">
@@ -101,7 +121,7 @@ function MissionEditor({ control, day, getValues }: { control: any, day: number,
                                 control={control}
                                 name={`missions.${fieldIndex}.type`}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={(value) => handleTypeChange(value as MissionType, fieldIndex)} defaultValue={field.value}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {Object.entries(MissionTypeDetails).map(([key, value]) => (
@@ -112,21 +132,18 @@ function MissionEditor({ control, day, getValues }: { control: any, day: number,
                                 )}
                             />
                             
-                            <Label>Conteúdo</Label>
-                             <Controller
-                                control={control}
-                                name={`missions.${fieldIndex}.content.verse`}
-                                render={({ field }) => (
-                                   mission.type === 'BIBLE_READING' && <Input {...field} placeholder="Ex: Filipenses 4:13" />
-                                )}
-                            />
-                             <Controller
-                                control={control}
-                                name={`missions.${fieldIndex}.content.prompt`}
-                                render={({ field }) => (
-                                   (mission.type === 'PRAYER' || mission.type === 'REFLECTION') && <Input {...field} placeholder={MissionTypeDetails[mission.type as MissionType].promptPlaceholder} />
-                                )}
-                            />
+                            {requiresVerse && (
+                                <div>
+                                    <Label>Referência Bíblica</Label>
+                                    <Controller
+                                        control={control}
+                                        name={`missions.${fieldIndex}.content.verse`}
+                                        render={({ field }) => (
+                                            <Input {...field} placeholder="Ex: Filipenses 4:13" />
+                                        )}
+                                    />
+                                </div>
+                            )}
                             
                              <Label>Nota do Líder (Opcional)</Label>
                              <Controller
@@ -168,7 +185,7 @@ export function CreateBattlePlanWizard() {
     },
   });
 
-  const { control, trigger, getValues, watch } = form;
+  const { control, trigger, getValues, watch, setValue } = form;
   const duration = watch('durationDays');
 
   const goToNextStep = async () => {
@@ -180,12 +197,17 @@ export function CreateBattlePlanWizard() {
         if(currentStep === 0) { // After step 1, generate missions structure if not present
             const currentMissions = getValues('missions');
             if(currentMissions.length !== duration) {
+                const defaultType: MissionType = 'BIBLE_READING';
                 const newMissions: Mission[] = Array.from({ length: duration }, (_, i) => ({
                     id: uuidv4(),
                     day: i + 1,
                     title: `Missão do Dia ${i+1}`,
-                    type: "BIBLE_READING",
-                    content: { verse: "" },
+                    type: defaultType,
+                    content: { 
+                        path: MissionTypeDetails[defaultType].path,
+                        verse: "",
+                        completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
+                    },
                     leaderNote: ""
                 }));
                  form.setValue('missions', newMissions);
@@ -314,7 +336,7 @@ export function CreateBattlePlanWizard() {
           {currentStep === 1 && (
               <div className="space-y-4">
                   {Array.from({ length: duration }, (_, i) => (
-                      <MissionEditor key={i} control={control} day={i + 1} getValues={getValues} />
+                      <MissionEditor key={i} control={control} day={i + 1} getValues={getValues} setValue={setValue} />
                   ))}
               </div>
           )}
@@ -357,4 +379,3 @@ export function CreateBattlePlanWizard() {
     </div>
   );
 }
-

@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import type { UserBattlePlan, BattlePlan, Mission } from "@/lib/types";
 import { differenceInDays, startOfDay } from "date-fns";
 
@@ -95,21 +96,24 @@ export function TodayMissions() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {missions.map(({ userPlanId, mission, planTitle }) => (
-          <Link
-            href={`/battle-plans/mission/${userPlanId}`}
-            key={mission.id}
-            className="block p-3 rounded-md bg-background border hover:bg-muted/50 transition-colors"
-          >
-            <div className="flex justify-between items-center">
-                <div>
-                    <p className="font-semibold">{mission.title}</p>
-                    <p className="text-sm text-muted-foreground">{planTitle}</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </Link>
-        ))}
+        {missions.map(({ userPlanId, mission, planTitle }) => {
+          const missionPath = `${mission.content.path}?missionId=${userPlanId}`;
+          return (
+            <Link
+              href={missionPath}
+              key={mission.id}
+              className="block p-3 rounded-md bg-background border hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex justify-between items-center">
+                  <div>
+                      <p className="font-semibold">{mission.title}</p>
+                      <p className="text-sm text-muted-foreground">{planTitle}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </Link>
+          )
+        })}
       </CardContent>
     </Card>
   );

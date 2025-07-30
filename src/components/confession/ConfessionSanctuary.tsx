@@ -18,7 +18,11 @@ export type ForgivenessResponse = {
     verses: { reference: string; text: string; }[];
 }
 
-export function ConfessionSanctuary() {
+interface ConfessionSanctuaryProps {
+    onCompleted?: () => void;
+}
+
+export function ConfessionSanctuary({ onCompleted }: ConfessionSanctuaryProps) {
   const { user, userProfile } = useAuth();
   const { i18n } = useTranslation();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('locked');
@@ -59,6 +63,7 @@ export function ConfessionSanctuary() {
         });
         setForgivenessResponse(result);
         setSanctuaryState('response');
+        onCompleted?.(); // Notify parent of completion
     } catch (e) {
         console.error("Error processing confession:", e);
         // Handle error state appropriately, maybe show a message and go back

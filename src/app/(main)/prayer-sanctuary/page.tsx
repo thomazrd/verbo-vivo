@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -20,6 +20,7 @@ import { ptBR } from 'date-fns/locale';
 import { PrayerResponseCard } from '@/components/prayer/PrayerResponseCard';
 import { PlanCreationModal } from '@/components/chat/PlanCreationModal';
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -107,9 +108,13 @@ function PrayerHistoryList({ userId }: { userId: string }) {
     );
 }
 
-export default function PrayerSanctuaryPage() {
+function PrayerSanctuaryContent() {
   const { t, i18n } = useTranslation();
   const { user, userProfile } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const missionId = searchParams.get('missionId');
+
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: any[]}| null>(null);
@@ -234,6 +239,10 @@ export default function PrayerSanctuaryPage() {
         });
         setLatestResponse(result);
         setSanctuaryState('response');
+        if (missionId) {
+            const url = `/?missionCompleted=${missionId}`;
+            router.push(url);
+        }
     } catch (err) {
         console.error("Error processing prayer:", err);
         toast({
@@ -337,4 +346,13 @@ export default function PrayerSanctuaryPage() {
     />
     </>
   );
+}
+
+
+export default function PrayerSanctuaryPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <PrayerSanctuaryContent />
+        </Suspense>
+    )
 }

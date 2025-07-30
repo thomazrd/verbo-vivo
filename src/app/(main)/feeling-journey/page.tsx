@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
@@ -27,14 +26,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useSearchParams, useRouter } from 'next/navigation';
 
 type JourneyStatus = 'disclaimer' | 'selecting_emotion' | 'reporting' | 'responding' | 'reassessing' | 'concluding' | 'stopped';
 
 const MAX_CYCLES = 3;
 
-export default function FeelingJourneyPage() {
+function FeelingJourneyContent() {
   const { user, userProfile } = useAuth();
   const { i18n } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const missionId = searchParams.get('missionId');
+
   const [status, setStatus] = useState<JourneyStatus>('disclaimer');
   const [currentCycle, setCurrentCycle] = useState(0);
   const [journeySteps, setJourneySteps] = useState<FeelingJourneyStep[]>([]);
@@ -99,6 +103,11 @@ export default function FeelingJourneyPage() {
         finalEmotion: finalSteps[finalSteps.length - 1].emotionAfter,
         steps: finalSteps,
       });
+
+      if (missionId && finalStatus === 'COMPLETED') {
+        const url = `/?missionCompleted=${missionId}`;
+        router.push(url);
+      }
     } catch (error) {
       console.error("Error saving journey:", error);
       // Non-critical error, user can continue.
@@ -170,4 +179,12 @@ export default function FeelingJourneyPage() {
       )}
     </div>
   );
+}
+
+export default function FeelingJourneyPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <FeelingJourneyContent />
+        </Suspense>
+    )
 }

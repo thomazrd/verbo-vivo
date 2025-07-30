@@ -86,12 +86,12 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   armorOnboardingCompleted?: boolean;
   prayerCircleOnboardingCompleted?: boolean;
-  congregationId?: string | null;
-  congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
   role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
   favoriteArmorIds?: string[];
+  congregationId?: string | null;
+  congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
 }
 
 export interface Congregation {
@@ -406,6 +406,62 @@ export interface Armor {
   authorName?: string;
   authorPhotoURL?: string | null;
   originalArmorId?: string; // To track copied armors
+}
+
+// --- Tipos do Centro de Treinamento ---
+export type MissionType = 'BIBLE_READING' | 'PRAYER' | 'REFLECTION';
+export type MissionStatus = 'PENDING' | 'COMPLETED';
+export type BattlePlanStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type UserBattlePlanStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+export type MissionFeeling = 'GRATEFUL' | 'CHALLENGED' | 'PEACEFUL' | 'STRENGTHENED';
+
+export interface Mission {
+  id: string;
+  day: number;
+  title: string;
+  type: MissionType;
+  content: {
+    verse?: string; // Para 'BIBLE_READING'
+    prompt?: string; // Para 'PRAYER' ou 'REFLECTION'
+  };
+  leaderNote?: string;
+}
+
+export interface BattlePlan {
+  id: string;
+  title: string;
+  description: string;
+  durationDays: number;
+  coverImageUrl: string;
+  creatorId: string;
+  creatorName: string;
+  status: BattlePlanStatus;
+  missions: Mission[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface UserBattlePlan {
+  id: string; // Combinação de userId e planId para unicidade
+  userId: string;
+  planId: string;
+  planTitle: string; // Denormalized for easy display
+  planCoverImageUrl: string; // Denormalized
+  planCreatorId: string; // Denormalized
+  startDate: Timestamp;
+  status: UserBattlePlanStatus;
+  progressPercentage: number;
+  consentToShareProgress: boolean; // Flag para consentimento do líder
+  completedMissionIds: string[];
+}
+
+export interface MissionLog {
+  id: string;
+  userId: string;
+  planId: string;
+  missionId: string;
+  completedAt: Timestamp;
+  feeling: MissionFeeling | 'SKIPPED';
 }
 
 

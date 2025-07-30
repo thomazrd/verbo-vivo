@@ -35,10 +35,20 @@ const watchMode = process.argv.includes('--watch');
 
 if (watchMode) {
   console.log('👀 Observando alterações na pasta /rules/collections...');
-  chokidar.watch(collectionsDir, { ignored: outputFile }).on('all', (event, filePath) => {
-    console.log(`[${event}] ${path.basename(filePath)}`);
-    buildRules();
+  const watcher = chokidar.watch(collectionsDir, { ignored: outputFile, persistent: true });
+  watcher.on('all', (event, filePath) => {
+    if (event === 'add' || event === 'change' || event === 'unlink') {
+        console.log(`[${event}] ${path.basename(filePath)}`);
+        buildRules();
+    }
   });
+  
+  const baseWatcher = chokidar.watch(baseFile, { persistent: true });
+  baseWatcher.on('change', (filePath) => {
+      console.log(`[change] ${path.basename(filePath)}`);
+      buildRules();
+  });
+
 } else {
   buildRules();
 }

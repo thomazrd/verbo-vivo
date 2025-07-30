@@ -1,0 +1,46 @@
+// collections/battlePlans.rules
+
+// Função auxiliar para verificar se o usuário é o criador de um plano
+function isPlanCreator(planId) {
+  return request.auth.uid == get(/databases/$(database)/documents/battlePlans/$(planId)).data.creatorId;
+}
+
+match /battlePlans/{planId} {
+  // Leitura: Qualquer usuário autenticado pode ler planos publicados.
+  allow read: if isSignedIn() && resource.data.status == 'PUBLISHED';
+
+  // Criação: Qualquer usuário autenticado pode criar um plano (será um líder).
+  allow create: if isSignedIn();
+
+  // Atualização e Exclusão: Apenas o criador original do plano pode modificar ou apagar.
+  allow update, delete: if isSignedIn() && isPlanCreator(planId);
+
+  // Regras para a subcoleção de missões (geralmente gerenciada junto com o plano)
+  match /missions/{missionId} {
+    allow read: if isSignedIn();
+    // A escrita (create, update, delete) de missões é controlada pela permissão de 'update' do plano pai.
+    allow write: if isSignedIn() && isPlanCreator(planId);
+  }
+}
+
+match /userBattlePlans/{userPlanId} {
+  // Leitura: Um usuário pode ler seu próprio progresso.
+  // Um LÍDER pode ler o progresso de um soldado SE o soldado deu consentimento.
+  allow read: if isProfileOwner(request.auth.uid) ||
+              (isSignedIn() && resource.data.consentToShareProgress == true &&
+               request.auth.uid == resource.data.planCreatorId);
+
+  // Criação: Um usuário pode criar seu próprio registro de progresso (iniciar um plano).
+  allow create: if isProfileOwner(request.resource.data.userId);
+
+  // Atualização: Um usuário só pode atualizar seu próprio progresso.
+  allow update: if isProfileOwner(request.auth.uid);
+
+  // Exclusão: Um usuário só pode apagar seu próprio progresso.
+  allow delete: if isProfileOwner(request.auth.uid);
+}
+
+match /missionLogs/{logId} {
+  // Um usuário só pode ler, criar, atualizar ou apagar seus próprios logs de missão.
+  allow read, write: if isProfileOwner(request.auth.uid);
+}

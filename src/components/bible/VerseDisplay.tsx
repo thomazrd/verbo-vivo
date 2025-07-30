@@ -16,11 +16,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useFocusMode } from '@/contexts/focus-mode-context';
 import { useWindowSize } from '@/hooks/use-window-size';
 import { SelectionPopover } from './SelectionPopover';
+import { cn } from '@/lib/utils';
 
 interface VerseDisplayProps {
   version: BibleVersion;
   book: BibleBook;
   chapter: number;
+  highlightStartVerse?: number;
+  highlightEndVerse?: number;
   onNextChapter: () => void;
   onPrevChapter: () => void;
   onBackToChapters: () => void;
@@ -30,7 +33,9 @@ interface VerseDisplayProps {
 export function VerseDisplay({ 
   version, 
   book, 
-  chapter, 
+  chapter,
+  highlightStartVerse,
+  highlightEndVerse, 
   onNextChapter, 
   onPrevChapter, 
   onBackToChapters, 
@@ -190,12 +195,21 @@ export function VerseDisplay({
         
         <SelectionPopover containerRef={contentRef}>
             <div ref={contentRef} className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
-                {chapterData.verses.map(verse => (
-                  <p key={verse.number} className="text-card-foreground">
-                    <sup className="font-bold text-primary mr-2 no-underline select-none">{verse.number}</sup>
-                    <span>{verse.text}</span>
-                  </p>
-                ))}
+                {chapterData.verses.map(verse => {
+                  const isHighlighted = highlightStartVerse !== undefined && 
+                                        verse.number >= highlightStartVerse &&
+                                        (highlightEndVerse === undefined || verse.number <= highlightEndVerse);
+                  
+                  return (
+                    <p key={verse.number} className={cn(
+                        "text-card-foreground transition-colors duration-300 rounded-md -mx-2 px-2",
+                        isHighlighted && "bg-blue-500/10"
+                    )}>
+                      <sup className="font-bold text-primary mr-2 no-underline select-none">{verse.number}</sup>
+                      <span>{verse.text}</span>
+                    </p>
+                  )
+                })}
             </div>
         </SelectionPopover>
         
@@ -212,5 +226,3 @@ export function VerseDisplay({
     </div>
   );
 }
-
-    

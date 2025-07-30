@@ -25,6 +25,8 @@ function BibleReaderContent() {
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
   const missionUserPlanId = searchParams.get('userPlanId');
+  const startVerse = searchParams.get('startVerse');
+  const endVerse = searchParams.get('endVerse');
   
   const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
   const [selectedVersion, setSelectedVersion] = useState({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
@@ -49,12 +51,12 @@ function BibleReaderContent() {
     } else {
       params.delete('chapter');
     }
-    // Preserve mission param if it exists
-    if(missionUserPlanId) {
-        params.set('userPlanId', missionUserPlanId);
-    }
+    // Clean up verse params when not navigating from a mission link
+    params.delete('startVerse');
+    params.delete('endVerse');
+    params.delete('userPlanId');
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [searchParams, router, pathname, missionUserPlanId]);
+  }, [searchParams, router, pathname]);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -149,30 +151,6 @@ function BibleReaderContent() {
       updateUrlParams(selectedBook, prevChapter);
     }
   };
-
-  const MobileInitialView = (
-      <div className="h-full flex flex-col justify-center items-center p-8 text-center bg-background">
-          <Sheet>
-              <SheetTrigger asChild>
-                  <Button variant="outline" className="mb-8">
-                      <Menu className="mr-2 h-4 w-4" />
-                      Selecionar Livro
-                  </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-full max-w-sm">
-                 <div className="p-4 border-b">
-                    <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
-                  </div>
-                  <BookSelector allBooks={allBooks} onBookSelect={(book) => {
-                      handleBookSelect(book);
-                  }} />
-              </SheetContent>
-          </Sheet>
-          <BookMarked className="h-16 w-16 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mt-4">Leitura da Bíblia</h2>
-          <p className="text-muted-foreground max-w-sm">Use o menu para selecionar um livro e capítulo para começar.</p>
-      </div>
-  );
   
   if (loadingInitialState) {
     return (
@@ -196,7 +174,9 @@ function BibleReaderContent() {
         key={`${selectedVersion.id}-${selectedBook.abbrev.pt}-${selectedChapter}`}
         version={selectedVersion}
         book={selectedBook} 
-        chapter={selectedChapter} 
+        chapter={selectedChapter}
+        highlightStartVerse={startVerse ? parseInt(startVerse, 10) : undefined}
+        highlightEndVerse={endVerse ? parseInt(endVerse, 10) : undefined} 
         onNextChapter={handleNextChapter}
         onPrevChapter={handlePrevChapter}
         onBackToChapters={handleBackToChapters}

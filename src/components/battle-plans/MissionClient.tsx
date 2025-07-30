@@ -101,11 +101,20 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     const completionParam = mission.content.completionQueryParam;
     
     if (mission.type === 'BIBLE_READING' && mission.content.verse) {
-        const bookData = mission.content.details?.book;
-        const chapter = mission.content.details?.chapter;
+        const details = mission.content.details;
+        const bookAbbrev = details?.book?.abbrev?.pt;
+        const chapter = details?.chapter;
+        
+        if (bookAbbrev && chapter) {
+            const params = new URLSearchParams({
+                book: bookAbbrev,
+                chapter: String(chapter),
+                userPlanId: userPlanId
+            });
+            if(details.startVerse) params.set('startVerse', String(details.startVerse));
+            if(details.endVerse) params.set('endVerse', String(details.endVerse));
 
-        if(bookData?.abbrev?.pt && chapter) {
-            missionPath = `/bible?book=${bookData.abbrev.pt}&chapter=${chapter}&userPlanId=${userPlanId}`;
+            missionPath = `/bible?${params.toString()}`;
         }
     } else if (completionParam) {
         if (completionParam === 'mission') {

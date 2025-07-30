@@ -53,7 +53,7 @@ import {
 
 interface JournalEditorProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (isOpen: boolean, wasSaved?: boolean) => void;
   entry: JournalEntry | null;
 }
 
@@ -121,7 +121,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProp
         });
         toast({ title: "Entrada criada com sucesso!" });
       }
-      onOpenChange(false);
+      onOpenChange(false, true); // Signal that save was successful
     } catch (error) {
       console.error("Error saving journal entry:", error);
       toast({
@@ -154,7 +154,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry }: JournalEditorProp
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+    <Sheet open={isOpen} onOpenChange={(open) => onOpenChange(open, false)}>
       <SheetContent className="sm:max-w-lg w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{entry ? 'Editar Entrada' : 'Nova Entrada no Diário'}</SheetTitle>

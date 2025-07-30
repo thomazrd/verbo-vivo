@@ -13,19 +13,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function JournalPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
+  const isMission = searchParams.get('mission') === 'true';
+
   useEffect(() => {
     // Check if the page was opened from a mission
-    if (searchParams.get('mission') === 'true') {
+    if (isMission) {
       handleNewEntry();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,10 +41,10 @@ export default function JournalPage() {
       return;
     };
     setIsLoading(true);
-    // Query without server-side ordering to avoid needing a composite index
     const q = query(
       collection(db, "journals"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -48,15 +52,7 @@ export default function JournalPage() {
       snapshot.forEach((doc) => {
         userEntries.push({ id: doc.id, ...doc.data() } as JournalEntry);
       });
-      
-      // Sort entries on the client-side
-      const sortedEntries = userEntries.sort((a, b) => {
-        const dateA = a.createdAt?.toDate() || new Date(0);
-        const dateB = b.createdAt?.toDate() || new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      setEntries(sortedEntries);
+      setEntries(userEntries);
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching journal entries:", error);
@@ -75,6 +71,14 @@ export default function JournalPage() {
     setSelectedEntry(entry);
     setIsEditorOpen(true);
   };
+
+  const handleEditorClose = (wasSaved: boolean) => {
+    setIsEditorOpen(false);
+    if (wasSaved && isMission) {
+      // Redirect to home with completion flag
+      router.push('/?missionCompleted=true');
+    }
+  }
 
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
@@ -143,7 +147,7 @@ export default function JournalPage() {
       </div>
       <JournalEditor
         isOpen={isEditorOpen}
-        onOpenChange={setIsEditorOpen}
+        onOpenChange={handleEditorClose}
         entry={selectedEntry}
       />
     </>

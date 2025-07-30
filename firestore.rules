@@ -45,25 +45,7 @@ service cloud.firestore {
         return value is timestamp;
     }
 
-    function canReadStudy() {
-  // Allow read if the study is published, or if the user is an admin reading any status.
-  return resource.data.status == 'PUBLISHED' || (isSignedIn() && isRole('ADMIN'));
-}
-
-function canWriteStudy() {
-  // Allow write only if the user is an admin.
-  return isSignedIn() && isRole('ADMIN');
-}
-
-function canReadArticle() {
-  return resource.data.status == 'published' || (isSignedIn() && isRole('ADMIN'));
-}
-
-function canWriteArticle() {
-  return isSignedIn() && isRole('ADMIN');
-}
-
-
+    // --- From: articles.rules ---
 
 match /articles/{articleId} {
   // Qualquer pessoa pode ler artigos publicados.
@@ -74,54 +56,43 @@ match /articles/{articleId} {
 }
 
 
+// --- From: battlePlans.rules ---
 // collections/battlePlans.rules
 
-// Função auxiliar para verificar se o usuário é o criador de um plano
-function isPlanCreator(planId) {
-  return request.auth.uid == get(/databases/$(database)/documents/battlePlans/$(planId)).data.creatorId;
-}
-
+// --- Regras para Planos de Batalha Públicos ---
 match /battlePlans/{planId} {
-  // Leitura: Qualquer usuário autenticado pode ler planos publicados.
   allow read: if isSignedIn() && resource.data.status == 'PUBLISHED';
+  allow create: if isSignedIn(); // Permitir que qualquer usuário autenticado crie um plano
+  allow update, delete: if isSignedIn() && request.auth.uid == resource.data.creatorId;
 
-  // Criação: Qualquer usuário autenticado pode criar um plano (será um líder).
-  allow create: if isSignedIn();
-
-  // Atualização e Exclusão: Apenas o criador original do plano pode modificar ou apagar.
-  allow update, delete: if isSignedIn() && isPlanCreator(planId);
-
-  // Regras para a subcoleção de missões (geralmente gerenciada junto com o plano)
-  match /missions/{missionId} {
-    allow read: if isSignedIn();
-    // A escrita (create, update, delete) de missões é controlada pela permissão de 'update' do plano pai.
-    allow write: if isSignedIn() && isPlanCreator(planId);
-  }
+  // As missões são parte do documento do plano, então as regras acima se aplicam.
 }
 
-match /userBattlePlans/{userPlanId} {
-  // Leitura: Um usuário pode ler seu próprio progresso.
-  // Um LÍDER pode ler o progresso de um soldado SE o soldado deu consentimento.
-  allow read: if isProfileOwner(request.auth.uid) ||
-              (isSignedIn() && resource.data.consentToShareProgress == true &&
-               request.auth.uid == resource.data.planCreatorId);
+// --- Regras para o Progresso do Usuário nos Planos ---
+// Esta regra está aninhada dentro de /users/{userId}
+match /users/{userId} {
+    // ... outras regras de /users/{userId} podem existir aqui ...
 
-  // Criação: Um usuário pode criar seu próprio registro de progresso (iniciar um plano).
-  allow create: if isProfileOwner(request.resource.data.userId);
+    // Subcoleção para os planos que um usuário iniciou
+    match /battlePlans/{planId} {
+        allow read, delete: if request.auth.uid == userId;
+        allow create, update: if request.auth.uid == userId && request.resource.data.userId == userId;
+    }
 
-  // Atualização: Um usuário só pode atualizar seu próprio progresso.
-  allow update: if isProfileOwner(request.auth.uid);
+    // Subcoleção para os logs de missões concluídas
+    match /missionLogs/{logId} {
+      allow read, write: if request.auth.uid == userId;
+    }
 
-  // Exclusão: Um usuário só pode apagar seu próprio progresso.
-  allow delete: if isProfileOwner(request.auth.uid);
-}
-
-match /missionLogs/{logId} {
-  // Um usuário só pode ler, criar, atualizar ou apagar seus próprios logs de missão.
-  allow read, write: if isProfileOwner(request.auth.uid);
+    // Regra específica para líderes visualizarem o progresso (fora da subcoleção de usuário)
+    match /userBattlePlans/{userPlanId} {
+       allow read: if request.auth.uid == resource.data.planCreatorId && resource.data.consentToShareProgress == true;
+       // A criação, atualização e exclusão são feitas pelo próprio usuário em /users/{userId}/battlePlans/{planId}, não aqui.
+    }
 }
 
 
+// --- From: congregations.rules ---
 // Regras para a Coleção de Congregações
 match /congregations/{congregationId} {
     // Qualquer usuário logado pode ler os dados da congregação (nome, etc)
@@ -183,6 +154,7 @@ match /congregations/{congregationId} {
 }
 
 
+// --- From: sharedArmors.rules ---
 
 match /sharedArmors/{armorId} {
   allow read: if true;
@@ -191,6 +163,7 @@ match /sharedArmors/{armorId} {
 }
 
 
+// --- From: studies.rules ---
 
 match /studies/{studyId} {
   // Qualquer pessoa pode ler um estudo publicado.
@@ -201,6 +174,7 @@ match /studies/{studyId} {
 }
 
 
+// --- From: users.rules ---
 
 match /users/{userId} {
   // Qualquer usuário autenticado pode ler perfis (para ver nomes, fotos, etc).

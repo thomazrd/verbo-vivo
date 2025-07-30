@@ -1,35 +1,46 @@
-    match /congregations/{congregationId} {
-      allow read: if isCongregationMember(congregationId);
-      allow create: if request.auth != null;
-      
-      // Regras para subcoleções
-      match /members/{userId} {
+
+// --- /congregations/{congregationId} ---
+match /congregations/{congregationId} {
+    allow read: if isSignedIn();
+    allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
+    allow update: if isCongregationAdmin(congregationId);
+    allow delete: if isCongregationAdmin(congregationId);
+
+    // --- Sub-collection de Membros ---
+    match /members/{userId} {
+        allow read, list: if isCongregationMember(congregationId);
+        allow create: if isSignedIn() && request.auth.uid == userId; // User requesting to join
+        allow update: if isCongregationAdmin(congregationId); // Admins approving/promoting
+        allow delete: if isCongregationAdmin(congregationId) || request.auth.uid == userId; // Admins removing or user leaving
+    }
+
+    // --- Sub-collection de Posts ---
+    match /posts/{postId} {
         allow read: if isCongregationMember(congregationId);
-        allow write: if isProfileOwner(userId);
-      }
-      
-      match /posts/{postId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create: if isProfileOwner(request.resource.data.authorId);
         
-        // A permissão de 'write' aqui é crucial para permitir que os usuários
-        // criem documentos em subcoleções (como comentários e likes).
-        // As regras mais específicas de 'update' e 'delete' abaixo irão sobrescrever
-        // esta regra para o documento do post em si.
-        allow write: if isCongregationMember(congregationId);
+        // CREATE: Any member can create a post.
+        allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
         
-        // Apenas o autor do post pode atualizá-lo ou deletá-lo.
+        // UPDATE/DELETE: Only the author of the post can update or delete it.
         allow update, delete: if isProfileOwner(resource.data.authorId);
 
+        // --- Sub-coleção de Comentários ---
         match /comments/{commentId} {
-          allow read: if isCongregationMember(congregationId);
-          allow create: if isCongregationMember(congregationId);
-          allow update, delete: if isProfileOwner(resource.data.authorId);
+            allow read: if isCongregationMember(congregationId);
+            
+            // CREATE: Any member of the congregation can create a comment.
+            allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
+
+            // UPDATE/DELETE: Only the author of the specific comment can edit or delete it.
+            allow update, delete: if isProfileOwner(resource.data.authorId);
         }
-        
+
+        // --- Sub-coleção de Likes ---
         match /likes/{userId} {
-          allow read: if isCongregationMember(congregationId);
-          allow create, delete: if isProfileOwner(userId);
+            allow read: if isCongregationMember(congregationId);
+            
+            // CREATE/DELETE: A user can only manage their own like.
+            allow create, delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
         }
-      }
     }
+}

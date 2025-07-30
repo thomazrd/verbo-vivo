@@ -74,41 +74,7 @@ match /articles/{articleId} {
 }
 
 
-    match /congregations/{congregationId} {
-      allow read: if isCongregationMember(congregationId);
-      allow create: if request.auth != null;
-      
-      // Regras para subcoleções
-      match /members/{userId} {
-        allow read: if isCongregationMember(congregationId);
-        allow write: if isProfileOwner(userId);
-      }
-      
-      match /posts/{postId} {
-        allow read: if isCongregationMember(congregationId);
-        allow create: if isProfileOwner(request.resource.data.authorId);
-        
-        // A permissão de 'write' aqui é crucial para permitir que os usuários
-        // criem documentos em subcoleções (como comentários e likes).
-        // As regras mais específicas de 'update' e 'delete' abaixo irão sobrescrever
-        // esta regra para o documento do post em si.
-        allow write: if isCongregationMember(congregationId);
-        
-        // Apenas o autor do post pode atualizá-lo ou deletá-lo.
-        allow update, delete: if isProfileOwner(resource.data.authorId);
 
-        match /comments/{commentId} {
-          allow read: if isCongregationMember(congregationId);
-          allow create: if isCongregationMember(congregationId);
-          allow update, delete: if isProfileOwner(resource.data.authorId);
-        }
-        
-        match /likes/{userId} {
-          allow read: if isCongregationMember(congregationId);
-          allow create, delete: if isProfileOwner(userId);
-        }
-      }
-    }
 
 
 match /sharedArmors/{armorId} {

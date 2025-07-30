@@ -68,7 +68,6 @@ const formSchema = z.object({
 
 export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }: JournalEditorProps) {
   const { user } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

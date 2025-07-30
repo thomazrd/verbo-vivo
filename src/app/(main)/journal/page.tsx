@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,11 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { MissionCompletionModal } from "@/components/battle-plans/MissionCompletionModal";
 
 export default function JournalPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -24,16 +25,16 @@ export default function JournalPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   
-  const [missionUserPlanId, setMissionUserPlanId] = useState<string | null>(null);
+  const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
   useEffect(() => {
     const missionParam = searchParams.get('mission');
     const planIdParam = searchParams.get('userPlanId');
     if (missionParam === 'true' && planIdParam) {
-      setMissionUserPlanId(planIdParam);
-      handleNewEntry();
+      handleNewEntry(planIdParam);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // This effect should only run once when the page loads with query params.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -63,26 +64,32 @@ export default function JournalPage() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleNewEntry = () => {
+  const handleNewEntry = (planId: string | null = null) => {
     setSelectedEntry(null);
+    setMissionToComplete(planId);
     setIsEditorOpen(true);
   };
 
   const handleEditEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
-    setMissionUserPlanId(null);
+    setMissionToComplete(null); // Can't complete a mission by editing an old entry
     setIsEditorOpen(true);
   };
   
   const handleEditorClose = (open: boolean, wasSaved = false) => {
     setIsEditorOpen(open);
-    if (!open) {
-      if (wasSaved && missionUserPlanId) {
-        router.push(`/?missionCompleted=${missionUserPlanId}`);
-      }
-      setMissionUserPlanId(null);
+    if (!open && wasSaved && missionToComplete) {
+      // The mission was completed, but the modal will now be shown by this component.
+      // We don't need to do anything else here as the modal is now controlled by this page.
+    } else if (!open) {
+      // If the sheet is just closed without saving, clear any pending mission.
+      setMissionToComplete(null);
     }
   };
+
+  const handleModalClose = () => {
+    setMissionToComplete(null);
+  }
 
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
@@ -107,7 +114,7 @@ export default function JournalPage() {
               Um espaço para suas orações, agradecimentos e reflexões.
             </p>
           </div>
-          <Button onClick={handleNewEntry}>
+          <Button onClick={() => handleNewEntry()}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova Entrada
           </Button>
@@ -153,8 +160,14 @@ export default function JournalPage() {
         isOpen={isEditorOpen}
         onOpenChange={handleEditorClose}
         entry={selectedEntry}
-        missionUserPlanId={missionUserPlanId}
+        missionUserPlanId={missionToComplete}
       />
+       {missionToComplete && !isEditorOpen && (
+        <MissionCompletionModal 
+            userPlanId={missionToComplete}
+            onClose={handleModalClose}
+        />
+      )}
     </>
   );
 }

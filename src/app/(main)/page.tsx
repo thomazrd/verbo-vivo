@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { Loader2, BookHeart } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { MissionCompletionModal } from "@/components/battle-plans/MissionCompletionModal";
 
 
@@ -13,7 +12,6 @@ function HomePageContent() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { toast } = useToast();
 
   const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
@@ -21,10 +19,8 @@ function HomePageContent() {
     const missionId = searchParams.get('missionCompleted');
     if (missionId) {
       setMissionToComplete(missionId);
-      // Clean URL after capturing the mission ID, but keep the modal state
-      router.replace('/home', { scroll: false }); 
     }
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   useEffect(() => {
     // Wait until the authentication check and profile fetch is complete.
@@ -55,7 +51,7 @@ function HomePageContent() {
   
   const handleModalClose = () => {
     setMissionToComplete(null);
-    router.replace('/home', { scroll: false });
+    router.replace('/home', { scroll: false }); // Clean URL after modal is closed
   }
 
   // Render a loading state while the logic in useEffect determines the correct route.
@@ -84,7 +80,9 @@ function HomePageContent() {
 
 export default function Home() {
     return (
-        <Suspense fallback={<div>Carregando...</div>}>
+        <Suspense fallback={<div className="flex h-screen w-screen flex-col items-center justify-center bg-background gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>}>
             <HomePageContent />
         </Suspense>
     )

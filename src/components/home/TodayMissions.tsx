@@ -98,10 +98,10 @@ export function TodayMissions() {
       <CardContent className="space-y-3">
         {missions.map(({ userPlanId, mission, planTitle }) => {
           let missionPath = mission.content.path;
-          if (mission.content.completionQueryParam === 'completed') {
-            missionPath = `${mission.content.path}?missionId=${userPlanId}`;
-          } else if (mission.content.completionQueryParam === 'mission') {
-            missionPath = `${mission.content.path}?mission=true`;
+           if (mission.type === 'JOURNAL_ENTRY') {
+              missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
+          } else if (mission.content.path.startsWith('/')) {
+              missionPath = `${mission.content.path}?missionId=${userPlanId}`;
           }
           
           return (

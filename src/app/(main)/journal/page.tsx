@@ -26,6 +26,7 @@ export default function JournalPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   const isMission = searchParams.get('mission') === 'true';
+  const userPlanId = searchParams.get('userPlanId');
 
   useEffect(() => {
     // Check if the page was opened from a mission
@@ -74,9 +75,12 @@ export default function JournalPage() {
 
   const handleEditorClose = (wasSaved: boolean) => {
     setIsEditorOpen(false);
-    if (wasSaved && isMission) {
-      // Redirect to home with completion flag
-      router.push('/?missionCompleted=true');
+    if (wasSaved && isMission && userPlanId) {
+      // Redirect to home with completion flag and plan ID
+      router.push(`/?missionCompleted=${userPlanId}`);
+    } else if (wasSaved && isMission) {
+      // Fallback if no plan ID is present
+      router.push('/home');
     }
   }
 

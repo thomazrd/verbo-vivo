@@ -1,5 +1,8 @@
 
 match /articles/{articleId} {
-  allow read: if canReadArticle();
-  allow write: if canWriteArticle();
+  // Qualquer pessoa pode ler artigos publicados.
+  allow read: if resource.data.status == 'published';
+
+  // Apenas administradores podem criar, atualizar ou deletar artigos.
+  allow write: if isAdmin();
 }

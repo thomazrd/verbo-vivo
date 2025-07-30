@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
@@ -7,27 +6,23 @@ const rulesDir = path.join(__dirname, '../rules');
 const baseFile = path.join(rulesDir, 'firestore.rules.base');
 const outputFile = path.join(__dirname, '../firestore.rules');
 const collectionsDir = path.join(rulesDir, 'collections');
-const functionsDir = path.join(rulesDir, 'functions');
 
 const buildRules = () => {
   try {
+    console.log('Gerando firestore.rules...');
+
     const baseContent = fs.readFileSync(baseFile, 'utf8');
     
-    let rulesContent = '';
-
-    // Read functions first
-    const functionFiles = fs.readdirSync(functionsDir).filter(f => f.endsWith('.rules'));
-    for (const file of functionFiles) {
-        rulesContent += fs.readFileSync(path.join(functionsDir, file), 'utf8') + '\n\n';
-    }
-
-    // Read collection rules
+    let collectionsContent = '';
     const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
+    
     for (const file of collectionFiles) {
-        rulesContent += fs.readFileSync(path.join(collectionsDir, file), 'utf8') + '\n\n';
+        const filePath = path.join(collectionsDir, file);
+        collectionsContent += `\n// --- From: ${file} ---\n`;
+        collectionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
     }
 
-    const finalContent = baseContent.replace('// {{RULES_CONTENT}}', rulesContent.trim());
+    const finalContent = baseContent.replace('// {{RULES_CONTENT}}', collectionsContent.trim());
     fs.writeFileSync(outputFile, finalContent);
 
     console.log('✅ firestore.rules foi gerado com sucesso!');
@@ -39,9 +34,9 @@ const buildRules = () => {
 const watchMode = process.argv.includes('--watch');
 
 if (watchMode) {
-  console.log('👀 Observando alterações na pasta /rules...');
-  chokidar.watch(rulesDir, { ignored: outputFile }).on('all', (event, path) => {
-    console.log(`[${event}] ${path}`);
+  console.log('👀 Observando alterações na pasta /rules/collections...');
+  chokidar.watch(collectionsDir, { ignored: outputFile }).on('all', (event, filePath) => {
+    console.log(`[${event}] ${path.basename(filePath)}`);
     buildRules();
   });
 } else {

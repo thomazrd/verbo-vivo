@@ -1,5 +1,8 @@
 
 match /studies/{studyId} {
-  allow read: if canReadStudy();
-  allow write: if canWriteStudy();
+  // Qualquer pessoa pode ler um estudo publicado.
+  allow read: if resource.data.status == 'PUBLISHED';
+
+  // Apenas administradores podem criar, atualizar ou deletar estudos.
+  allow write: if isAdmin();
 }

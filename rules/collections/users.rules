@@ -1,18 +1,27 @@
 
 match /users/{userId} {
+  // Qualquer usuário autenticado pode ler perfis (para ver nomes, fotos, etc).
   allow read: if isSignedIn();
-  allow create: if isProfileOwner(userId);
-  allow update: if isProfileOwner(userId);
   
-  match /armors/{armorId} {
-    allow read, write: if isProfileOwner(userId);
-  }
+  // Apenas o próprio usuário pode escrever em seu perfil.
+  allow write: if isProfileOwner(userId);
 
+  // Subcoleção de planos de estudo
   match /plans/{planId} {
-    allow read, write: if isProfileOwner(userId);
+    // Apenas o dono do perfil pode acessar seus próprios planos.
+    allow read, write, delete: if isProfileOwner(userId);
   }
+  
+  // Subcoleção de armaduras
+  match /armors/{armorId} {
+     // Apenas o dono do perfil pode acessar suas próprias armaduras.
+    allow read, write, delete: if isProfileOwner(userId);
+  }
+}
 
-  match /messages/{messageId} {
-    allow read, write: if isProfileOwner(userId);
-  }
+// Armaduras compartilhadas podem ser lidas por qualquer usuário autenticado.
+match /sharedArmors/{armorId} {
+    allow read: if isSignedIn();
+    // A escrita (criar/atualizar/deletar) é gerenciada pelo dono na sua própria coleção /users/{userId}/armors
+    allow write: if false;
 }

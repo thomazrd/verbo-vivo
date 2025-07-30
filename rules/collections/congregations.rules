@@ -1,41 +1,41 @@
-
 match /congregations/{congregationId} {
-  function isCongregationMember(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+  allow read: if isSignedIn();
+  allow create: if request.auth.uid == request.resource.data.createdBy;
+
+  // Membros de uma congregação
+  match /members/{userId} {
+    allow read: if isCongregationMember(congregationId);
+    allow create: if request.auth.uid == userId; // Ao solicitar entrada
+    allow update: if isCongregationAdmin(congregationId); // Admins podem aprovar/promover
+    allow delete: if request.auth.uid == userId || isCongregationAdmin(congregationId); // Usuário pode sair, admin pode remover
   }
 
-  function isCongregationAdmin(congregationId) {
-     return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
-  }
-
-  allow read: if isSignedIn() && isCongregationMember(congregationId);
-
-  // Posts
+  // Posts dentro de uma congregação
   match /posts/{postId} {
     allow read: if isCongregationMember(congregationId);
-    allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
-    allow update: if isCongregationMember(congregationId) && request.auth.uid == resource.data.authorId;
-    allow delete: if isCongregationMember(congregationId) && (request.auth.uid == resource.data.authorId || isCongregationAdmin(congregationId));
+    // Apenas o autor do post pode criar, editar ou deletar o próprio post.
+    // A escrita em subcoleções (como comentários) é governada pelas próprias regras.
+    allow create, update, delete: if isProfileOwner(request.resource.data.authorId);
 
-    // Comments
+    // Comentários dentro de um post
     match /comments/{commentId} {
       allow read: if isCongregationMember(congregationId);
+      // CORREÇÃO: Qualquer membro pode criar um comentário.
       allow create: if isCongregationMember(congregationId);
-      allow update, delete: if isCongregationMember(congregationId) && request.auth.uid == resource.data.authorId;
-    }
+      // APENAS o autor do comentário pode editar ou deletar.
+      allow update, delete: if isProfileOwner(resource.data.authorId);
 
-    // Likes
+      // Likes em comentários
+      match /likes/{userId} {
+        allow read: if isCongregationMember(congregationId);
+        allow create, delete: if request.auth.uid == userId;
+      }
+    }
+    
+    // Likes em posts
     match /likes/{userId} {
       allow read: if isCongregationMember(congregationId);
-      allow create, delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
+      allow create, delete: if request.auth.uid == userId;
     }
-  }
-
-  // Members
-  match /members/{memberId} {
-    allow read: if isCongregationMember(congregationId);
-    allow create: if isSignedIn(); // Allow any signed-in user to request to join
-    allow update: if isCongregationAdmin(congregationId); // Only admins can change member status
-    allow delete: if isCongregationAdmin(congregationId) || request.auth.uid == memberId; // Admins or the user themselves can leave/be removed
   }
 }

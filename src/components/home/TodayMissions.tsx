@@ -17,6 +17,7 @@ interface TodayMissionItem {
   userPlanId: string;
   mission: Mission;
   planTitle: string;
+  isCompleted: boolean;
 }
 
 export function TodayMissions() {
@@ -50,22 +51,21 @@ export function TodayMissions() {
 
         if (planDefSnap.exists()) {
           const planDef = planDefSnap.data() as BattlePlan;
-          const todaysMissionsForPlan = planDef.missions
-            .filter(m => m.day === currentDayOfPlan && !plan.completedMissionIds.includes(m.id));
-
-          if (todaysMissionsForPlan.length > 0) {
+          const allTodaysMissionsForPlan = planDef.missions
+            .filter(m => m.day === currentDayOfPlan);
+            
+          allTodaysMissionsForPlan.forEach(mission => {
             todayMissions.push({
-              userPlanId: plan.id,
-              mission: todaysMissionsForPlan[0], // We link to the mission client, which finds the next one
-              planTitle: plan.planTitle,
+                userPlanId: plan.id,
+                mission: mission,
+                planTitle: plan.planTitle,
+                isCompleted: plan.completedMissionIds.includes(mission.id)
             });
-          }
+          });
         }
       }
       
-      // Filter out duplicates in case of multiple missions for the same plan
-      const uniqueMissions = Array.from(new Map(todayMissions.map(m => [m.userPlanId, m])).values());
-      setMissions(uniqueMissions);
+      setMissions(todayMissions);
       setIsLoading(false);
     });
 
@@ -99,22 +99,39 @@ export function TodayMissions() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {missions.map(({ userPlanId, mission, planTitle }) => {
+        {missions.map(({ userPlanId, mission, planTitle, isCompleted }) => {
           const missionPath = `/battle-plans/mission/${userPlanId}`;
+          const missionKey = `${userPlanId}-${mission.id}`;
+
+          const MissionContent = (
+             <div className="flex justify-between items-center">
+                <div>
+                    <p className={`font-semibold ${isCompleted ? 'text-muted-foreground line-through' : ''}`}>{mission.title}</p>
+                    <p className="text-sm text-muted-foreground">{planTitle}</p>
+                </div>
+                {isCompleted ? (
+                    <Check className="h-5 w-5 text-green-500" />
+                ) : (
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                )}
+            </div>
+          );
           
+          if (isCompleted) {
+            return (
+              <div key={missionKey} className="block p-3 rounded-md bg-background/50 border opacity-70">
+                {MissionContent}
+              </div>
+            )
+          }
+
           return (
             <Link
               href={missionPath}
-              key={userPlanId} // Key by userPlanId since we only show one entry per plan
+              key={missionKey}
               className="block p-3 rounded-md bg-background border hover:bg-muted/50 transition-colors"
             >
-              <div className="flex justify-between items-center">
-                  <div>
-                      <p className="font-semibold">{mission.title}</p>
-                      <p className="text-sm text-muted-foreground">{planTitle}</p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
+              {MissionContent}
             </Link>
           )
         })}

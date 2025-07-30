@@ -8,11 +8,14 @@ import { Suspense } from 'react';
 function ConfessionPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const missionId = searchParams.get('missionId');
+    const missionId = searchParams.get('missionId'); // This is the userPlanId
 
     const handleCompletion = () => {
-        const url = missionId ? `/?missionCompleted=${missionId}` : '/';
-        router.push(url);
+        // If this was part of a mission, redirect to home with the missionCompleted flag
+        // The root page will then handle showing the completion modal.
+        if (missionId) {
+            router.push(`/?missionCompleted=${missionId}`);
+        }
     };
 
     return <ConfessionSanctuary onCompleted={handleCompletion} />;
@@ -26,3 +29,4 @@ export default function ConfessionPage() {
         </Suspense>
     );
 }
+

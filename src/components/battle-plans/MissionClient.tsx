@@ -99,6 +99,8 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     let missionPath = mission.content.path;
     if (mission.type === 'JOURNAL_ENTRY') {
         missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
+    } else if (mission.type === 'CONFESSION') {
+        missionPath = `${mission.content.path}?missionId=${userPlanId}`;
     } else if (mission.content.completionQueryParam) {
         missionPath = `${mission.content.path}?missionId=${userPlanId}`;
     }
@@ -135,3 +137,4 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         </div>
     );
 }
+

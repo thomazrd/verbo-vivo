@@ -34,7 +34,7 @@ export default function JournalPage() {
       handleNewEntry();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -73,13 +73,13 @@ export default function JournalPage() {
     setIsEditorOpen(true);
   };
 
-  const handleEditorClose = (wasSaved: boolean) => {
+  const handleEditorClose = (wasSaved?: boolean) => {
     setIsEditorOpen(false);
     if (wasSaved && isMission && userPlanId) {
       // Redirect to home with completion flag and plan ID
       router.push(`/?missionCompleted=${userPlanId}`);
     }
-  }
+  };
 
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {

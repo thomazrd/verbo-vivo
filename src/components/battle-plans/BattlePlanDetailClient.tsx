@@ -9,7 +9,7 @@ import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import type { BattlePlan, Mission, UserBattlePlan } from "@/lib/types";
 
-import { Loader2, ShieldCheck, Pencil, CheckCircle } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil, CheckCircle, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -123,6 +123,10 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
     return null; // or a 'not found' component
   }
 
+  const completedMissions = plan.missions.filter(m => userPlan?.completedMissionIds.includes(m.id));
+  const pendingMissions = plan.missions.filter(m => !userPlan?.completedMissionIds.includes(m.id));
+
+
   return (
     <div className="container mx-auto max-w-3xl pb-12">
       <div className="relative w-full h-64 sm:h-80 rounded-b-lg overflow-hidden shadow-lg">
@@ -182,20 +186,19 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
             </AlertDialog>
         )}
 
-        <h3 className="text-xl font-bold mt-12 mb-4">Missões do Plano</h3>
+        <h3 className="text-xl font-bold mt-12 mb-4">Próximas Missões</h3>
         <Accordion type="single" collapsible className="w-full space-y-2">
-            {plan.missions
+            {pendingMissions
               .sort((a,b) => a.day - b.day)
               .map((mission: Mission) => {
-                const isCompleted = userPlan?.completedMissionIds.includes(mission.id);
                 return (
-                  <AccordionItem value={`item-${mission.day}`} key={mission.id} className={cn("border rounded-lg px-4 bg-muted/30", isCompleted && "border-green-500/30 bg-green-500/5")}>
+                  <AccordionItem value={`item-${mission.day}`} key={mission.id} className="border rounded-lg px-4 bg-muted/30">
                     <AccordionTrigger>
                        <div className="flex items-center gap-4 w-full">
-                          <div className={cn("flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0", isCompleted && "bg-green-500/20 text-green-700")}>
-                              {isCompleted ? <CheckCircle className="h-5 w-5"/> : mission.day}
+                          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">
+                              {mission.day}
                           </div>
-                          <span className={cn("font-semibold text-left", isCompleted && "line-through text-muted-foreground")}>{mission.title}</span>
+                          <span className="font-semibold text-left">{mission.title}</span>
                        </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -207,7 +210,38 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
                 )
               })}
           </Accordion>
+
+         {completedMissions.length > 0 && (
+            <>
+                <h3 className="text-xl font-bold mt-12 mb-4 flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5"/>Missões Concluídas</h3>
+                 <Accordion type="single" collapsible className="w-full space-y-2">
+                    {completedMissions
+                    .sort((a,b) => a.day - b.day)
+                    .map((mission: Mission) => {
+                        return (
+                        <AccordionItem value={`item-${mission.day}`} key={mission.id} className="border rounded-lg px-4 bg-green-500/5 border-green-500/30">
+                            <AccordionTrigger>
+                            <div className="flex items-center gap-4 w-full">
+                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/20 text-green-700 font-bold text-sm shrink-0">
+                                    <CheckCircle className="h-5 w-5"/>
+                                </div>
+                                <span className="font-semibold text-left line-through text-muted-foreground">{mission.title}</span>
+                            </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="border-t -mx-4 px-4 pt-4 pb-2">
+                                <p className="text-muted-foreground">{mission.leaderNote || "Nenhuma nota adicional do líder."}</p>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                        )
+                    })}
+                </Accordion>
+            </>
+         )}
+
       </div>
     </div>
   );
 }
+

@@ -78,9 +78,6 @@ export default function JournalPage() {
     if (wasSaved && isMission && userPlanId) {
       // Redirect to home with completion flag and plan ID
       router.push(`/?missionCompleted=${userPlanId}`);
-    } else if (wasSaved && isMission) {
-      // Fallback if no plan ID is present
-      router.push('/home');
     }
   }
 

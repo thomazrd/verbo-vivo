@@ -38,14 +38,16 @@ function HomePageContent() {
       return;
     }
     
-    if (userProfile) {
-       // Do not redirect if a mission modal needs to be shown
-       if (userProfile.onboardingCompleted && !missionToComplete) {
+    // Redirect logic should only run if the modal is not active.
+    if (userProfile && !missionToComplete) {
+       if (userProfile.onboardingCompleted) {
          router.replace("/home");
-       } else if (!userProfile.onboardingCompleted) {
+       } else {
          router.replace("/onboarding");
        }
-    } else {
+    } else if (!userProfile && !missionToComplete) {
+        // This case can happen for a brand new user whose document hasn't been created yet.
+        // Directing to onboarding is a safe default, as it will create the user document.
         router.replace("/onboarding");
     }
     

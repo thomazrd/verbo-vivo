@@ -31,35 +31,44 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         
         const fetchMissionData = async () => {
             setIsLoading(true);
-            const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, userPlanId);
-            const userPlanSnap = await getDoc(userPlanRef);
+            try {
+                const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, userPlanId);
+                const userPlanSnap = await getDoc(userPlanRef);
 
-            if (!userPlanSnap.exists()) {
-                toast({ variant: 'destructive', title: 'Erro', description: 'Progresso do plano não encontrado.'});
-                router.push('/battle-plans');
-                return;
+                if (!userPlanSnap.exists()) {
+                    toast({ variant: 'destructive', title: 'Erro', description: 'Progresso do plano não encontrado.'});
+                    router.push('/battle-plans');
+                    return;
+                }
+                const up = { id: userPlanSnap.id, ...userPlanSnap.data() } as UserBattlePlan;
+                setUserPlan(up);
+
+                const planDefRef = doc(db, "battlePlans", up.planId);
+                const planDefSnap = await getDoc(planDefRef);
+
+                if (!planDefSnap.exists()) {
+                     toast({ variant: 'destructive', title: 'Erro', description: 'Definição do plano não encontrada.'});
+                    router.push('/battle-plans');
+                    return;
+                }
+                const pd = { id: planDefSnap.id, ...planDefSnap.data() } as BattlePlan;
+                setPlanDef(pd);
+                
+                const today = startOfDay(new Date());
+                const planStartDate = startOfDay(up.startDate.toDate());
+                const currentDayOfPlan = differenceInDays(today, planStartDate) + 1;
+
+                const todaysMission = pd.missions
+                  .filter(m => m.day === currentDayOfPlan)
+                  .find(m => !up.completedMissionIds.includes(m.id));
+
+                setMission(todaysMission || null);
+            } catch(e) {
+                console.error(e);
+                toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar os dados da missão.'});
+            } finally {
+                setIsLoading(false);
             }
-            const up = { id: userPlanSnap.id, ...userPlanSnap.data() } as UserBattlePlan;
-            setUserPlan(up);
-
-            const planDefRef = doc(db, "battlePlans", up.planId);
-            const planDefSnap = await getDoc(planDefRef);
-
-            if (!planDefSnap.exists()) {
-                 toast({ variant: 'destructive', title: 'Erro', description: 'Definição do plano não encontrada.'});
-                router.push('/battle-plans');
-                return;
-            }
-            const pd = { id: planDefSnap.id, ...planDefSnap.data() } as BattlePlan;
-            setPlanDef(pd);
-            
-            const today = startOfDay(new Date());
-            const planStartDate = startOfDay(up.startDate.toDate());
-            const currentDayOfPlan = differenceInDays(today, planStartDate) + 1;
-
-            const todaysMission = pd.missions.find(m => m.day === currentDayOfPlan);
-            setMission(todaysMission || null);
-            setIsLoading(false);
         };
 
         fetchMissionData();
@@ -88,8 +97,10 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     }
 
     let missionPath = mission.content.path;
-    if (mission.content.completionQueryParam) {
-        missionPath += `?mission=true`;
+    if (mission.type === 'JOURNAL_ENTRY') {
+        missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
+    } else if (mission.content.completionQueryParam) {
+        missionPath = `${mission.content.path}?missionId=${userPlanId}`;
     }
 
     return (

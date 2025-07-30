@@ -36,7 +36,7 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
     const [userPlan, setUserPlan] = useState<UserBattlePlan | null>(null);
     const [planDef, setPlanDef] = useState<BattlePlan | null>(null);
     const [todaysMissions, setTodaysMissions] = useState<Mission[]>([]);
-    const [completedToday, setCompletedToday] = useState<Mission[]>([]);
+    const [missionToComplete, setMissionToComplete] = useState<Mission | null>(null);
     const [nextMission, setNextMission] = useState<Mission | null>(null);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -48,48 +48,48 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
         
         const fetchMissionData = async () => {
             setIsLoading(true);
-            const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, userPlanId);
-            const userPlanSnap = await getDoc(userPlanRef);
+            try {
+                const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, userPlanId);
+                const userPlanSnap = await getDoc(userPlanRef);
 
-            if (!userPlanSnap.exists()) {
-                onClose();
-                return;
+                if (!userPlanSnap.exists()) {
+                    onClose();
+                    return;
+                }
+                const up = { id: userPlanSnap.id, ...userPlanSnap.data() } as UserBattlePlan;
+                setUserPlan(up);
+
+                const planDefRef = doc(db, "battlePlans", up.planId);
+                const planDefSnap = await getDoc(planDefRef);
+
+                if (!planDefSnap.exists()) {
+                    onClose();
+                    return;
+                }
+                const pd = { id: planDefSnap.id, ...planDefSnap.data() } as BattlePlan;
+                setPlanDef(pd);
+                
+                const today = startOfDay(new Date());
+                const planStartDate = startOfDay(up.startDate.toDate());
+                const currentDayOfPlan = differenceInDays(today, planStartDate) + 1;
+
+                const allTodaysMissions = pd.missions.filter(m => m.day === currentDayOfPlan);
+                setTodaysMissions(allTodaysMissions);
+
+                const missionsToComplete = allTodaysMissions.filter(m => !up.completedMissionIds.includes(m.id));
+                setMissionToComplete(missionsToComplete[0] || null);
+                setNextMission(missionsToComplete[1] || null);
+            } catch(e) {
+                console.error(e);
+            } finally {
+                setIsLoading(false);
             }
-            const up = { id: userPlanSnap.id, ...userPlanSnap.data() } as UserBattlePlan;
-            setUserPlan(up);
-
-            const planDefRef = doc(db, "battlePlans", up.planId);
-            const planDefSnap = await getDoc(planDefRef);
-
-            if (!planDefSnap.exists()) {
-                onClose();
-                return;
-            }
-            const pd = { id: planDefSnap.id, ...planDefSnap.data() } as BattlePlan;
-            setPlanDef(pd);
-            
-            const today = startOfDay(new Date());
-            const planStartDate = startOfDay(up.startDate.toDate());
-            const currentDayOfPlan = differenceInDays(today, planStartDate) + 1;
-
-            const allTodaysMissions = pd.missions.filter(m => m.day === currentDayOfPlan);
-            setTodaysMissions(allTodaysMissions);
-
-            const completed = allTodaysMissions.filter(m => up.completedMissionIds.includes(m.id));
-            setCompletedToday(completed);
-
-            const next = allTodaysMissions.find(m => !up.completedMissionIds.includes(m.id)) || null;
-            setNextMission(next);
-
-            setIsLoading(false);
         };
 
         fetchMissionData();
     }, [user, userPlanId, onClose]);
     
     const handleCompleteMission = async () => {
-        const missionToComplete = todaysMissions.find(m => !userPlan?.completedMissionIds.includes(m.id));
-        
         if (!user || !userPlan || !planDef || !missionToComplete || !selectedFeeling) {
              toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
             return;
@@ -122,12 +122,10 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
             await batch.commit();
             toast({ title: 'Missão Cumprida!', description: 'Seu progresso foi salvo.' });
             
-            // Check for the next mission *after* updating state
-            const nextUncompleted = todaysMissions.find(m => !newCompletedIds.includes(m.id));
-            if (nextUncompleted) {
+            if (nextMission) {
                 router.push(`/battle-plans/mission/${userPlanId}`);
             }
-            onClose(); // Close modal after action
+            onClose(); 
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar seu progresso.' });
@@ -138,7 +136,7 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
     
     const renderContent = () => {
         if (isLoading) {
-            return <Skeleton className="h-48 w-full" />
+            return <Skeleton className="h-48 w-full" />;
         }
         
         return (

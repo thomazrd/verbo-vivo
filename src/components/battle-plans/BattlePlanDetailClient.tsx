@@ -9,7 +9,7 @@ import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import type { BattlePlan, Mission, UserBattlePlan } from "@/lib/types";
 
-import { Loader2, ShieldCheck, Pencil } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 
 function PlanSkeleton() {
@@ -73,7 +74,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
     if (!user || !plan) return;
     const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, plan.id);
     const unsub = onSnapshot(userPlanRef, (docSnap) => {
-        setUserPlan(docSnap.exists() ? docSnap.data() as UserBattlePlan : null);
+        setUserPlan(docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as UserBattlePlan : null);
     });
     return () => unsub();
   }, [user, plan]);
@@ -185,23 +186,26 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
         <Accordion type="single" collapsible className="w-full space-y-2">
             {plan.missions
               .sort((a,b) => a.day - b.day)
-              .map((mission: Mission) => (
-              <AccordionItem value={`item-${mission.day}`} key={mission.id} className="border rounded-lg px-4 bg-muted/30">
-                <AccordionTrigger>
-                   <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                          {mission.day}
-                      </div>
-                      <span className="font-semibold">{mission.title}</span>
-                   </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                    <div className="border-t -mx-4 px-4 pt-4 pb-2">
-                       <p className="text-muted-foreground">{mission.leaderNote || "Nenhuma nota adicional do líder."}</p>
-                    </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+              .map((mission: Mission) => {
+                const isCompleted = userPlan?.completedMissionIds.includes(mission.id);
+                return (
+                  <AccordionItem value={`item-${mission.day}`} key={mission.id} className={cn("border rounded-lg px-4 bg-muted/30", isCompleted && "border-green-500/30 bg-green-500/5")}>
+                    <AccordionTrigger>
+                       <div className="flex items-center gap-4 w-full">
+                          <div className={cn("flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0", isCompleted && "bg-green-500/20 text-green-700")}>
+                              {isCompleted ? <CheckCircle className="h-5 w-5"/> : mission.day}
+                          </div>
+                          <span className={cn("font-semibold text-left", isCompleted && "line-through text-muted-foreground")}>{mission.title}</span>
+                       </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="border-t -mx-4 px-4 pt-4 pb-2">
+                           <p className="text-muted-foreground">{mission.leaderNote || "Nenhuma nota adicional do líder."}</p>
+                        </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )
+              })}
           </Accordion>
       </div>
     </div>

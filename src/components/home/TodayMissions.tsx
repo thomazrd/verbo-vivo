@@ -38,7 +38,7 @@ export function TodayMissions() {
     const unsubscribe = onSnapshot(userPlansQuery, async (snapshot) => {
       const activePlans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserBattlePlan));
       const today = startOfDay(new Date());
-      const todayMissions: TodayMissionItem[] = [];
+      let todayMissions: TodayMissionItem[] = [];
 
       for (const plan of activePlans) {
         const planStartDate = startOfDay(plan.startDate.toDate());
@@ -50,19 +50,22 @@ export function TodayMissions() {
 
         if (planDefSnap.exists()) {
           const planDef = planDefSnap.data() as BattlePlan;
-          const todaysMission = planDef.missions.find(m => m.day === currentDayOfPlan);
+          const todaysMissionsForPlan = planDef.missions
+            .filter(m => m.day === currentDayOfPlan && !plan.completedMissionIds.includes(m.id));
 
-          if (todaysMission && !plan.completedMissionIds.includes(todaysMission.id)) {
+          if (todaysMissionsForPlan.length > 0) {
             todayMissions.push({
               userPlanId: plan.id,
-              mission: todaysMission,
+              mission: todaysMissionsForPlan[0], // We link to the mission client, which finds the next one
               planTitle: plan.planTitle,
             });
           }
         }
       }
-
-      setMissions(todayMissions);
+      
+      // Filter out duplicates in case of multiple missions for the same plan
+      const uniqueMissions = Array.from(new Map(todayMissions.map(m => [m.userPlanId, m])).values());
+      setMissions(uniqueMissions);
       setIsLoading(false);
     });
 
@@ -97,17 +100,12 @@ export function TodayMissions() {
       </CardHeader>
       <CardContent className="space-y-3">
         {missions.map(({ userPlanId, mission, planTitle }) => {
-          let missionPath = mission.content.path;
-           if (mission.type === 'JOURNAL_ENTRY') {
-              missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
-          } else if (mission.content.path.startsWith('/')) {
-              missionPath = `${mission.content.path}?missionId=${userPlanId}`;
-          }
+          const missionPath = `/battle-plans/mission/${userPlanId}`;
           
           return (
             <Link
               href={missionPath}
-              key={mission.id}
+              key={userPlanId} // Key by userPlanId since we only show one entry per plan
               className="block p-3 rounded-md bg-background border hover:bg-muted/50 transition-colors"
             >
               <div className="flex justify-between items-center">

@@ -89,15 +89,11 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
         fetchMissionData();
     }, [user, userPlanId, onClose]);
     
-    const handleCompleteMission = async () => {
+    const handleCompleteMission = async (feeling: MissionFeeling) => {
         if (!user || !userPlan || !planDef || !missionToComplete) {
             return;
         }
 
-        if (!selectedFeeling) {
-             toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
-            return;
-        }
         setIsCompleting(true);
 
         const newCompletedIds = [...userPlan.completedMissionIds, missionToComplete.id];
@@ -119,7 +115,7 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
             planId: planDef.id,
             missionId: missionToComplete.id,
             completedAt: new Date(),
-            feeling: selectedFeeling,
+            feeling: feeling,
         });
         
         try {
@@ -139,6 +135,14 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
             setIsCompleting(false);
         }
     };
+    
+    const handleButtonClick = () => {
+        if (selectedFeeling) {
+            handleCompleteMission(selectedFeeling);
+        } else {
+            toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
+        }
+    }
     
     const renderContent = () => {
         if (isLoading) {
@@ -178,7 +182,7 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
                 <DialogFooter className="mt-4">
                      <Button 
                         size="lg" 
-                        onClick={handleCompleteMission}
+                        onClick={handleButtonClick}
                         disabled={isCompleting || !selectedFeeling}
                         className="w-full"
                     >

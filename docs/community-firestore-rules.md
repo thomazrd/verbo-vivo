@@ -24,8 +24,7 @@ Controla o acesso à própria congregação.
 match /congregations/{congregationId} {
     allow read: if isSignedIn();
     allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
-    allow update: if isCongregationAdmin(congregationId);
-    allow delete: if isCongregationAdmin(congregationId);
+    allow update, delete: if isCongregationAdmin(congregationId);
 }
 ```
 
@@ -87,7 +86,7 @@ match /comments/{commentId} {
 }
 ```
 
--   **`allow create`**: **A regra chave.** Qualquer membro da congregação (`isCongregationMember()`) pode criar um comentário em qualquer post. Isso é o que permite a interação no feed.
+-   **`allow create`**: **A regra chave.** Qualquer membro da congregação (`isCongregationMember()`) pode criar um comentário em qualquer post, desde que se identifique como autor no documento do comentário.
 -   **`allow update, delete`**: Apenas o autor do comentário pode editá-lo ou excluí-lo.
 
 ---

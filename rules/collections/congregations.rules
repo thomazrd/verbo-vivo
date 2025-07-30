@@ -1,45 +1,58 @@
-
-// --- /congregations/{congregationId} ---
+// Regras para a Coleção de Congregações
 match /congregations/{congregationId} {
+    // Qualquer usuário logado pode ler os dados da congregação (nome, etc)
     allow read: if isSignedIn();
-    allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
-    allow update: if isCongregationAdmin(congregationId);
-    allow delete: if isCongregationAdmin(congregationId);
 
-    // --- Sub-collection de Membros ---
+    // Apenas um usuário logado pode criar uma congregação, e ele deve ser o criador
+    allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
+
+    // Apenas administradores podem atualizar ou deletar a congregação
+    allow update, delete: if isCongregationAdmin(congregationId);
+
+    // --- Subcoleção de Membros ---
     match /members/{userId} {
+        // Apenas membros da congregação podem ver a lista de outros membros
         allow read, list: if isCongregationMember(congregationId);
-        allow create: if isSignedIn() && request.auth.uid == userId; // User requesting to join
-        allow update: if isCongregationAdmin(congregationId); // Admins approving/promoting
-        allow delete: if isCongregationAdmin(congregationId) || request.auth.uid == userId; // Admins removing or user leaving
+        
+        // Um usuário pode criar um documento para si mesmo (solicitar entrada)
+        allow create: if isSignedIn() && request.auth.uid == userId;
+
+        // Apenas admins podem atualizar o status de um membro (aprovar, etc)
+        allow update: if isCongregationAdmin(congregationId);
+        
+        // Admins podem remover membros, e um membro pode sair
+        allow delete: if isCongregationAdmin(congregationId) || request.auth.uid == userId;
     }
 
-    // --- Sub-collection de Posts ---
+    // --- Subcoleção de Posts ---
     match /posts/{postId} {
+        // Apenas membros podem ler os posts
         allow read: if isCongregationMember(congregationId);
-        
-        // CREATE: Any member can create a post.
+
+        // Um membro pode criar um post para si mesmo.
         allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
         
-        // UPDATE/DELETE: Only the author of the post can update or delete it.
+        // Apenas o autor do post pode atualizar ou deletar o post.
         allow update, delete: if isProfileOwner(resource.data.authorId);
 
-        // --- Sub-coleção de Comentários ---
+        // --- Subcoleção de Comentários ---
         match /comments/{commentId} {
+            // Todos os membros podem ler os comentários
             allow read: if isCongregationMember(congregationId);
-            
-            // CREATE: Any member of the congregation can create a comment.
+
+            // QUALQUER membro da congregação pode criar um comentário.
             allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
 
-            // UPDATE/DELETE: Only the author of the specific comment can edit or delete it.
+            // Apenas o AUTOR do comentário pode editar ou apagar.
             allow update, delete: if isProfileOwner(resource.data.authorId);
         }
 
-        // --- Sub-coleção de Likes ---
+        // --- Subcoleção de Likes ---
         match /likes/{userId} {
+             // Todos os membros podem ver quem curtiu.
             allow read: if isCongregationMember(congregationId);
-            
-            // CREATE/DELETE: A user can only manage their own like.
+
+            // Um membro só pode criar ou deletar a sua própria curtida.
             allow create, delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
         }
     }

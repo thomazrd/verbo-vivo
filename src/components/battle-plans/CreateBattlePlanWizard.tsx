@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType, UserBattlePlan, BattlePlan } from "@/lib/types";
 import Image from "next/image";
@@ -28,7 +28,7 @@ const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
   day: z.number(),
   title: z.string().min(3, "O título da missão é muito curto."),
-  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY"]),
+  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
   content: z.object({
     path: z.string(),
     completionQueryParam: z.string().optional(),
@@ -51,8 +51,9 @@ const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: 
     BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
     PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'completed' },
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'completed' },
-    CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'completed' },
+    CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'missionId' },
     JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
+    FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'userPlanId' },
 };
 
 
@@ -93,7 +94,7 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
         if (details.completionQueryParam === 'mission') {
             setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'true');
         } else if (details.completionQueryParam) {
-            setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'completed');
+            setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
         } else {
              setValue(`missions.${fieldIndex}.content.completionQueryParam`, undefined);
         }

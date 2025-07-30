@@ -111,7 +111,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         }
     } else if (completionParam) {
         if (completionParam === 'mission') {
-            missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
+             missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
         } else {
             const paramKey = completionParam;
             const paramValue = userPlanId;
@@ -152,4 +152,3 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         </div>
     );
 }
-

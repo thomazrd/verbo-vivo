@@ -8,22 +8,15 @@ import { MissionCompletionModal } from '@/components/battle-plans/MissionComplet
 
 function ConfessionPageContent() {
     const searchParams = useSearchParams();
-    const missionIdFromParams = searchParams.get('missionId');
+    const isMission = searchParams.get('mission') === 'true';
+    const userPlanId = searchParams.get('userPlanId');
 
     const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
-    // This effect runs once to check if we came from a mission.
-    useEffect(() => {
-        if (missionIdFromParams) {
-            // We don't open the modal yet, just store the ID.
-            // The modal will be triggered by onCompleted.
-        }
-    }, [missionIdFromParams]);
-
     const handleCompletion = () => {
         // If this was part of a mission, trigger the completion modal.
-        if (missionIdFromParams) {
-            setMissionToComplete(missionIdFromParams);
+        if (isMission && userPlanId) {
+            setMissionToComplete(userPlanId);
         }
         // If not from a mission, this does nothing, and the user can navigate away freely.
     };

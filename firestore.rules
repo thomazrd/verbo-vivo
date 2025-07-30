@@ -4,31 +4,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
+    // Funções relacionadas à autenticação
+
+function isSignedIn() {
   return request.auth != null;
 }
 
+// Verifica se o usuário autenticado é o dono do recurso
 function isUser(userId) {
   return isSignedIn() && request.auth.uid == userId;
 }
 
-function isProfileOwner(userId) {
-  return request.auth.uid == userId;
+// Verifica se o usuário tem a claim de ADMIN em seu token
+function isAdmin() {
+  return isSignedIn() && request.auth.token.role == 'ADMIN';
 }
 
-function isCongregationAdmin(congregationId) {
-  let congregationData = get(/databases/$(database)/documents/congregations/$(congregationId)).data;
-  return isSignedIn() && congregationData.admins[request.auth.uid] == true;
-}
-
+// Verifica se o usuário é um membro ou admin da congregação
 function isCongregationMember(congregationId) {
-    return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
 }
 
-function isRole(role) {
-  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+// Verifica se o usuário é um admin da congregação
+function isCongregationAdmin(congregationId) {
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
 }
-
 
 
 function canReadStudy() {

@@ -30,42 +30,34 @@ beforeEach(async () => {
 });
 
 describe('Regras da coleção "studies"', () => {
-  // Setup: Cria um estudo publicado no banco de dados do emulador
-  const setupPublishedStudy = async () => {
-    const adminDb = testEnv.unauthenticatedContext().firestore();
-    await setDoc(doc(adminDb, 'studies/published-study'), {
-      title: 'Estudo Publicado',
-      status: 'PUBLISHED',
-    });
+  // Helper para criar um estudo usando o contexto de admin
+  const createStudy = async (studyId: string, data: any) => {
+    const adminDb = testEnv.authenticatedContext('admin-user', { role: 'ADMIN' }).firestore();
+    await setDoc(doc(adminDb, `studies/${studyId}`), data);
   };
 
   test('deve PERMITIR a leitura de um estudo com status "PUBLISHED" para usuários não autenticados', async () => {
-    await setupPublishedStudy();
+    await createStudy('published-study', { title: 'Estudo Publicado', status: 'PUBLISHED' });
     const db = testEnv.unauthenticatedContext().firestore();
     const studyRef = doc(db, 'studies/published-study');
     await assertSucceeds(getDoc(studyRef));
   });
 
   test('deve NEGAR a leitura de um estudo com status "DRAFT" para usuários não autenticados', async () => {
-    const adminDb = testEnv.unauthenticatedContext().firestore();
-    await setDoc(doc(adminDb, 'studies/draft-study'), {
-      title: 'Estudo Rascunho',
-      status: 'DRAFT',
-    });
-    
+    await createStudy('draft-study', { title: 'Estudo Rascunho', status: 'DRAFT' });
     const db = testEnv.unauthenticatedContext().firestore();
     const studyRef = doc(db, 'studies/draft-study');
     await assertFails(getDoc(studyRef));
   });
 
   test('deve PERMITIR a leitura de um estudo com status "PUBLISHED" para usuários autenticados', async () => {
-    await setupPublishedStudy();
+    await createStudy('published-study-auth', { title: 'Estudo Publicado', status: 'PUBLISHED' });
     const db = testEnv.authenticatedContext('user-123').firestore();
-    const studyRef = doc(db, 'studies/published-study');
+    const studyRef = doc(db, 'studies/published-study-auth');
     await assertSucceeds(getDoc(studyRef));
   });
 
-  test('deve NEGAR a escrita (criação, atualização, exclusão) para usuários não administradores', async () => {
+  test('deve NEGAR a escrita (criação) para usuários não administradores', async () => {
     const db = testEnv.authenticatedContext('user-123').firestore();
     const studyRef = doc(db, 'studies/new-study');
     await assertFails(setDoc(studyRef, { title: 'Novo Estudo', status: 'DRAFT' }));

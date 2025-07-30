@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, writeBatch, collection } from "firebase/firestore";
 import type { BattlePlan, Mission, UserBattlePlan, MissionFeeling } from "@/lib/types";
 import { differenceInDays, startOfDay } from "date-fns";
 import { Loader2, Check, Shield, Handshake, Heart, BrainCircuit } from "lucide-react";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useToast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const feelingOptions: { name: MissionFeeling, label: string, icon: React.ElementType }[] = [
     { name: 'GRATEFUL', label: 'Grato', icon: Handshake },
@@ -151,7 +151,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
                         <p className="text-lg">Leia e medite em: <strong className="font-mono">{mission.content.verse}</strong></p>
                     )}
                      {mission.type === 'PRAYER' && (
-                        <p className="text-lg">{mission.content.prompt}</p>
+                        <p className="text-lg">{"mission.content.prompt"}</p>
                     )}
                     {mission.leaderNote && (
                         <blockquote className="mt-4 border-l-2 pl-4 italic text-muted-foreground">

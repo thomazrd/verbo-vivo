@@ -154,6 +154,15 @@ match /congregations/{congregationId} {
 }
 
 
+// --- From: journals.rules ---
+
+match /journals/{journalId} {
+  // A user can read, create, update, or delete their own journal entries.
+  allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+  allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+}
+
+
 // --- From: sharedArmors.rules ---
 
 match /sharedArmors/{armorId} {

@@ -1,0 +1,6 @@
+
+match /sharedArmors/{armorId} {
+  allow read: if true;
+  allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+  allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+}

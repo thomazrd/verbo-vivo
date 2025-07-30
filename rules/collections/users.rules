@@ -1,0 +1,18 @@
+
+match /users/{userId} {
+  allow read: if isSignedIn();
+  allow create: if isProfileOwner(userId);
+  allow update: if isProfileOwner(userId);
+  
+  match /armors/{armorId} {
+    allow read, write: if isProfileOwner(userId);
+  }
+
+  match /plans/{planId} {
+    allow read, write: if isProfileOwner(userId);
+  }
+
+  match /messages/{messageId} {
+    allow read, write: if isProfileOwner(userId);
+  }
+}

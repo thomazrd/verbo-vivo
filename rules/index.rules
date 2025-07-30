@@ -1,0 +1,17 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Funções de utilidade devem ser incluídas primeiro
+    include "functions/auth.rules";
+    include "functions/validation.rules";
+
+    // 2. Regras específicas das coleções
+    include "collections/users.rules";
+    include "collections/congregations.rules";
+    include "collections/articles.rules";
+    include "collections/studies.rules";
+    // Adicione outras coleções aqui
+  }
+}

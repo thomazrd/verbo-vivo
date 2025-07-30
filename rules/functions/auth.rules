@@ -1,0 +1,25 @@
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isUser(userId) {
+  return isSignedIn() && request.auth.uid == userId;
+}
+
+function isProfileOwner(userId) {
+  return request.auth.uid == userId;
+}
+
+function isCongregationAdmin(congregationId) {
+  let congregationData = get(/databases/$(database)/documents/congregations/$(congregationId)).data;
+  return isSignedIn() && congregationData.admins[request.auth.uid] == true;
+}
+
+function isCongregationMember(congregationId) {
+    return exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+}
+
+function isRole(role) {
+  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+}

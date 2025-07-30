@@ -1,0 +1,18 @@
+
+function canReadStudy() {
+  // Allow read if the study is published, or if the user is an admin reading any status.
+  return resource.data.status == 'PUBLISHED' || (isSignedIn() && isRole('ADMIN'));
+}
+
+function canWriteStudy() {
+  // Allow write only if the user is an admin.
+  return isSignedIn() && isRole('ADMIN');
+}
+
+function canReadArticle() {
+  return resource.data.status == 'published' || (isSignedIn() && isRole('ADMIN'));
+}
+
+function canWriteArticle() {
+  return isSignedIn() && isRole('ADMIN');
+}

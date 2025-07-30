@@ -1,0 +1,29 @@
+
+match /congregations/{congregationId} {
+  allow read: if isCongregationMember(congregationId);
+  allow write: if isCongregationAdmin(congregationId);
+
+  match /members/{memberId} {
+    allow read: if isCongregationMember(congregationId);
+    allow write: if isCongregationAdmin(congregationId) || isUser(memberId);
+  }
+
+  match /posts/{postId} {
+    allow read: if isCongregationMember(congregationId);
+    allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
+    allow update: if isCongregationMember(congregationId) && resource.data.authorId == request.auth.uid;
+    allow delete: if isCongregationMember(congregationId) && (resource.data.authorId == request.auth.uid || isCongregationAdmin(congregationId));
+    
+    match /comments/{commentId} {
+        allow read: if isCongregationMember(congregationId);
+        allow create: if isCongregationMember(congregationId) && request.resource.data.authorId == request.auth.uid;
+        allow update: if isCongregationMember(congregationId) && resource.data.authorId == request.auth.uid;
+        allow delete: if isCongregationMember(congregationId) && (resource.data.authorId == request.auth.uid || isCongregationAdmin(congregationId));
+    }
+
+    match /likes/{userId} {
+        allow read: if isCongregationMember(congregationId);
+        allow create, delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
+    }
+  }
+}

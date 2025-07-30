@@ -1,0 +1,5 @@
+
+match /studies/{studyId} {
+  allow read: if canReadStudy();
+  allow write: if canWriteStudy();
+}

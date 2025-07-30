@@ -117,13 +117,10 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             missionPath = `/bible?${params.toString()}`;
         }
     } else if (completionParam) {
-        if (completionParam === 'mission') {
-             missionPath = `${mission.content.path}?mission=true&userPlanId=${userPlanId}`;
-        } else {
-            const paramKey = completionParam;
-            const paramValue = userPlanId;
-            missionPath = `${mission.content.path}?${paramKey}=${paramValue}`;
-        }
+        const params = new URLSearchParams();
+        params.set('mission', 'true');
+        params.set('userPlanId', userPlanId);
+        missionPath = `${mission.content.path}?${params.toString()}`;
     }
 
 

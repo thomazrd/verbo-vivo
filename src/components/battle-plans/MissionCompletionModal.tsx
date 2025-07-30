@@ -89,12 +89,23 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
         fetchMissionData();
     }, [user, userPlanId, onClose]);
     
-    const handleCompleteMission = async (feeling: MissionFeeling) => {
+    const handleCompleteMission = async (feeling: MissionFeeling | null) => {
+        console.log("handleCompleteMission called. Feeling:", feeling);
+        console.log("Current state:", { user, userPlan, planDef, missionToComplete });
+
         if (!user || !userPlan || !planDef || !missionToComplete) {
+            console.log("Exiting: Missing required data.");
+            return;
+        }
+        
+        if (!feeling) {
+            console.log("Exiting: No feeling selected.");
+            toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
             return;
         }
 
         setIsCompleting(true);
+        console.log("Processing completion...");
 
         const newCompletedIds = [...userPlan.completedMissionIds, missionToComplete.id];
         const newProgress = (newCompletedIds.length / planDef.missions.length) * 100;
@@ -120,29 +131,25 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
         
         try {
             await batch.commit();
+            console.log("Batch commit successful.");
             toast({ title: 'Missão Cumprida!', description: 'Seu progresso foi salvo.' });
             
             if (nextMission) {
+                console.log("Redirecting to next mission...");
                 router.push(`/battle-plans/mission/${userPlanId}`);
                 onClose();
             } else {
-                router.push('/home'); // Go to home after the last mission of the day
+                console.log("Redirecting to home...");
+                router.push('/home');
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error completing mission:", error);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar seu progresso.' });
         } finally {
             setIsCompleting(false);
         }
     };
     
-    const handleButtonClick = () => {
-        if (selectedFeeling) {
-            handleCompleteMission(selectedFeeling);
-        } else {
-            toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
-        }
-    }
     
     const renderContent = () => {
         if (isLoading) {
@@ -182,7 +189,7 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
                 <DialogFooter className="mt-4">
                      <Button 
                         size="lg" 
-                        onClick={handleButtonClick}
+                        onClick={() => handleCompleteMission(selectedFeeling)}
                         disabled={isCompleting || !selectedFeeling}
                         className="w-full"
                     >

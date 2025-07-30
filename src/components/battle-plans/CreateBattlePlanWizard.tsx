@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain, Smile, LockKeyhole, HeartHandshake } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, MessageSquare, Brain, Smile, LockKeyhole, HeartHandshake, NotebookText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType } from "@/lib/types";
 import Image from "next/image";
@@ -27,7 +27,7 @@ const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
   day: z.number(),
   title: z.string().min(3, "O título da missão é muito curto."),
-  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION"]),
+  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY"]),
   content: z.object({
     path: z.string(),
     completionQueryParam: z.string().optional(),
@@ -51,6 +51,7 @@ const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: 
     PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'completed' },
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'completed' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'completed' },
+    JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
 };
 
 
@@ -87,7 +88,18 @@ function MissionEditor({ control, day, getValues, setValue }: { control: any, da
         const details = MissionTypeDetails[newType];
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
-        setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
+        
+        // Define o parâmetro de conclusão com base no tipo
+        if (details.completionQueryParam === 'mission') {
+            // Para o diário, apenas indicamos que é uma missão
+            setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'true');
+        } else if (details.completionQueryParam) {
+            // Para outros, usamos o ID do plano de usuário (que será preenchido no componente da missão)
+            setValue(`missions.${fieldIndex}.content.completionQueryParam`, 'completed');
+        } else {
+             setValue(`missions.${fieldIndex}.content.completionQueryParam`, undefined);
+        }
+
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
         }

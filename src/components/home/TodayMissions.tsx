@@ -97,7 +97,13 @@ export function TodayMissions() {
       </CardHeader>
       <CardContent className="space-y-3">
         {missions.map(({ userPlanId, mission, planTitle }) => {
-          const missionPath = `${mission.content.path}?missionId=${userPlanId}`;
+          let missionPath = mission.content.path;
+          if (mission.content.completionQueryParam === 'completed') {
+            missionPath = `${mission.content.path}?missionId=${userPlanId}`;
+          } else if (mission.content.completionQueryParam === 'mission') {
+            missionPath = `${mission.content.path}?mission=true`;
+          }
+          
           return (
             <Link
               href={missionPath}

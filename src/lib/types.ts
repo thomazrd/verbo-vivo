@@ -409,7 +409,7 @@ export interface Armor {
 }
 
 // --- Tipos do Centro de Treinamento ---
-export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNEY' | 'CONFESSION';
+export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNEY' | 'CONFESSION' | 'JOURNAL_ENTRY';
 export type MissionStatus = 'PENDING' | 'COMPLETED';
 export type BattlePlanStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type UserBattlePlanStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';

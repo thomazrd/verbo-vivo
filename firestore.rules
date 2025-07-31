@@ -1,48 +1,16 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =============================================
-    //           FUNÇÕES DE UTILIDADE
-    // =============================================
-
-    // --- Funções de Autenticação ---
+    // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
-
-    function isProfileOwner(userId) {
+    
+    function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.role == 'ADMIN';
-    }
-
-    function isCongregationMember(congregationId) {
-      return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status != 'PENDING';
-    }
-    
-    function isCongregationAdmin(congregationId) {
-       return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
-    }
-
-    // --- Funções de Validação de Dados ---
-    function isString(value) {
-      return value is string;
-    }
-
-    function isStringSized(value, min, max) {
-      return isString(value) && value.size() >= min && value.size() <= max;
-    }
-
-    function isBoolean(value) {
-      return value is bool;
-    }
-    
-    function isTimestamp(value) {
-        return value is timestamp;
     }
 
     // --- From: articles.rules ---
@@ -186,11 +154,26 @@ match /missionLogs/{logId} {
 
 // --- From: notifications.rules ---
 
-// Permite que um usuário leia uma notificação apenas se for o destinatário.
-// Ninguém pode escrever ou apagar notificações pelo lado do cliente.
 match /notifications/{notificationId} {
-  allow read: if request.auth.uid == resource.data.recipientId;
-  allow write, delete: if false;
+  // Um usuário pode ler uma notificação se ele for o destinatário.
+  // A criação é feita apenas pelo backend (Cloud Functions).
+  allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+  allow write: if false;
+}
+
+
+// --- From: prayerCircles.rules ---
+
+match /prayerCircles/{circleId} {
+    // Leitura: Qualquer membro do círculo pode ler. Círculos públicos podem ser lidos por todos.
+    allow read: if resource.data.isPublic == true || (isSignedIn() && request.auth.uid in resource.data.members);
+    // Criação: Qualquer usuário autenticado pode criar um círculo.
+    allow create: if isSignedIn();
+    // Atualização: Apenas o criador ou membros podem atualizar (ex: entrar no círculo).
+    // Uma regra mais granular pode ser necessária aqui (ex: só o criador edita o nome).
+    allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+    // Exclusão: Apenas o criador pode excluir.
+    allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
 }
 
 
@@ -203,14 +186,24 @@ match /sharedArmors/{armorId} {
 }
 
 
+// --- From: sharedContent.rules ---
+
+match /sharedContent/{contentId} {
+    // Permite leitura pública de conteúdo compartilhado que está ativo.
+    // A criação é feita via app, mas a atualização/exclusão pode ser restrita.
+    allow read: if resource.data.status == 'ACTIVE';
+    allow create: if isSignedIn();
+    allow update, delete: if isOwner(request.resource.data.creatorId);
+}
+
+
 // --- From: studies.rules ---
 
 match /studies/{studyId} {
-  // Qualquer pessoa pode ler um estudo publicado.
+  // Permite leitura pública de estudos com status 'PUBLISHED'.
+  // Ninguém pode escrever diretamente, apenas o backend administrativo.
   allow read: if resource.data.status == 'PUBLISHED';
-
-  // Apenas administradores podem criar, atualizar ou deletar estudos.
-  allow write: if isAdmin();
+  allow write: if false; 
 }
 
 
@@ -230,29 +223,44 @@ match /users/{userId}/battlePlans/{userPlanId} {
 
 match /users/{userId} {
   // Qualquer usuário autenticado pode ler perfis (para ver nomes, fotos, etc).
+  // Um usuário só pode escrever em seu próprio perfil.
   allow read: if isSignedIn();
-  
-  // Apenas o próprio usuário pode escrever em seu perfil.
-  allow write: if isProfileOwner(userId);
+  allow write: if isOwner(userId);
 
-  // Subcoleção de planos de estudo
+  // Regras para subcoleções de 'users'
   match /plans/{planId} {
-    // Apenas o dono do perfil pode acessar seus próprios planos.
-    allow read, write, delete: if isProfileOwner(userId);
+    allow read, write: if isOwner(userId);
   }
   
-  // Subcoleção de armaduras
   match /armors/{armorId} {
-     // Apenas o dono do perfil pode acessar suas próprias armaduras.
-    allow read, write, delete: if isProfileOwner(userId);
+    allow read, write: if isOwner(userId);
+  }
+
+  match /messages/{messageId} {
+    allow read, write: if isOwner(userId);
+  }
+
+  match /battlePlans/{userPlanId} {
+    allow read, write: if isOwner(userId);
   }
 }
 
-// Armaduras compartilhadas podem ser lidas por qualquer usuário autenticado.
-match /sharedArmors/{armorId} {
-    allow read: if isSignedIn();
-    // A escrita (criar/atualizar/deletar) é gerenciada pelo dono na sua própria coleção /users/{userId}/armors
-    allow write: if false;
+match /userPushTokens/{tokenId} {
+    // Um usuário só pode criar ou gerenciar seu próprio token.
+    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+}
+
+
+// --- From: victories.rules ---
+
+match /victories/{victoryId} {
+    // Qualquer um pode ler as vitórias.
+    allow read: if true;
+    // Apenas usuários autenticados podem interagir (dar "Amém").
+    allow update: if isSignedIn();
+    // A criação é restrita (feita pelo moderador do círculo no app).
+    allow create: if isSignedIn();
+    allow delete: if false;
 }
   }
 }

@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
@@ -11,15 +12,20 @@ const buildRules = () => {
   try {
     console.log('Gerando firestore.rules...');
 
+    if (!fs.existsSync(baseFile)) {
+        throw new Error(`Arquivo base não encontrado em ${baseFile}`);
+    }
     const baseContent = fs.readFileSync(baseFile, 'utf8');
     
     let collectionsContent = '';
-    const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
-    
-    for (const file of collectionFiles) {
-        const filePath = path.join(collectionsDir, file);
-        collectionsContent += `\n// --- From: ${file} ---\n`;
-        collectionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
+    if (fs.existsSync(collectionsDir)) {
+        const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
+        
+        for (const file of collectionFiles) {
+            const filePath = path.join(collectionsDir, file);
+            collectionsContent += `\n// --- From: ${file} ---\n`;
+            collectionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
+        }
     }
 
     const finalContent = baseContent.replace('// {{RULES_CONTENT}}', collectionsContent.trim());
@@ -34,21 +40,14 @@ const buildRules = () => {
 const watchMode = process.argv.includes('--watch');
 
 if (watchMode) {
-  console.log('👀 Observando alterações na pasta /rules/collections...');
-  const watcher = chokidar.watch(collectionsDir, { ignored: outputFile, persistent: true });
+  console.log('👀 Observando alterações na pasta /rules...');
+  const watcher = chokidar.watch(rulesDir, { ignored: outputFile, persistent: true });
   watcher.on('all', (event, filePath) => {
     if (event === 'add' || event === 'change' || event === 'unlink') {
         console.log(`[${event}] ${path.basename(filePath)}`);
         buildRules();
     }
   });
-  
-  const baseWatcher = chokidar.watch(baseFile, { persistent: true });
-  baseWatcher.on('change', (filePath) => {
-      console.log(`[change] ${path.basename(filePath)}`);
-      buildRules();
-  });
-
 } else {
   buildRules();
 }

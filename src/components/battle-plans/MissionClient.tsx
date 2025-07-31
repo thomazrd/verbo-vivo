@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -97,32 +96,36 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         )
     }
 
-    let missionPath = mission.content.path;
-    const completionParam = mission.content.completionQueryParam;
-    
-    if (mission.type === 'BIBLE_READING' && mission.content.verse) {
-        const details = mission.content.details;
-        const bookAbbrev = details?.book?.abbrev?.pt;
-        const chapter = details?.chapter;
-        
-        if (bookAbbrev && chapter) {
-            const params = new URLSearchParams({
-                book: bookAbbrev,
-                chapter: String(chapter),
-                userPlanId: userPlanId
-            });
-            if(details.startVerse) params.set('startVerse', String(details.startVerse));
-            if(details.endVerse) params.set('endVerse', String(details.endVerse));
-
-            missionPath = `/bible?${params.toString()}`;
-        }
-    } else if (completionParam) {
+    // Centralized logic for building the mission link
+    const buildMissionPath = () => {
+        let path = mission.content.path;
         const params = new URLSearchParams();
-        params.set('mission', 'true');
-        params.set('userPlanId', userPlanId);
-        missionPath = `${mission.content.path}?${params.toString()}`;
-    }
 
+        // Always add mission parameters for tracking
+        if (mission.content.completionQueryParam) {
+            params.set('mission', 'true');
+        }
+        params.set('userPlanId', userPlanId);
+
+        // Add specific parameters for BIBLE_READING
+        if (mission.type === 'BIBLE_READING' && mission.content.verse) {
+            const details = mission.content.details;
+            const bookAbbrev = details?.book?.abbrev?.pt;
+            const chapter = details?.chapter;
+            
+            if (bookAbbrev && chapter) {
+                path = '/bible'; // Override path for bible reading
+                params.set('book', bookAbbrev);
+                params.set('chapter', String(chapter));
+                if (details.startVerse) params.set('startVerse', String(details.startVerse));
+                if (details.endVerse) params.set('endVerse', String(details.endVerse));
+            }
+        }
+        
+        return `${path}?${params.toString()}`;
+    };
+    
+    const missionPath = buildMissionPath();
 
     return (
         <div className="container mx-auto max-w-2xl py-8 px-4">

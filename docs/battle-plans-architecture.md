@@ -24,7 +24,7 @@ Armazena a definição de cada Plano de Batalha criado por um líder.
         - `id`: (string) ID único da missão.
         - `day`: (number) Dia em que a missão deve ser realizada.
         - `title`: (string) Título da missão.
-        - `type`: (string) `BIBLE_READING`, `PRAYER`, `REFLECTION`.
+        - `type`: (string) `BIBLE_READING`, `PRAYER_SANCTUARY`, `REFLECTION`.
         - `content`: (map) Objeto com o conteúdo da missão (ex: `{ verse: 'Filipenses 4:13' }`).
         - `leaderNote`: (string, opcional) Nota do líder para a missão.
     - `createdAt`: (Timestamp) Data de criação.
@@ -34,7 +34,7 @@ Armazena a definição de cada Plano de Batalha criado por um líder.
 
 Armazena o progresso de cada usuário em um plano específico.
 
-- **Document ID:** ID único gerado automaticamente.
+- **Document ID:** ID do `battlePlans` original para fácil consulta (`users/{userId}/battlePlans/{planId}`).
 - **Descrição:** Vincula um usuário a um plano e rastreia seu progresso.
 - **Campos:**
     - `userId`: (string) UID do usuário (soldado).
@@ -65,15 +65,8 @@ Registra a conclusão de cada missão individual e o sentimento do usuário.
 
 As regras são projetadas para proteger a privacidade do usuário, permitindo o acompanhamento consentido pelo líder.
 
-### `rules/collections/battlePlans.rules`
-
 ```
 // collections/battlePlans.rules
-
-// Função auxiliar para verificar se o usuário é o criador de um plano
-function isPlanCreator(planId) {
-  return request.auth.uid == get(/databases/$(database)/documents/battlePlans/$(planId)).data.creatorId;
-}
 
 match /battlePlans/{planId} {
   // Leitura: Qualquer usuário autenticado pode ler planos publicados OU se for o criador do plano.
@@ -83,36 +76,30 @@ match /battlePlans/{planId} {
   allow create: if isSignedIn();
 
   // Atualização e Exclusão: Apenas o criador original do plano pode modificar ou apagar.
-  allow update, delete: if isSignedIn() && isPlanCreator(planId);
-
-  // Regras para a subcoleção de missões (geralmente gerenciada junto com o plano)
-  match /missions/{missionId} {
-    allow read: if isSignedIn();
-    // A escrita (create, update, delete) de missões é controlada pela permissão de 'update' do plano pai.
-    allow write: if isSignedIn() && isPlanCreator(planId);
-  }
+  allow update, delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
 }
 
-match /userBattlePlans/{userPlanId} {
+// Subcoleção de 'users' que armazena o progresso dos planos daquele usuário
+match /users/{userId}/battlePlans/{userPlanId} {
   // Leitura: Um usuário pode ler seu próprio progresso.
   // Um LÍDER pode ler o progresso de um soldado SE o soldado deu consentimento.
-  allow read: if isProfileOwner(request.auth.uid) ||
+  allow read: if isOwner(userId) ||
               (isSignedIn() && resource.data.consentToShareProgress == true &&
                request.auth.uid == resource.data.planCreatorId);
 
   // Criação: Um usuário pode criar seu próprio registro de progresso (iniciar um plano).
-  allow create: if isProfileOwner(request.resource.data.userId);
+  allow create: if isOwner(userId);
 
   // Atualização: Um usuário só pode atualizar seu próprio progresso.
-  allow update: if isProfileOwner(request.auth.uid);
+  allow update: if isOwner(userId);
 
   // Exclusão: Um usuário só pode apagar seu próprio progresso.
-  allow delete: if isProfileOwner(request.auth.uid);
+  allow delete: if isOwner(userId);
 }
 
+// Logs de missão são privados
 match /missionLogs/{logId} {
-  // Um usuário só pode ler, criar, atualizar ou apagar seus próprios logs de missão.
-  allow read, write: if isProfileOwner(request.auth.uid);
+  allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }
 ```
 

@@ -1,3 +1,4 @@
+
 match /userPushTokens/{tokenId} {
     // Um usuário só pode criar ou gerenciar seu próprio token.
     allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;

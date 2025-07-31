@@ -176,11 +176,10 @@ match /prayerCircles/{circleId} {
     // From: prayers.rules
 
 
-// Regras para a coleção 'prayers', onde as orações do Santuário são salvas.
+// Regras para a coleção 'prayers' que armazena as orações do Santuário.
 match /prayers/{prayerId} {
-  // Um usuário pode criar, ler, atualizar e deletar suas próprias orações.
-  // A consulta DEVE usar a cláusula `where('userId', '==', request.auth.uid)` para listagem.
-  allow read, write: if request.auth.uid == request.resource.data.userId;
+  // Um usuário só pode ler e escrever (criar, atualizar, apagar) suas próprias orações.
+  allow read, write: if request.auth.uid == resource.data.userId;
 }
 
 
@@ -227,6 +226,14 @@ match /users/{userId}/battlePlans/{userPlanId} {
 
   // TODO: Adicionar regra para que o criador do plano possa LER (mas não escrever)
   // o progresso se o usuário consentir.
+}
+
+
+    // From: userPushTokens.rules
+
+match /userPushTokens/{tokenId} {
+    // Um usuário só pode criar ou gerenciar seu próprio token.
+    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }
 
 

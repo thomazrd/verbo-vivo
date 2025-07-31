@@ -25,6 +25,8 @@ import Image from "next/image";
 import { Skeleton } from "../ui/skeleton";
 import axios from 'axios';
 import { generateBattlePlan } from "@/ai/flows/battle-plan-generation-flow";
+import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -51,7 +53,7 @@ const planSchema = z.object({
 type PlanFormValues = z.infer<typeof planSchema>;
 
 const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, completionQueryParam: 'userPlanId' },
+    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
     PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'mission' },
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
@@ -291,6 +293,32 @@ const steps = [
   { id: "review", name: "Revisão" },
 ];
 
+function parseVerseReference(ref: string) {
+    if (!ref) return null;
+    const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
+    if (!match) return null;
+
+    const [, bookName, chapter, startVerse, endVerse] = match;
+
+    const bookAbbrev = Object.keys(bibleBooksByAbbrev).find(abbrev => {
+        const bookData = bibleBooksByAbbrev[abbrev];
+        const normalizedBookName = bookData.name.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
+        const normalizedRefBookName = bookName.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
+        return abbrev === bookName.toLowerCase() || normalizedBookName === normalizedRefBookName || bookData.name.toLowerCase() === bookName.toLowerCase();
+    });
+
+    const book = bookAbbrev ? bibleBooksByAbbrev[bookAbbrev] : null;
+    if (!book) return null;
+
+    return {
+        book: book,
+        chapter: chapter,
+        startVerse: startVerse || null,
+        endVerse: endVerse || null,
+    };
+}
+
+
 export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   const { user, userProfile } = useAuth();
   const router = useRouter();
@@ -380,6 +408,11 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     
     const formattedMissions = aiSuggestion.missions.map((m): Mission => {
         const missionDetails = MissionTypeDetails[m.type];
+        let contentDetails = {};
+        if (m.type === 'BIBLE_READING' && m.content.verse) {
+            contentDetails = parseVerseReference(m.content.verse) || {};
+        }
+
         return {
             ...m,
             id: uuidv4(),
@@ -387,7 +420,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                 ...m.content,
                 path: missionDetails.path,
                 completionQueryParam: missionDetails.completionQueryParam,
-                details: {},
+                details: contentDetails,
             }
         };
     });
@@ -399,12 +432,12 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(2); // Go to Missions step for review
+    setCurrentStep(3); // Go to Missions step for review
   }
 
   const goToNextStep = async () => {
     let fieldsToValidate: (keyof PlanFormValues)[] = [];
-    if(currentStep === 1) fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
+    if(currentStep === 2) fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -566,7 +599,29 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                             <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
                                 <h4 className="font-bold">{aiSuggestion.title}</h4>
                                 <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
-                                <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias, {aiSuggestion.missions.length} missões.</p>
+                                <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias</p>
+                                <Accordion type="single" collapsible className="w-full">
+                                    <AccordionItem value="item-1">
+                                        <AccordionTrigger>Ver {aiSuggestion.missions.length} missões sugeridas</AccordionTrigger>
+                                        <AccordionContent className="p-1">
+                                            <div className="space-y-2 max-h-60 overflow-y-auto pr-3">
+                                            {aiSuggestion.missions.sort((a,b) => a.day - b.day).map((mission, index) => {
+                                                const Icon = MissionTypeDetails[mission.type]?.icon || BookOpen;
+                                                return (
+                                                <div key={index} className="p-2 border rounded-md bg-background">
+                                                    <p className="font-bold text-xs">Dia {mission.day}: {mission.title}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                        <Icon className="h-3 w-3" />
+                                                        <span>{MissionTypeDetails[mission.type]?.label}</span>
+                                                        {mission.content.verse && <span className="font-mono">({mission.content.verse})</span>}
+                                                    </div>
+                                                </div>
+                                            )})}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+
                                 <div className="flex gap-2 pt-2">
                                     <Button onClick={() => handleUseAiSuggestion()}>
                                         <Check className="mr-2"/> Usar este Plano
@@ -665,10 +720,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
       <div className="mt-8 flex justify-between">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep <= (isEditing ? 1 : 0)}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
-            <Button onClick={goToNextStep} disabled={currentStep === steps.length - 1}>
+            <Button onClick={goToNextStep} disabled={currentStep >= steps.length - 1}>
                 Avançar <ArrowRight className="h-4 w-4 ml-2"/>
             </Button>
         </div>

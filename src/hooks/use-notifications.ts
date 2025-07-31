@@ -76,8 +76,14 @@ export const useNotifications = () => {
     
     // --- Push Notifications Setup ---
     const setupPushNotifications = async () => {
+      // DEVELOPER NOTE: To enable push notifications, you need two things:
+      // 1. A VAPID key defined in your environment variables as NEXT_PUBLIC_FIREBASE_VAPID_KEY.
+      //    You can generate this in your Firebase Project Settings > Cloud Messaging > Web configuration.
+      // 2. The "Firebase Cloud Messaging API (V1)" must be enabled in your Google Cloud project.
+      //    If you see a "Missing or insufficient permissions" error, enable it here:
+      //    https://console.cloud.google.com/apis/library/fcm.googleapis.com
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      if (!vapidKey) {
+      if (!vapidKey || vapidKey === "COLE_AQUI_SUA_CHAVE_VAPID") {
         console.warn("Chave VAPID do Firebase não configurada. As notificações push estão desativadas.");
         return;
       }
@@ -101,7 +107,7 @@ export const useNotifications = () => {
                 const currentToken = await getToken(messaging, { vapidKey });
                 if (currentToken) {
                   // Save the token to Firestore
-                  const tokenRef = doc(db, 'userPushTokens', user.uid);
+                  const tokenRef = doc(db, 'userPushTokens', currentToken);
                   await setDoc(tokenRef, {
                     userId: user.uid,
                     token: currentToken,
@@ -112,8 +118,14 @@ export const useNotifications = () => {
                   console.log('No registration token available. Request permission to generate one.');
                 }
             }
-        } catch(err) {
-            console.error('An error occurred while retrieving token. ', err);
+        } catch(err: any) {
+             if (err.code === 'messaging/permission-blocked' || err.code === 'messaging/permission-default') {
+                console.log('Notification permission not granted.');
+            } else if (err.code === 'messaging/token-subscribe-failed') {
+                 console.error('FCM token subscription failed. This is likely due to the Firebase Cloud Messaging API (V1) not being enabled. Please enable it in your Google Cloud Console: https://console.cloud.google.com/apis/library/fcm.googleapis.com');
+            } else {
+                console.error('An error occurred while retrieving token. ', err);
+            }
         }
       }
     }

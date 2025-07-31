@@ -61,8 +61,8 @@ Controla as publicações no feed da comunidade. **Esta é a seção mais críti
 ```
 match /posts/{postId} {
     allow read: if isCongregationMember(congregationId);
-    allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
-    allow update, delete: if isProfileOwner(resource.data.authorId);
+    allow create: if isCongregationMember(congregationId) && isOwner(request.resource.data.authorId);
+    allow update, delete: if isOwner(resource.data.authorId);
 
     // ... regras para subcoleções de comments e likes ...
 }
@@ -70,7 +70,7 @@ match /posts/{postId} {
 
 -   **`allow read`**: Qualquer membro da congregação pode ler os posts.
 -   **`allow create`**: Qualquer membro pode criar um novo post, desde que se identifique como o autor.
--   **`allow update, delete`**: Apenas o proprietário do post (`isProfileOwner()`) pode editá-lo ou excluí-lo.
+-   **`allow update, delete`**: Apenas o proprietário do post (`isOwner()`) pode editá-lo ou excluí-lo.
 
 ---
 
@@ -81,8 +81,8 @@ Controla os comentários dentro de um post.
 ```
 match /comments/{commentId} {
     allow read: if isCongregationMember(congregationId);
-    allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
-    allow update, delete: if isProfileOwner(resource.data.authorId);
+    allow create: if isCongregationMember(congregationId) && isOwner(request.resource.data.authorId);
+    allow update, delete: if isOwner(resource.data.authorId);
 }
 ```
 
@@ -98,7 +98,7 @@ Gerencia as curtidas em um post.
 ```
 match /likes/{userId} {
     allow read: if isCongregationMember(congregationId);
-    allow create, delete: if isCongregationMember(congregationId) && request.auth.uid == userId;
+    allow create, delete: if isCongregationMember(congregationId) && isOwner(userId);
 }
 ```
 

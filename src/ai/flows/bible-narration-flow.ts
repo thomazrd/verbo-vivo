@@ -7,8 +7,7 @@
  * - narrateChapter - A function that generates the audio.
  */
 
-import { ai, getModel } from '../genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '../genkit';
 import { z } from 'zod';
 import wav from 'wav';
 
@@ -61,7 +60,7 @@ export async function narrateChapter(input: NarrateChapterInput): Promise<Narrat
     },
     async (flowInput) => {
       const { media } = await ai.generate({
-        model: googleAI.model('gemini-2.5-flash-preview-tts'),
+        model: 'googleai/tts-1-hd',
         config: {
           responseModalities: ['AUDIO'],
           speechConfig: {

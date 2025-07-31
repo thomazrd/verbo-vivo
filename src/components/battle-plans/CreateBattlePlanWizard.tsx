@@ -463,11 +463,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   };
 
   const goToPreviousStep = () => {
-    if (isEditing && currentStep === 1) {
-        router.back();
-        return;
-    }
-
     if (currentStep === 1 && !isEditing) {
         setCreationMode(null);
         setCurrentStep(0);
@@ -492,21 +487,24 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       const values = getValues();
       
       const sanitizedMissions = values.missions.map(mission => ({
-        ...mission,
-        leaderNote: mission.leaderNote || null,
-        content: {
-          ...mission.content,
-          verse: mission.content.verse || null,
-          completionQueryParam: mission.content.completionQueryParam || null,
-          details: {
-            ...mission.content.details,
-            startVerse: mission.content.details?.startVerse || null,
-            endVerse: mission.content.details?.endVerse || null,
+          ...mission,
+          leaderNote: mission.leaderNote || null,
+          content: {
+              path: mission.content.path || null,
+              verse: mission.content.verse || null,
+              completionQueryParam: mission.content.completionQueryParam || null,
+              details: {
+                book: mission.content.details?.book || null,
+                chapter: mission.content.details?.chapter || null,
+                startVerse: mission.content.details?.startVerse || null,
+                endVerse: mission.content.details?.endVerse || null,
+              }
           }
-        }
       }));
 
       const finalValues = { ...values, missions: sanitizedMissions };
+      console.log('Data to save:', JSON.stringify(finalValues, null, 2));
+
 
       try {
         if (isEditing && planId) {
@@ -685,7 +683,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       )
   }
 
-  const isNextButtonVisible = currentStep < steps.length - 1;
+  const stepIndex = isEditing ? currentStep : (creationMode ? currentStep : 0);
+  const isNextButtonVisible = stepIndex < steps.length - 1;
   const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 
   return (
@@ -706,13 +705,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
-                            {index < currentStep ? <Check/> : index + 1}
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === stepIndex ? 'bg-primary text-primary-foreground' : (index < stepIndex ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
+                            {index < stepIndex ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs text-center ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs text-center ${index === stepIndex ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < stepIndex ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}
@@ -751,3 +750,4 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     </div>
   );
 }
+

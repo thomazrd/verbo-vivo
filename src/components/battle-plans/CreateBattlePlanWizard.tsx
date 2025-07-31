@@ -18,12 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook } from "@/lib/types";
+import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook, GenerateBattlePlanOutput } from "@/lib/types";
 import Image from "next/image";
 import { Skeleton } from "../ui/skeleton";
 import axios from 'axios';
+import { generateBattlePlan } from "@/ai/flows/battle-plan-generation-flow";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -51,8 +52,8 @@ type PlanFormValues = z.infer<typeof planSchema>;
 
 const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
     BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, completionQueryParam: 'userPlanId' },
-    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'missionId' },
-    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'missionId' },
+    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'mission' },
+    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
     JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
     FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'userPlanId' },
@@ -66,7 +67,8 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
         name: `missions.${fieldIndex}.content.details`
     });
 
-    const selectedBook: BibleBook | undefined = details?.book;
+    const selectedBookAbbrev = details?.book?.abbrev?.pt;
+    const selectedBook = books.find(b => b.abbrev.pt === selectedBookAbbrev);
     
     useEffect(() => {
         const fetchBooks = async () => {
@@ -80,7 +82,7 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
         fetchBooks();
     }, []);
 
-    useEffect(() => {
+     useEffect(() => {
         if (!details) return;
 
         const { book, chapter, startVerse, endVerse } = details;
@@ -88,8 +90,11 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
             setValue(`missions.${fieldIndex}.content.verse`, '');
             return;
         }
+        
+        const selectedBookObject = books.find(b => b.abbrev.pt === book.abbrev.pt);
+        if (!selectedBookObject) return;
 
-        let reference = `${book.name} ${chapter}`;
+        let reference = `${selectedBookObject.name} ${chapter}`;
         if (startVerse) {
             reference += `:${startVerse}`;
             if (endVerse) {
@@ -98,7 +103,7 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
         }
         setValue(`missions.${fieldIndex}.content.verse`, reference);
 
-    }, [details, fieldIndex, setValue]);
+    }, [details, fieldIndex, setValue, books]);
 
 
     return (
@@ -146,14 +151,14 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
                     control={control}
                     name={`missions.${fieldIndex}.content.details.startVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Início" {...field} />
+                       <Input type="number" placeholder="Início" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))}/>
                     )}
                 />
                 <Controller
                     control={control}
                     name={`missions.${fieldIndex}.content.details.endVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Fim" {...field} />
+                       <Input type="number" placeholder="Fim" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))}/>
                     )}
                 />
             </div>
@@ -280,6 +285,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
 }
 
 const steps = [
+  { id: "start", name: "Ponto de Partida"},
   { id: "details", name: "Detalhes" },
   { id: "missions", name: "Missões" },
   { id: "review", name: "Revisão" },
@@ -295,6 +301,11 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   const [isLoading, setIsLoading] = useState(!!planId);
   const isEditing = !!planId;
 
+  // AI Generation State
+  const [problemDescription, setProblemDescription] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<GenerateBattlePlanOutput | null>(null);
+
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
     defaultValues: {
@@ -308,6 +319,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   const { control, trigger, getValues, watch, setValue, reset } = form;
   const duration = watch('durationDays');
+
+  useEffect(() => {
+    if (isEditing) {
+        // Skip start step if editing
+        setCurrentStep(1);
+    }
+  }, [isEditing]);
 
   useEffect(() => {
     if (isEditing && user) {
@@ -339,34 +357,57 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     }
   }, [planId, user, isEditing, reset, router, toast]);
 
+  const handleAiGeneration = async () => {
+    if (!problemDescription.trim()) {
+        toast({ variant: "destructive", title: "Descrição necessária", description: "Por favor, descreva o problema para a IA." });
+        return;
+    }
+    setIsGenerating(true);
+    setAiSuggestion(null);
+    try {
+        const result = await generateBattlePlan({ problemDescription });
+        setAiSuggestion(result);
+    } catch(e) {
+        console.error("AI plan generation failed", e);
+        toast({ variant: "destructive", title: "Erro de IA", description: "Não foi possível gerar a sugestão. Tente novamente." });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+  
+  const handleUseAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    
+    const formattedMissions = aiSuggestion.missions.map((m): Mission => {
+        const missionDetails = MissionTypeDetails[m.type];
+        return {
+            ...m,
+            id: uuidv4(),
+            content: {
+                ...m.content,
+                path: missionDetails.path,
+                completionQueryParam: missionDetails.completionQueryParam,
+                details: {},
+            }
+        };
+    });
+
+    form.reset({
+        ...getValues(),
+        title: aiSuggestion.title,
+        description: aiSuggestion.description,
+        durationDays: aiSuggestion.durationDays,
+        missions: formattedMissions,
+    });
+    setCurrentStep(2); // Go to Missions step for review
+  }
+
   const goToNextStep = async () => {
     let fieldsToValidate: (keyof PlanFormValues)[] = [];
-    if(currentStep === 0) fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
+    if(currentStep === 1) fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
-        if(currentStep === 0) { 
-            const currentMissions = getValues('missions');
-            if(currentMissions.length !== duration) {
-                const newMissions: Mission[] = Array.from({ length: duration }, (_, i) => {
-                    const defaultType: MissionType = 'BIBLE_READING';
-                    return {
-                        id: uuidv4(),
-                        day: i + 1,
-                        title: `Missão do Dia ${i+1}`,
-                        type: defaultType,
-                        content: { 
-                            path: MissionTypeDetails[defaultType].path, 
-                            verse: "",
-                            completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
-                            details: {}
-                        },
-                        leaderNote: ""
-                    }
-                });
-                 setValue('missions', newMissions);
-            }
-        }
         setCurrentStep((prev) => prev + 1);
     }
   };
@@ -441,7 +482,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       )
   }
 
-
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
       {/* Header */}
@@ -480,8 +520,71 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             transition={{ duration: 0.3 }}
         >
           {currentStep === 0 && (
+             <Card>
+                <CardHeader>
+                    <CardTitle>1. Ponto de Partida</CardTitle>
+                    <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-4">
+                    <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => setCurrentStep(1)}>
+                        <Wand2 className="h-8 w-8" />
+                        <span className="font-bold">Criar com Inteligência Artificial</span>
+                        <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
+                    </Button>
+                     <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => setCurrentStep(2)}>
+                        <Plus className="h-8 w-8" />
+                        <span className="font-bold">Forjar Manualmente</span>
+                        <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
+                    </Button>
+                </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 1 && (
             <Card>
-                <CardHeader><CardTitle>1. Detalhes do Plano</CardTitle></CardHeader>
+                 <CardHeader>
+                    <CardTitle>1. Criar com IA</CardTitle>
+                    <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Textarea
+                        placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro..."
+                        className="min-h-[150px]"
+                        value={problemDescription}
+                        onChange={(e) => setProblemDescription(e.target.value)}
+                    />
+                    <Button onClick={handleAiGeneration} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>}
+                        Gerar Plano de Batalha
+                    </Button>
+                    {isGenerating && (
+                        <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p>
+                    )}
+                    {aiSuggestion && (
+                        <div className="pt-4 border-t">
+                            <h3 className="text-lg font-semibold">Sugestão do General</h3>
+                            <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
+                                <h4 className="font-bold">{aiSuggestion.title}</h4>
+                                <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
+                                <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias, {aiSuggestion.missions.length} missões.</p>
+                                <div className="flex gap-2 pt-2">
+                                    <Button onClick={() => handleUseAiSuggestion()}>
+                                        <Check className="mr-2"/> Usar este Plano
+                                    </Button>
+                                    <Button variant="outline" onClick={handleAiGeneration} disabled={isGenerating}>
+                                        <RefreshCw className="mr-2"/> Gerar Novamente
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 2 && (
+            <Card>
+                <CardHeader><CardTitle>2. Detalhes do Plano</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                      <Controller
                         control={control} name="title"
@@ -527,7 +630,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             </Card>
           )}
 
-          {currentStep === 1 && (
+          {currentStep === 3 && (
               <div className="space-y-4">
                   {Array.from({ length: duration }, (_, i) => (
                       <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
@@ -535,10 +638,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
               </div>
           )}
 
-          {currentStep === 2 && (
+          {currentStep === 4 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>3. Revisão e Finalização</CardTitle>
+                    <CardTitle>4. Revisão e Finalização</CardTitle>
                     <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -547,7 +650,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </div>
                     <h2 className="text-2xl font-bold">{getValues('title')}</h2>
                     <p className="text-muted-foreground">{getValues('description')}</p>
-                    <p className="font-semibold">{getValues('durationDays')} dias de treinamento.</p>
+                    <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
                      <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}>
                         {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho
                     </Button>

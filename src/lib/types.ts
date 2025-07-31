@@ -424,6 +424,7 @@ export interface Mission {
     path: string;
     completionQueryParam?: string;
     verse?: string; // Para 'BIBLE_READING'
+    details?: any; // Para detalhes extras como livro, capitulo, etc.
   };
   leaderNote?: string;
 }
@@ -613,3 +614,29 @@ export const ArmorSuggestionOutputSchema = z.object({
     weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
 });
 export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
+
+
+// From: battle-plan-generation-flow.ts
+export const GenerateBattlePlanInputSchema = BaseAiInputSchema.extend({
+  problemDescription: z.string().describe('The problem description provided by the user.'),
+});
+export type GenerateBattlePlanInput = z.infer<typeof GenerateBattlePlanInputSchema>;
+
+export const AiMissionSchema = z.object({
+    day: z.number(),
+    title: z.string(),
+    type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
+    content: z.object({
+        verse: z.string().optional(),
+    }),
+    leaderNote: z.string().optional(),
+});
+export type AiMission = z.infer<typeof AiMissionSchema>;
+
+export const GenerateBattlePlanOutputSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  durationDays: z.number().min(3).max(14),
+  missions: z.array(AiMissionSchema),
+});
+export type GenerateBattlePlanOutput = z.infer<typeof GenerateBattlePlanOutputSchema>;

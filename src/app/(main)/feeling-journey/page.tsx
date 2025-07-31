@@ -137,7 +137,13 @@ function FeelingJourneyContent() {
       case 'reporting':
         return <VoiceReportStep emotion={currentEmotion!} onSubmit={handleReportSubmit} />;
       case 'responding':
-        return <BibleResponseStep emotion={currentEmotion!} reportText={currentReport} onResponseReady={handleResponseRead} language={userProfile?.preferredLanguage || i18n.language} />;
+        return <BibleResponseStep 
+            emotion={currentEmotion!} 
+            reportText={currentReport} 
+            onResponseReady={handleResponseRead} 
+            language={userProfile?.preferredLanguage || i18n.language}
+            bibleVersion={userProfile?.preferredBibleVersion?.name?.split(' ')[0] || 'NVI'}
+        />;
       case 'reassessing':
         return <EmotionSelector onSelectEmotion={handleReassessment} title="E agora, como você se sente?" />;
       case 'concluding':

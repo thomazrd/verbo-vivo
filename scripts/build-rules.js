@@ -56,7 +56,7 @@ if (watchMode) {
   console.log('👀 Observando alterações na pasta /rules...');
   const watcher = chokidar.watch(rulesDir, { ignored: outputFile, persistent: true });
   watcher.on('all', (event, filePath) => {
-    if (event === 'add' || event === 'change' || event === 'unlink') {
+    if ((event === 'add' || event === 'change' || event === 'unlink') && filePath.endsWith('.rules')) {
         console.log(`[${event}] ${path.basename(filePath)}`);
         buildRules();
     }

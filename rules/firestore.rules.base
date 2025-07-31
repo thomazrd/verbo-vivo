@@ -2,3 +2,10 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // --- Funções de utilidade devem ser incluídas aqui ---
+    // {{FUNCTIONS_CONTENT}}
+
+    // --- Regras específicas das coleções ---
+    // {{RULES_CONTENT}}
+  }
+}

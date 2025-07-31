@@ -350,7 +350,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   useEffect(() => {
     if (isEditing) {
         // Skip start step if editing
-        setCurrentStep(1);
+        setCurrentStep(2);
     }
   }, [isEditing]);
 
@@ -435,21 +435,42 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const goToNextStep = async () => {
-    let fieldsToValidate: (keyof PlanFormValues)[] = [];
-    if (currentStep === 1) { // Details step
-      fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
-    } else if (currentStep === 2) { // Missions step
-      fieldsToValidate = ['missions'];
+    let fieldsToValidate: (keyof PlanFormValues)[] | undefined = undefined;
+    
+    // Determine which fields to validate based on the current step
+    switch (currentStep) {
+        case 1: // AI Description step. No form fields here, just proceed.
+            break;
+        case 2: // Details step
+            fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
+            break;
+        case 3: // Missions step
+            // For this step, we just check if there's at least one mission.
+            if (missionsArray.length === 0) {
+                toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
+                return; // Block advancement
+            }
+            break;
     }
 
-    const isValid = await trigger(fieldsToValidate);
-    if (isValid) {
+    const isValid = fieldsToValidate ? await trigger(fieldsToValidate) : true;
+
+    if (isValid && currentStep < steps.length - 1) {
         setCurrentStep((prev) => prev + 1);
     }
   };
 
   const goToPreviousStep = () => {
-    setCurrentStep((prev) => prev - 1);
+    if (currentStep > 0) {
+      // If editing, can't go back from step 2 (details)
+      if (isEditing && currentStep === 2) {
+        router.back();
+        return;
+      }
+      setCurrentStep((prev) => prev - 1);
+    } else {
+        router.back();
+    }
   };
   
   const handleSavePlan = async (status: 'DRAFT' | 'PUBLISHED') => {
@@ -477,24 +498,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
-            const userPlanData: UserBattlePlan = {
-                id: planDocId,
-                userId: user.uid,
-                planId: planDocId,
-                planTitle: values.title,
-                planCoverImageUrl: values.coverImageUrl,
-                planCreatorId: user.uid,
-                startDate: new Date() as any,
-                status: 'IN_PROGRESS',
-                progressPercentage: 0,
-                consentToShareProgress: true,
-                completedMissionIds: [],
-            };
+            
             const batch = writeBatch(db);
             const planRef = doc(db, "battlePlans", planDocId);
             batch.set(planRef, planData);
-            const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planDocId);
-            batch.set(userPlanRef, planData);
+            
+            // Do not automatically start the plan for the creator
+            
             await batch.commit();
         }
 
@@ -508,11 +518,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       }
   }
 
-  const isNextDisabled = () => {
-    if (currentStep >= steps.length - 1) return true;
-    if (currentStep === 2 && missionsArray.length === 0) return true;
-    return false;
-  }
+  const isNextDisabled = currentStep >= steps.length - 1 || (currentStep === 3 && missionsArray.length === 0);
 
   if (isLoading) {
       return (
@@ -528,7 +534,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     <div className="container mx-auto max-w-4xl py-8 px-4">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => router.back()}>
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousStep}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -729,17 +735,19 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
       <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep <= (isEditing ? 1 : 0)}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0 || (isEditing && currentStep === 2)}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
-            <div className="text-right">
-                <Button onClick={goToNextStep} disabled={isNextDisabled()}>
-                    Avançar <ArrowRight className="h-4 w-4 ml-2"/>
-                </Button>
-                 {currentStep === 2 && missionsArray.length === 0 && (
-                    <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
-                )}
-            </div>
+            {currentStep < steps.length - 1 && (
+                 <div className="text-right">
+                    <Button onClick={goToNextStep} disabled={isNextDisabled}>
+                        Avançar <ArrowRight className="h-4 w-4 ml-2"/>
+                    </Button>
+                    {currentStep === 3 && missionsArray.length === 0 && (
+                        <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
+                    )}
+                </div>
+            )}
         </div>
 
     </div>

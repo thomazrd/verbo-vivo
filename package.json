@@ -1,15 +1,14 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run rules:watch & next dev",
+    "dev": "next dev",
     "genkit:dev": "genkit start -- tsx genkit.dev.ts",
     "genkit:watch": "genkit start -- tsx --watch genkit.dev.ts",
     "rules:build": "node scripts/build-rules.js",
     "rules:watch": "node scripts/build-rules.js --watch",
-    "build": "npm run rules:build && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

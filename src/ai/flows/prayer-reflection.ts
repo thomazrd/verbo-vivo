@@ -8,6 +8,7 @@
  */
 
 import { ai, getModel } from '../genkit';
+import { z } from 'zod'; // Import Zod
 import type { ProcessPrayerInput, ProcessPrayerOutput } from '@/lib/types';
 import { ProcessPrayerInputSchema, ProcessPrayerOutputSchema } from '@/lib/types';
 

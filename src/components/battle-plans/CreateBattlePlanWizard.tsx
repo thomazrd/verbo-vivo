@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -435,31 +436,24 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(2); // Go to Missions step for review
+    setCurrentStep(1); // Go to Details step for review
   }
 
   const goToNextStep = async () => {
     let isValid = false;
-    const currentViewStep = isEditing ? currentStep : currentStep + 1;
 
-    switch (currentViewStep) {
-        case 1: // From AI prompt to Details
-            isValid = true;
-            break;
-        case 2: // From Details to Missions
-            isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
-            break;
-        case 3: // From Missions to Review
-            isValid = getValues('missions').length > 0;
-            if (!isValid) {
-                toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
-            }
-            break;
-        default:
-             isValid = true;
+    if(currentStep === 1) { // After "Details"
+        isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
+    } else if (currentStep === 2) { // After "Missions"
+        isValid = getValues('missions').length > 0;
+        if (!isValid) {
+            toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
+        }
+    } else {
+        isValid = true;
     }
 
-    if (isValid && currentStep < (isEditing ? 3 : steps.length - 1)) {
+    if (isValid && currentStep < steps.length - 1) {
         setCurrentStep(prev => prev + 1);
     }
   };
@@ -526,9 +520,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const renderStepContent = () => {
-    const stepIndex = isEditing ? currentStep + 1 : currentStep;
-
-    switch (stepIndex) {
+    switch (currentStep) {
         case 0: // Start
              return (
                  <Card>
@@ -550,9 +542,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </CardContent>
                 </Card>
              )
-        case 1: // AI or Details
-            if (isEditing) { // Details
-                 return (
+        case 1: // AI Prompt (or Details if editing)
+            if(isEditing) { // If editing, step 1 is Details
+                return (
                     <Card>
                         <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -564,7 +556,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </Card>
                 )
             }
-            // AI Prompt
+            // If creating new, step 1 is AI prompt
             return (
                  <Card>
                     <CardHeader>
@@ -613,17 +605,16 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </CardContent>
                 </Card>
             )
-        case 2: // Details or Missions
-            if (isEditing) { // Missions
-                 return (
+        case 2: // Details (if coming from manual) OR Missions (if editing)
+            if(isEditing) {
+                return (
                     <div className="space-y-4">
-                        {Array.from({ length: duration }, (_, i) => (
+                        {Array.from({ length: duration || 0 }, (_, i) => (
                             <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
                         ))}
                     </div>
-                 )
+                )
             }
-            // Details
              return (
                     <Card>
                         <CardHeader><CardTitle>2. Detalhes do Plano</CardTitle></CardHeader>
@@ -635,9 +626,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                         </CardContent>
                     </Card>
                 )
-        case 3: // Missions or Review
-             if (isEditing) { // Review
-                return (
+        case 3: // Missions OR Review (if editing)
+            if(isEditing) {
+                 return (
                      <Card>
                         <CardHeader>
                             <CardTitle>Revisar e Salvar</CardTitle>
@@ -656,10 +647,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </Card>
                 )
             }
-            // Missions
             return (
                 <div className="space-y-4">
-                    {Array.from({ length: duration }, (_, i) => (
+                    {Array.from({ length: duration || 0 }, (_, i) => (
                         <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
                     ))}
                 </div>
@@ -688,11 +678,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     }
   }
   
-  const totalSteps = isEditing ? 3 : steps.length;
-  const showNextButton = currentStep < totalSteps - 1;
-  const currentViewStep = isEditing ? currentStep + 1 : currentStep;
-  const isMissionsStep = currentViewStep === (isEditing ? 2 : 3);
-  const isNextDisabled = isMissionsStep && missionsArray.length === 0;
+  const showNextButton = currentStep < (isEditing ? 3 : steps.length - 1);
+  const isNextDisabled = currentStep === 2 && missionsArray.length === 0;
 
   if (isLoading) {
       return (

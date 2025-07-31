@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -96,30 +97,24 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         )
     }
 
-    // Centralized logic for building the mission link
     const buildMissionPath = () => {
         let path = mission.content.path;
         const params = new URLSearchParams();
-
-        // Always add mission parameters for tracking
+        
+        // Always add mission context
         if (mission.content.completionQueryParam) {
             params.set('mission', 'true');
         }
         params.set('userPlanId', userPlanId);
 
-        // Add specific parameters for BIBLE_READING
-        if (mission.type === 'BIBLE_READING' && mission.content.verse) {
+        // Add specific parameters for Bible reading missions
+        if (mission.type === 'BIBLE_READING' && mission.content.details?.book && mission.content.details?.chapter) {
+            path = '/bible'; // Ensure the path is correct
             const details = mission.content.details;
-            const bookAbbrev = details?.book?.abbrev?.pt;
-            const chapter = details?.chapter;
-            
-            if (bookAbbrev && chapter) {
-                path = '/bible'; // Override path for bible reading
-                params.set('book', bookAbbrev);
-                params.set('chapter', String(chapter));
-                if (details.startVerse) params.set('startVerse', String(details.startVerse));
-                if (details.endVerse) params.set('endVerse', String(details.endVerse));
-            }
+            params.set('book', details.book.abbrev.pt);
+            params.set('chapter', String(details.chapter));
+            if (details.startVerse) params.set('startVerse', String(details.startVerse));
+            if (details.endVerse) params.set('endVerse', String(details.endVerse));
         }
         
         return `${path}?${params.toString()}`;

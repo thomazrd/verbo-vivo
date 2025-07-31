@@ -20,8 +20,8 @@ match /congregations/{congregationId} {
     // Sub-subcoleção de comentários em um post
     match /comments/{commentId} {
       allow read: if isCongregationMember(congregationId);
-      // Qualquer membro da congregação pode criar um comentário, desde que se identifique como o autor.
-      allow create: if isCongregationMember(congregationId) && request.auth.uid == request.resource.data.authorId;
+      // Qualquer membro da congregação pode criar um comentário.
+      allow create: if (request.auth.uid == request.resource.data.authorId && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'MEMBER') || isCongregationAdmin(congregationId);
       // Apenas o dono do comentário pode editar/deletar.
       allow update, delete: if isOwner(resource.data.authorId);
     }

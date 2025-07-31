@@ -16,7 +16,7 @@ const buildRules = () => {
     if (!fs.existsSync(baseFile)) {
         throw new Error(`Arquivo base não encontrado em ${baseFile}`);
     }
-    
+
     let functionsContent = '';
     if (fs.existsSync(functionsDir)) {
         const functionFiles = fs.readdirSync(functionsDir).filter(f => f.endsWith('.rules'));

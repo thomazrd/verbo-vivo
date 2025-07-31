@@ -23,6 +23,7 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -113,9 +114,10 @@ function PrayerHistoryList({ userId }: { userId: string }) {
 function PrayerSanctuaryContent() {
   const { t, i18n } = useTranslation();
   const { user, userProfile } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const missionId = searchParams.get('missionId');
+  
+  const isMission = searchParams.get('mission') === 'true';
+  const missionUserPlanId = searchParams.get('userPlanId');
 
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
@@ -124,6 +126,8 @@ function PrayerSanctuaryContent() {
   const [isClient, setIsClient] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [typedPrayer, setTypedPrayer] = useState("");
+  
+  const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -241,9 +245,8 @@ function PrayerSanctuaryContent() {
           });
           setLatestResponse(result);
           setSanctuaryState('response');
-          if (missionId) {
-              const url = `/?missionCompleted=${missionId}`;
-              router.push(url);
+          if (isMission && missionUserPlanId) {
+              setMissionToComplete(missionUserPlanId);
           }
       } catch (err) {
           console.error("Error processing prayer:", err);
@@ -277,6 +280,11 @@ function PrayerSanctuaryContent() {
     setTypedPrayer("");
     cleanupAudio();
     setSanctuaryState('idle');
+  }
+
+  const handleModalClose = () => {
+      setMissionToComplete(null);
+      handleReset();
   }
 
   useEffect(() => {
@@ -345,7 +353,7 @@ function PrayerSanctuaryContent() {
                 </div>
             )
         case 'response':
-            if (latestResponse) {
+            if (latestResponse && !missionToComplete) {
                 return <PrayerResponseCard 
                     responseText={latestResponse.responseText} 
                     citedVerses={latestResponse.citedVerses}
@@ -354,7 +362,7 @@ function PrayerSanctuaryContent() {
                     onCreatePlan={() => setIsPlanModalOpen(true)}
                 />
             }
-            return null; // Should not happen
+            return null; // Should not happen, or modal will take over
         case 'idle':
         default:
             return (
@@ -381,6 +389,12 @@ function PrayerSanctuaryContent() {
         onClose={() => setIsPlanModalOpen(false)}
         topic={processingText}
     />
+    {missionToComplete && (
+      <MissionCompletionModal
+        userPlanId={missionToComplete}
+        onClose={handleModalClose}
+      />
+    )}
     </>
   );
 }

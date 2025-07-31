@@ -60,7 +60,7 @@ export async function narrateChapter(input: NarrateChapterInput): Promise<Narrat
     },
     async (flowInput) => {
       const { media } = await ai.generate({
-        model: 'googleai/tts-1',
+        model: 'googleai/tts-1-hd',
         config: {
           responseModalities: ['AUDIO'],
           speechConfig: {

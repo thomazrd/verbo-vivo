@@ -1,15 +1,23 @@
 
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import type { BattlePlan, Mission, UserBattlePlan } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady: () => void;
+    YT: any;
+  }
+}
 
 function getYoutubeVideoId(url: string): string | null {
   const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -30,6 +38,9 @@ function VideoMissionPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [missionCompleted, setMissionCompleted] = useState(false);
+
+  const [canComplete, setCanComplete] = useState(false);
+  const playerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!user || !userPlanId || !missionId) {
@@ -62,19 +73,57 @@ function VideoMissionPageContent() {
     fetchMission();
   }, [user, userPlanId, missionId]);
 
-  const handleVideoEnd = () => {
-    setMissionCompleted(true);
+  const onPlayerStateChange = (event: any) => {
+    if (event.data === window.YT.PlayerState.ENDED) {
+        setMissionCompleted(true);
+    }
   };
-  
+
+  const setupPlayer = () => {
+    if (window.YT && window.YT.Player) {
+      playerRef.current = new window.YT.Player('youtube-player', {
+        events: {
+          'onStateChange': onPlayerStateChange,
+        },
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        window.onYouTubeIframeAPIReady = setupPlayer;
+    } else {
+        setupPlayer();
+    }
+    
+    const progressInterval = setInterval(() => {
+        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+            const currentTime = playerRef.current.getCurrentTime();
+            const duration = playerRef.current.getDuration();
+            if (duration > 0 && (currentTime / duration) >= 0.8) {
+                setCanComplete(true);
+            }
+        }
+    }, 1000);
+
+
+    return () => {
+        clearInterval(progressInterval);
+        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+            playerRef.current.destroy();
+        }
+    };
+  }, [isLoading]);
+
   const handleModalClose = () => {
     router.push('/home'); // Or back to battle plans
   };
-  
-   useEffect(() => {
-    const handleEnd = () => handleVideoEnd();
-    window.addEventListener('videoEnded', handleEnd);
-    return () => window.removeEventListener('videoEnded', handleEnd);
-  }, []);
 
   if (isLoading) {
     return (
@@ -112,6 +161,7 @@ function VideoMissionPageContent() {
             
             <div className="aspect-video w-full">
                 <iframe
+                    id="youtube-player"
                     className="w-full h-full"
                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&controls=1&enablejsapi=1`}
                     title="YouTube video player"
@@ -119,6 +169,21 @@ function VideoMissionPageContent() {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                 ></iframe>
+            </div>
+
+            <div className="pt-4 text-center">
+                <Button 
+                    size="lg" 
+                    onClick={() => setMissionCompleted(true)}
+                    disabled={!canComplete}
+                    className={cn(
+                        "transition-all",
+                        !canComplete && "opacity-50"
+                    )}
+                >
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Concluir Missão
+                </Button>
             </div>
         </div>
 
@@ -128,25 +193,6 @@ function VideoMissionPageContent() {
             onClose={handleModalClose}
         />
       )}
-      <script src="https://www.youtube.com/iframe_api" async></script>
-      <script dangerouslySetInnerHTML={{__html: `
-        let player;
-        function onYouTubeIframeAPIReady() {
-            const iframe = document.querySelector('iframe');
-            if (!iframe) return;
-            player = new YT.Player(iframe, {
-                events: {
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.ENDED) {
-                const customEvent = new CustomEvent('videoEnded');
-                window.dispatchEvent(customEvent);
-            }
-        }
-      `}}/>
     </div>
   );
 }

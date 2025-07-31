@@ -89,6 +89,19 @@ export function VerseDisplay({
     }
   }, [book, chapter, version, toast]);
 
+  useEffect(() => {
+    if (chapterData && highlightStartVerse) {
+      const verseElement = contentRef.current?.querySelector(`[data-verse-number='${highlightStartVerse}']`);
+      if (verseElement) {
+        // Use a timeout to ensure the DOM has updated
+        setTimeout(() => {
+          verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [chapterData, highlightStartVerse]);
+
+
   const handleGenerateSummary = async () => {
     if (!chapterData) return;
 
@@ -201,7 +214,10 @@ export function VerseDisplay({
                                         (highlightEndVerse === undefined || verse.number <= highlightEndVerse);
                   
                   return (
-                    <p key={verse.number} className={cn(
+                    <p 
+                      key={verse.number} 
+                      data-verse-number={verse.number}
+                      className={cn(
                         "text-card-foreground transition-colors duration-300 rounded-md -mx-2 px-2",
                         isHighlighted && "bg-blue-500/10"
                     )}>

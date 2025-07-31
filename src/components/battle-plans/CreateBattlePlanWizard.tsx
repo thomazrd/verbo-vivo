@@ -291,29 +291,34 @@ const steps = [
   { id: "review", name: "Revisão" },
 ];
 
-function parseVerseReference(ref: string) {
-    if (!ref) return null;
-    const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
-    if (!match) return null;
+function parseVerseReference(ref: string | undefined) {
+  if (!ref) return null;
 
-    const [, bookName, chapter, startVerse, endVerse] = match;
+  const match = ref.match(/^(.*?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
+  if (!match) return null;
 
-    const bookAbbrev = Object.keys(bibleBooksByAbbrev).find(abbrev => {
-        const bookData = bibleBooksByAbbrev[abbrev];
-        const normalizedBookName = bookData.name.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
-        const normalizedRefBookName = bookName.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
-        return abbrev === bookName.toLowerCase() || normalizedBookName === normalizedRefBookName || bookData.name.toLowerCase() === bookName.toLowerCase();
-    });
+  const [, bookName, chapter, startVerse, endVerse] = match;
+  
+  const normalizedInputName = bookName.trim().replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
 
-    const book = bookAbbrev ? bibleBooksByAbbrev[bookAbbrev] : null;
-    if (!book) return null;
+  const bookAbbrev = Object.keys(bibleBooksByAbbrev).find(abbrev => {
+    const bookData = bibleBooksByAbbrev[abbrev];
+    const normalizedBookDataName = bookData.name.replace(/^[0-9]+[ªº]?\s*/, '').toLowerCase();
+    
+    return abbrev === normalizedInputName || 
+           normalizedBookDataName === normalizedInputName ||
+           bookData.name.toLowerCase() === bookName.trim().toLowerCase();
+  });
 
-    return {
-        book: book,
-        chapter: parseInt(chapter),
-        startVerse: startVerse ? parseInt(startVerse) : undefined,
-        endVerse: endVerse ? parseInt(endVerse) : undefined,
-    };
+  const book = bookAbbrev ? bibleBooksByAbbrev[bookAbbrev] : null;
+  if (!book) return null;
+
+  return {
+    book: book,
+    chapter: parseInt(chapter),
+    startVerse: startVerse ? parseInt(startVerse) : undefined,
+    endVerse: endVerse ? parseInt(endVerse) : undefined,
+  };
 }
 
 
@@ -507,8 +512,12 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           setIsSaving(false);
       }
   }
-
-  const isMissionsStep = currentStep === 2;
+  
+  const isDetailsStep = isEditing ? currentStep === 1 : currentStep === 2;
+  const isMissionsStep = isEditing ? currentStep === 2 : currentStep === 3;
+  const isReviewStep = isEditing ? currentStep === 3 : currentStep === 4;
+  
+  const showNextButton = !isReviewStep;
   const isNextDisabled = isMissionsStep && missionsArray.length === 0;
 
   if (isLoading) {
@@ -560,7 +569,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
         >
-          {currentStep === 0 && (
+          {currentStep === 0 && !isEditing && (
              <Card>
                 <CardHeader>
                     <CardTitle>1. Ponto de Partida</CardTitle>
@@ -645,7 +654,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             </Card>
           )}
 
-          {(currentStep === 2 || (currentStep === 1 && isEditing)) && (
+          {isDetailsStep && (
             <Card>
                 <CardHeader><CardTitle>{isEditing ? 'Detalhes do Plano' : '2. Detalhes do Plano'}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -693,7 +702,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             </Card>
           )}
 
-          {currentStep === 3 && (
+          {isMissionsStep && (
               <div className="space-y-4">
                   {Array.from({ length: duration }, (_, i) => (
                       <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
@@ -701,10 +710,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
               </div>
           )}
 
-          {currentStep === 4 && (
+          {isReviewStep && (
              <Card>
                 <CardHeader>
-                    <CardTitle>4. Revisão e Finalização</CardTitle>
+                    <CardTitle>{isEditing ? 'Revisar e Salvar' : '4. Revisão e Finalização'}</CardTitle>
                     <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -728,16 +737,16 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
       <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0 && !isEditing}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
             
-            {currentStep < steps.length - 1 && (
+            {showNextButton && (
                  <div className="text-right">
                     <Button onClick={goToNextStep} disabled={isNextDisabled}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
-                    {isNextDisabled && isMissionsStep && (
+                    {isNextDisabled && (
                         <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
                     )}
                 </div>

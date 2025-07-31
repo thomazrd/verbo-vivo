@@ -35,11 +35,11 @@ const missionSchema = z.object({
   type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
   content: z.object({
     path: z.string(),
-    completionQueryParam: z.string().optional(),
-    verse: z.string().optional(),
+    completionQueryParam: z.string().optional().nullable(),
+    verse: z.string().optional().nullable(),
     details: z.any().optional(),
   }),
-  leaderNote: z.string().optional(),
+  leaderNote: z.string().optional().nullable(),
 });
 
 const planSchema = z.object({
@@ -204,7 +204,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
             content: { 
                 path: MissionTypeDetails[defaultType].path, 
                 verse: "",
-                completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam,
+                completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam || null,
                 details: {},
             },
             leaderNote: ""
@@ -215,7 +215,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
         const details = MissionTypeDetails[newType];
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
-        setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
+        setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam || null);
 
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
@@ -355,8 +355,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   useEffect(() => {
     if (isEditing) {
-      setCurrentStep(1); // Start at Details step
       setCreationMode('manual'); // Editing is always manual flow
+      setCurrentStep(1); // Start at Details step
     }
   }, [isEditing]);
 
@@ -424,9 +424,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             content: {
                 ...m.content,
                 path: missionDetails.path,
-                completionQueryParam: missionDetails.completionQueryParam,
+                completionQueryParam: missionDetails.completionQueryParam || null,
                 details: contentDetails,
-            }
+            },
+            leaderNote: m.leaderNote || null,
         };
     });
 
@@ -442,11 +443,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   const goToNextStep = async () => {
     let isValid = false;
-    const stepToValidate = isEditing ? currentStep : (creationMode === 'ai' ? 1 : currentStep);
     
-    if (stepToValidate === 1) { // Validate Details
+    if (currentStep === 1) { // Validate Details
       isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
-    } else if (stepToValidate === 2) { // Validate Missions
+    } else if (currentStep === 2) { // Validate Missions
       isValid = getValues('missions').length > 0;
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
@@ -461,12 +461,17 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   };
 
   const goToPreviousStep = () => {
-    if (isEditing) {
+    if (isEditing && currentStep === 1) {
         router.back();
         return;
     }
     if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
+      // If we go back from missions step in AI mode, go back to AI prompt
+      if (currentStep === 2 && creationMode === 'ai') {
+        setCurrentStep(1);
+      } else {
+        setCurrentStep(prev => prev - 1);
+      }
     } else {
         router.back();
     }
@@ -483,19 +488,32 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
       setIsSaving(true);
       const values = getValues();
+      
+      // Sanitize data before saving
+      const sanitizedMissions = values.missions.map(mission => ({
+        ...mission,
+        leaderNote: mission.leaderNote || null,
+        content: {
+          ...mission.content,
+          verse: mission.content.verse || null,
+          completionQueryParam: mission.content.completionQueryParam || null,
+        }
+      }));
+
+      const finalValues = { ...values, missions: sanitizedMissions };
 
       try {
-        if (isEditing) {
+        if (isEditing && planId) {
             const planRef = doc(db, 'battlePlans', planId);
             await updateDoc(planRef, {
-                ...values,
+                ...finalValues,
                 status,
                 updatedAt: serverTimestamp(),
             });
         } else {
             const planDocId = uuidv4();
             const planData = {
-                ...values,
+                ...finalValues,
                 id: planDocId,
                 creatorId: user.uid,
                 creatorName: userProfile.displayName || 'Anônimo',
@@ -522,46 +540,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const renderStepContent = () => {
-    // Editing flow is always manual and starts at step 1 (Details)
-    if (isEditing) {
-        switch(currentStep) {
-            case 1: // Details
-                return <Card>
-                    <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                    </CardContent>
-                </Card>
-            case 2: // Missions
-                return <div className="space-y-4">
-                    {Array.from({ length: duration || 0 }, (_, i) => (
-                        <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
-                    ))}
-                </div>
-            case 3: // Review
-                return <Card>
-                    <CardHeader>
-                        <CardTitle>Revisar e Salvar</CardTitle>
-                        <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                            <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
-                        </div>
-                        <h2 className="text-2xl font-bold">{getValues('title')}</h2>
-                        <p className="text-muted-foreground">{getValues('description')}</p>
-                        <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
-                            <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
-                            <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
-                    </CardContent>
-                </Card>
-        }
-    }
-    
-    // Creation flow
     switch (currentStep) {
         case 0: // Start (choice)
              return (
@@ -584,8 +562,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </CardContent>
                 </Card>
              )
-        case 1: // Details OR AI Prompt
-             if (creationMode === 'ai') {
+        case 1: // Details (Manual) or AI Prompt (AI)
+             if (creationMode === 'ai' && !isEditing) {
                  return <Card>
                     <CardHeader>
                         <CardTitle>Criar com IA</CardTitle>
@@ -633,7 +611,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </CardContent>
                 </Card>
              }
-             // if creationMode === 'manual'
+             // if creationMode === 'manual' or isEditing
              return <Card>
                 <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -671,7 +649,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     }
   }
   
-  const showNextButton = currentStep < steps.length - 1 && (creationMode !== 'ai' || (creationMode === 'ai' && aiSuggestion !== null));
+  const showNextButton = currentStep > 0 && currentStep < steps.length - 1 && (creationMode !== 'ai' || (creationMode === 'ai' && aiSuggestion !== null && currentStep > 0));
   const isNextDisabled = currentStep === 2 && missionsArray.length === 0;
 
   if (isLoading) {
@@ -702,7 +680,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-primary/50 text-primary-foreground' : 'bg-muted border')}`}>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
                             {index < currentStep ? <Check/> : index + 1}
                         </div>
                         <p className={`mt-1 text-xs ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
@@ -733,7 +711,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
             
-            {showNextButton && (
+            {currentStep < 3 && creationMode && (
                  <div className="text-right">
                     <Button onClick={goToNextStep} disabled={isNextDisabled || isSaving}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>

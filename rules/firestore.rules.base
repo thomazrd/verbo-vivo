@@ -1,18 +1,14 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Helper Functions ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
     
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
+    // --- Functions ---
+    // Helper functions should be included first so they are available
+    // to all collection rule files that follow.
+    include "functions/auth.rules";
 
+    // --- Collection Rules ---
     // {{RULES_CONTENT}}
   }
 }

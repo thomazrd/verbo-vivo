@@ -39,12 +39,12 @@ REGRAS IMPORTANTES:
 3.  **Título e Descrição:** Crie um título inspirador e uma descrição curta e encorajadora para o plano.
 4.  **Missões Diárias:** Para cada dia, crie uma missão com um título claro.
 5.  **Variedade de Missões:** Combine OBRIGATORIAMENTE diferentes tipos de missão para um plano equilibrado:
-    *   **BIBLE_READING:** Essencial. Inclua leituras relevantes com referências claras (ex: "Efésios 6:10-18").
-    *   **PRAYER_SANCTUARY:** Momentos de oração focada.
-    *   **JOURNAL_ENTRY:** Reflexão escrita.
-    *   **FEELING_JOURNEY:** Para processar emoções.
-    *   **CONFESSION:** Para arrependimento e busca de perdão.
-    *   **FAITH_CONFESSION:** Para declarar verdades bíblicas.
+    *   **BIBLE_READING:** Essencial. O campo 'content.verse' DEVE conter uma referência bíblica clara (ex: "Efésios 6:10-18").
+    *   **PRAYER_SANCTUARY:** Momentos de oração focada. O campo 'content.verse' deve ser nulo.
+    *   **JOURNAL_ENTRY:** Reflexão escrita. O campo 'content.verse' deve ser nulo.
+    *   **FEELING_JOURNEY:** Para processar emoções. O campo 'content.verse' deve ser nulo.
+    *   **CONFESSION:** Para arrependimento e busca de perdão. O campo 'content.verse' deve ser nulo.
+    *   **FAITH_CONFESSION:** Para declarar verdades bíblicas. O campo 'content.verse' deve ser nulo.
 6.  **Notas do Líder (Opcional):** Se apropriado, adicione uma nota curta e pastoral para dar direção à missão do dia.
 7.  **Fidelidade Bíblica:** Todas as sugestões devem ser estritamente fundamentadas em princípios bíblicos.
 8.  **Linguagem:** ${languageInstruction}`,

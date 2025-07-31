@@ -439,8 +439,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     
     // Determine which fields to validate based on the current step
     switch (currentStep) {
-        case 1: // AI Description step. No form fields here, just proceed.
-            break;
+        case 0: // Start step
+        case 1: // AI Description step
+             break;
         case 2: // Details step
             fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
             break;
@@ -517,8 +518,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           setIsSaving(false);
       }
   }
-
-  const isNextDisabled = currentStep >= steps.length - 1 || (currentStep === 3 && missionsArray.length === 0);
+  
+  const isMissionsStep = currentStep === 2;
+  const isNextDisabled = currentStep === steps.length - 1 || (isMissionsStep && missionsArray.length === 0);
 
   if (isLoading) {
       return (
@@ -743,7 +745,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     <Button onClick={goToNextStep} disabled={isNextDisabled}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
-                    {currentStep === 3 && missionsArray.length === 0 && (
+                    {isMissionsStep && missionsArray.length === 0 && (
                         <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
                     )}
                 </div>

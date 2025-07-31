@@ -350,7 +350,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   useEffect(() => {
     if (isEditing) {
         // Skip start step if editing
-        setCurrentStep(2);
+        setCurrentStep(1); // Start at Details step
     }
   }, [isEditing]);
 
@@ -431,44 +431,29 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(3); // Go to Missions step for review
+    setCurrentStep(2); // Go to Missions step for review
   }
 
   const goToNextStep = async () => {
     let fieldsToValidate: (keyof PlanFormValues)[] | undefined = undefined;
-    
-    // Determine which fields to validate based on the current step
-    switch (currentStep) {
-        case 0: // Start step
-        case 1: // AI Description step
-             break;
-        case 2: // Details step
-            fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
-            break;
-        case 3: // Missions step
-            // For this step, we just check if there's at least one mission.
-            if (missionsArray.length === 0) {
-                toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
-                return; // Block advancement
-            }
-            break;
+    if (currentStep === 1) { // Details step
+      fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
     }
 
     const isValid = fieldsToValidate ? await trigger(fieldsToValidate) : true;
-
+    
     if (isValid && currentStep < steps.length - 1) {
-        setCurrentStep((prev) => prev + 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const goToPreviousStep = () => {
     if (currentStep > 0) {
-      // If editing, can't go back from step 2 (details)
-      if (isEditing && currentStep === 2) {
+      if (isEditing && currentStep === 1) { // On details step when editing
         router.back();
         return;
       }
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep(prev => prev - 1);
     } else {
         router.back();
     }
@@ -476,8 +461,14 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   
   const handleSavePlan = async (status: 'DRAFT' | 'PUBLISHED') => {
       if(!user || !userProfile) return;
-      setIsSaving(true);
       
+      const isValid = await trigger();
+      if (!isValid) {
+          toast({ variant: 'destructive', title: 'Campos Inválidos', description: 'Por favor, corrija os erros antes de salvar.' });
+          return;
+      }
+
+      setIsSaving(true);
       const values = getValues();
 
       try {
@@ -504,8 +495,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             const planRef = doc(db, "battlePlans", planDocId);
             batch.set(planRef, planData);
             
-            // Do not automatically start the plan for the creator
-            
             await batch.commit();
         }
 
@@ -518,9 +507,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           setIsSaving(false);
       }
   }
-  
+
   const isMissionsStep = currentStep === 2;
-  const isNextDisabled = currentStep === steps.length - 1 || (isMissionsStep && missionsArray.length === 0);
+  const isNextDisabled = isMissionsStep && missionsArray.length === 0;
 
   if (isLoading) {
       return (
@@ -545,21 +534,23 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       </div>
       
       {/* Stepper */}
-      <div className="mb-8 flex items-center justify-center">
-        {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-                 <div className="flex flex-col items-center">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted border'}`}>
-                        {index < currentStep ? <Check/> : index + 1}
+      {!isEditing && (
+        <div className="mb-8 flex items-center justify-center">
+            {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                    <div className="flex flex-col items-center">
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted border'}`}>
+                            {index < currentStep ? <Check/> : index + 1}
+                        </div>
+                        <p className={`mt-1 text-xs ${index <= currentStep ? 'font-semibold' : ''}`}>{step.name}</p>
                     </div>
-                    <p className={`mt-1 text-xs ${index <= currentStep ? 'font-semibold' : ''}`}>{step.name}</p>
-                 </div>
-                {index < steps.length - 1 && (
-                    <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary' : 'bg-muted'}`} />
-                )}
-            </div>
-        ))}
-      </div>
+                    {index < steps.length - 1 && (
+                        <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary' : 'bg-muted'}`} />
+                    )}
+                </div>
+            ))}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -590,7 +581,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             </Card>
           )}
 
-          {currentStep === 1 && (
+          {currentStep === 1 && !isEditing && (
             <Card>
                  <CardHeader>
                     <CardTitle>1. Criar com IA</CardTitle>
@@ -598,7 +589,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Textarea
-                        placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro..."
+                        placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro por exemplo..."
                         className="min-h-[150px]"
                         value={problemDescription}
                         onChange={(e) => setProblemDescription(e.target.value)}
@@ -654,9 +645,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             </Card>
           )}
 
-          {currentStep === 2 && (
+          {(currentStep === 2 || (currentStep === 1 && isEditing)) && (
             <Card>
-                <CardHeader><CardTitle>2. Detalhes do Plano</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{isEditing ? 'Detalhes do Plano' : '2. Detalhes do Plano'}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                      <Controller
                         control={control} name="title"
@@ -737,21 +728,21 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
       <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0 || (isEditing && currentStep === 2)}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep === 0}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
+            
             {currentStep < steps.length - 1 && (
                  <div className="text-right">
                     <Button onClick={goToNextStep} disabled={isNextDisabled}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
-                    {isMissionsStep && missionsArray.length === 0 && (
+                    {isNextDisabled && isMissionsStep && (
                         <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
                     )}
                 </div>
             )}
         </div>
-
     </div>
   );
 }

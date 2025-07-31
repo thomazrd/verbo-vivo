@@ -1,0 +1,7 @@
+
+// Regras para a coleção 'prayers', onde as orações do Santuário são salvas.
+match /prayers/{prayerId} {
+  // Um usuário pode criar, ler, atualizar e deletar suas próprias orações.
+  // A consulta DEVE usar a cláusula `where('userId', '==', request.auth.uid)` para listagem.
+  allow read, write: if request.auth.uid == request.resource.data.userId;
+}

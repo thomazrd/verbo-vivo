@@ -76,6 +76,12 @@ export const useNotifications = () => {
     
     // --- Push Notifications Setup ---
     const setupPushNotifications = async () => {
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        console.warn("Chave VAPID do Firebase não configurada. As notificações push estão desativadas.");
+        return;
+      }
+      
       // Check if Notification API is supported
       if (typeof window !== 'undefined' && 'Notification' in window) {
         const messaging = getMessaging(app);
@@ -89,26 +95,25 @@ export const useNotifications = () => {
           });
         });
         
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          try {
-            // VAPID key is set up in your Firebase project settings
-            const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-            if (currentToken) {
-              // Save the token to Firestore
-              const tokenRef = doc(db, 'userPushTokens', user.uid);
-              await setDoc(tokenRef, {
-                userId: user.uid,
-                token: currentToken,
-                platform: 'web',
-                createdAt: serverTimestamp(),
-              }, { merge: true });
-            } else {
-              console.log('No registration token available. Request permission to generate one.');
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const currentToken = await getToken(messaging, { vapidKey });
+                if (currentToken) {
+                  // Save the token to Firestore
+                  const tokenRef = doc(db, 'userPushTokens', user.uid);
+                  await setDoc(tokenRef, {
+                    userId: user.uid,
+                    token: currentToken,
+                    platform: 'web',
+                    createdAt: serverTimestamp(),
+                  }, { merge: true });
+                } else {
+                  console.log('No registration token available. Request permission to generate one.');
+                }
             }
-          } catch(err) {
+        } catch(err) {
             console.error('An error occurred while retrieving token. ', err);
-          }
         }
       }
     }

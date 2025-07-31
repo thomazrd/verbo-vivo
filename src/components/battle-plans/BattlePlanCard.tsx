@@ -24,7 +24,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "../ui/button";
 import { useState } from "react";
@@ -44,6 +43,7 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const userPlan = isUserBattlePlan(plan) ? plan : null;
   const basePlan = userPlan 
@@ -77,7 +77,7 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
         await batch.commit();
         
         toast({ title: 'Plano Desmontado', description: `O plano "${basePlan.title}" foi excluído com sucesso.`});
-        // The UI should update automatically from the Firestore listener on the main page.
+        setIsAlertOpen(false); // Fecha o modal
     } catch (error) {
         console.error("Error deleting battle plan:", error);
         toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir o plano.'});
@@ -106,7 +106,7 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
                 {basePlan.title}
               </CardTitle>
               {isCreator && (
-                <AlertDialog>
+                <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
@@ -118,12 +118,10 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
                         <Pencil className="mr-2 h-4 w-4" />
                         Editar
                       </DropdownMenuItem>
-                       <AlertDialogTrigger asChild>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Desmontar Plano
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
+                      <DropdownMenuItem onSelect={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4"/>
+                          Desmontar Plano
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                    <AlertDialogContent>

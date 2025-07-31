@@ -438,7 +438,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(1); // Go to Details step for review
+    setCurrentStep(2); // Go directly to Missions step for review
   }
 
   const goToNextStep = async () => {
@@ -451,8 +451,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
       }
-    } else {
-      isValid = true;
     }
     
     if (isValid && currentStep < steps.length - 1) {
@@ -461,19 +459,17 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   };
 
   const goToPreviousStep = () => {
-    if (isEditing && currentStep === 1) {
+    if (currentStep === 0 && !isEditing) {
         router.back();
         return;
     }
+    
     if (currentStep > 0) {
-      // If we go back from missions step in AI mode, go back to AI prompt
-      if (currentStep === 2 && creationMode === 'ai') {
-        setCurrentStep(1);
-      } else {
-        setCurrentStep(prev => prev - 1);
-      }
-    } else {
-        router.back();
+        if(isEditing) {
+            router.back();
+        } else {
+            setCurrentStep(prev => prev - 1);
+        }
     }
   };
   
@@ -489,7 +485,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       setIsSaving(true);
       const values = getValues();
       
-      // Sanitize data before saving
       const sanitizedMissions = values.missions.map(mission => ({
         ...mission,
         leaderNote: mission.leaderNote || null,
@@ -540,117 +535,137 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const renderStepContent = () => {
+    // If editing, always show details
+    if (isEditing) {
+        // Based on currentStep, show details or missions
+        if (currentStep === 1) return renderDetailsStep();
+        if (currentStep === 2) return renderMissionsStep();
+        if (currentStep === 3) return renderReviewStep();
+        return null;
+    }
+    
+    // Logic for creation flow
     switch (currentStep) {
-        case 0: // Start (choice)
-             return (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Ponto de Partida</CardTitle>
-                        <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('ai'); setCurrentStep(1); }}>
-                            <Wand2 className="h-8 w-8" />
-                            <span className="font-bold">Criar com Inteligência Artificial</span>
-                            <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
-                        </Button>
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('manual'); setCurrentStep(1); }}>
-                            <Plus className="h-8 w-8" />
-                            <span className="font-bold">Forjar Manualmente</span>
-                            <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
-                        </Button>
-                    </CardContent>
-                </Card>
-             )
-        case 1: // Details (Manual) or AI Prompt (AI)
-             if (creationMode === 'ai' && !isEditing) {
-                 return <Card>
-                    <CardHeader>
-                        <CardTitle>Criar com IA</CardTitle>
-                        <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Textarea placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro por exemplo..." className="min-h-[150px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
-                        <Button onClick={handleAiGeneration} disabled={isGenerating}> {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Plano de Batalha </Button>
-                        {isGenerating && ( <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p> )}
-                        {aiSuggestion && (
-                            <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold">Sugestão do General</h3>
-                                <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
-                                    <h4 className="font-bold">{aiSuggestion.title}</h4>
-                                    <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
-                                    <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias</p>
-                                    <Accordion type="single" collapsible className="w-full">
-                                        <AccordionItem value="item-1">
-                                            <AccordionTrigger>Ver {aiSuggestion.missions.length} missões sugeridas</AccordionTrigger>
-                                            <AccordionContent className="p-1">
-                                                <div className="space-y-2 max-h-60 overflow-y-auto pr-3">
-                                                {aiSuggestion.missions.sort((a,b) => a.day - b.day).map((mission, index) => {
-                                                    const Icon = MissionTypeDetails[mission.type]?.icon || BookOpen;
-                                                    return (
-                                                    <div key={index} className="p-2 border rounded-md bg-background">
-                                                        <p className="font-bold text-xs">Dia {mission.day}: {mission.title}</p>
-                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                            <Icon className="h-3 w-3" />
-                                                            <span>{MissionTypeDetails[mission.type]?.label}</span>
-                                                            {mission.content.verse && <span className="font-mono">({mission.content.verse})</span>}
-                                                        </div>
-                                                    </div>
-                                                )})}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-                                    <div className="flex gap-2 pt-2">
-                                        <Button onClick={() => handleUseAiSuggestion()}> <Check className="mr-2"/> Usar este Plano </Button>
-                                        <Button variant="outline" onClick={handleAiGeneration} disabled={isGenerating}> <RefreshCw className="mr-2"/> Gerar Novamente </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-             }
-             // if creationMode === 'manual' or isEditing
-             return <Card>
-                <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                        <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                </CardContent>
-            </Card>
-        case 2: // Missions
-            return <div className="space-y-4">
-                {Array.from({ length: duration || 0 }, (_, i) => (
-                    <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
-                ))}
-            </div>
-        case 3: // Review
-            return <Card>
-                <CardHeader>
-                    <CardTitle>Revisar e Finalizar</CardTitle>
-                    <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                        <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
-                    </div>
-                    <h2 className="text-2xl font-bold">{getValues('title')}</h2>
-                    <p className="text-muted-foreground">{getValues('description')}</p>
-                    <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
-                        <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
-                        <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
-                </CardContent>
-            </Card>
-        default:
+        case 0: return renderStartStep();
+        case 1:
+            if (creationMode === 'ai') return renderAiPromptStep();
+            if (creationMode === 'manual') return renderDetailsStep();
             return null;
+        case 2: return renderMissionsStep();
+        case 3: return renderReviewStep();
+        default: return null;
     }
   }
+
+  const renderStartStep = () => (
+    <Card>
+        <CardHeader>
+            <CardTitle>Ponto de Partida</CardTitle>
+            <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
+        </CardHeader>
+        <CardContent className="grid md:grid-cols-2 gap-4">
+            <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('ai'); setCurrentStep(1); }}>
+                <Wand2 className="h-8 w-8" />
+                <span className="font-bold">Criar com Inteligência Artificial</span>
+                <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('manual'); setCurrentStep(1); }}>
+                <Plus className="h-8 w-8" />
+                <span className="font-bold">Forjar Manualmente</span>
+                <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
+            </Button>
+        </CardContent>
+    </Card>
+  )
   
-  const showNextButton = currentStep > 0 && currentStep < steps.length - 1 && (creationMode !== 'ai' || (creationMode === 'ai' && aiSuggestion !== null && currentStep > 0));
-  const isNextDisabled = currentStep === 2 && missionsArray.length === 0;
+  const renderAiPromptStep = () => (
+      <Card>
+        <CardHeader>
+            <CardTitle>Criar com IA</CardTitle>
+            <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <Textarea placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro por exemplo..." className="min-h-[150px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
+            <Button onClick={handleAiGeneration} disabled={isGenerating}> {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Plano de Batalha </Button>
+            {isGenerating && ( <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p> )}
+            {aiSuggestion && (
+                <div className="pt-4 border-t">
+                    <h3 className="text-lg font-semibold">Sugestão do General</h3>
+                    <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
+                        <h4 className="font-bold">{aiSuggestion.title}</h4>
+                        <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
+                        <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias</p>
+                        <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="item-1">
+                                <AccordionTrigger>Ver {aiSuggestion.missions.length} missões sugeridas</AccordionTrigger>
+                                <AccordionContent className="p-1">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-3">
+                                    {aiSuggestion.missions.sort((a,b) => a.day - b.day).map((mission, index) => {
+                                        const Icon = MissionTypeDetails[mission.type]?.icon || BookOpen;
+                                        return (
+                                        <div key={index} className="p-2 border rounded-md bg-background">
+                                            <p className="font-bold text-xs">Dia {mission.day}: {mission.title}</p>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                <Icon className="h-3 w-3" />
+                                                <span>{MissionTypeDetails[mission.type]?.label}</span>
+                                                {mission.content.verse && <span className="font-mono">({mission.content.verse})</span>}
+                                            </div>
+                                        </div>
+                                    )})}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                        <div className="flex gap-2 pt-2">
+                            <Button onClick={() => handleUseAiSuggestion()}> <Check className="mr-2"/> Usar este Plano </Button>
+                            <Button variant="outline" onClick={handleAiGeneration} disabled={isGenerating}> <RefreshCw className="mr-2"/> Gerar Novamente </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </CardContent>
+    </Card>
+  )
+
+  const renderDetailsStep = () => (
+       <Card>
+            <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                    <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+            </CardContent>
+        </Card>
+  );
+
+  const renderMissionsStep = () => (
+      <div className="space-y-4">
+          {Array.from({ length: duration || 0 }, (_, i) => (
+              <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
+          ))}
+      </div>
+  );
+
+  const renderReviewStep = () => (
+     <Card>
+        <CardHeader>
+            <CardTitle>Revisar e Finalizar</CardTitle>
+            <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
+            </div>
+            <h2 className="text-2xl font-bold">{getValues('title')}</h2>
+            <p className="text-muted-foreground">{getValues('description')}</p>
+            <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
+                <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
+                <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
+        </CardContent>
+    </Card>
+  );
+
 
   if (isLoading) {
       return (
@@ -661,6 +676,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           </div>
       )
   }
+
+  const isNextButtonVisible = currentStep > 0 && currentStep < steps.length - 1;
+  const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
@@ -683,10 +701,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                         <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
                             {index < currentStep ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs text-center ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}
@@ -707,16 +725,16 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
        <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={(currentStep === 0 && !isEditing) || isSaving}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={isSaving}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
             
-            {currentStep < 3 && creationMode && (
+            {isNextButtonVisible && (
                  <div className="text-right">
-                    <Button onClick={goToNextStep} disabled={isNextDisabled || isSaving}>
+                    <Button onClick={goToNextStep} disabled={isNextButtonDisabled || isSaving}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
-                    {isNextDisabled && (
+                    {isNextButtonDisabled && (
                         <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
                     )}
                 </div>

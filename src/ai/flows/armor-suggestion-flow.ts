@@ -10,18 +10,15 @@
 
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
-
-const ArmorWeaponSchema = z.object({
-    verseReference: z.string(),
-    verseText: z.string(),
-    bibleVersion: z.string(),
-});
+import type { ArmorWeapon } from '@/lib/types';
+import { ArmorWeaponSchema } from '@/lib/types';
 
 // Input for a single weapon suggestion now accepts existing verses to avoid repetition
 const SingleWeaponSuggestionInputSchema = z.object({
   battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
   model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
   language: z.string().optional().describe('The language code for the response (e.g., "pt", "en").'),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
   existingVerses: z.array(ArmorWeaponSchema).optional().describe('An array of verses already suggested to avoid repetition.'),
 });
 export type SingleWeaponSuggestionInput = z.infer<typeof SingleWeaponSuggestionInputSchema>;
@@ -31,6 +28,7 @@ const ArmorSuggestionInputSchema = z.object({
   battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
   model: z.string().optional().describe("The AI model to use, e.g. 'gemini-1.5-pro'."),
   language: z.string().optional().describe('The language code for the response (e.g., "pt", "en").'),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
 
@@ -60,7 +58,7 @@ const suggestWeaponsFlow = ai.defineFlow(
       name: 'suggestWeaponsPrompt',
       input: { schema: ArmorSuggestionInputSchema },
       output: { schema: ArmorSuggestionOutputSchema },
-      system: `Você é um teólogo e estrategista espiritual. Para a batalha contra '{{battle}}', crie uma lista de 7 objetos JSON, cada um representando uma arma bíblica eficaz. Para cada um, forneça a referência canônica, o texto completo e a versão da Bíblia (NVI).`,
+      system: `Você é um teólogo e estrategista espiritual. Para a batalha contra '{{battle}}', crie uma lista de 7 objetos JSON, cada um representando uma arma bíblica eficaz. Para cada um, forneça a referência canônica, o texto completo e a versão da Bíblia ({{bibleVersion}}).`,
       prompt: `Batalha: "{{battle}}"`,
     });
 
@@ -90,7 +88,7 @@ const getSingleWeaponSuggestionFlow = ai.defineFlow(
             name: 'getSingleWeaponSuggestionPrompt',
             input: { schema: SingleWeaponSuggestionInputSchema },
             output: { schema: ArmorSuggestionOutputSchema },
-            system: `Para um soldado lutando contra '{{battle}}', sugira 3 versículos bíblicos com MÁXIMA RELEVÂNCIA para o tema. Cada objeto JSON deve ter os campos: verseReference, verseText, e bibleVersion ('NVI'). Se uma lista de versículos existentes for fornecida, NÃO repita NENHUM deles.`,
+            system: `Para um soldado lutando contra '{{battle}}', sugira 3 versículos bíblicos com MÁXIMA RELEVÂNCIA para o tema. Cada objeto JSON deve ter os campos: verseReference, verseText, e bibleVersion ('{{bibleVersion}}'). Se uma lista de versículos existentes for fornecida, NÃO repita NENHUM deles.`,
             prompt: `
 Batalha: "{{battle}}"
 
@@ -117,3 +115,4 @@ Versículos já sugeridos (não repita estes):
       return output;
     }
   );
+

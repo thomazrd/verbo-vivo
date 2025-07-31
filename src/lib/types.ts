@@ -6,6 +6,7 @@ import { z } from "zod";
 export interface BibleVerse {
   reference: string;
   text: string;
+  bibleVersion?: string;
 }
 
 export interface Message {
@@ -234,7 +235,7 @@ export const SharedContentSchema = z.object({
   sections: z.array(z.object({
     verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
     verse_text: z.string().describe("O texto do versículo."),
-    explanation: z.string().describe("Uma breve e simples explicação de como este versículo oferece esperança para uma situação difícil.")
+    bible_version: z.string().describe("A versão da Bíblia do texto do versículo. Ex: 'NVI'"),
   })),
   conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
 });
@@ -389,12 +390,14 @@ export interface BibleChapter {
 }
 
 // --- Tipos da Minha Armadura ---
-export interface ArmorWeapon {
-  id: string;
-  verseReference: string;
-  verseText: string;
-  bibleVersion: string;
-}
+export const ArmorWeaponSchema = z.object({
+  id: z.string(),
+  verseReference: z.string(),
+  verseText: z.string(),
+  bibleVersion: z.string(),
+});
+export type ArmorWeapon = z.infer<typeof ArmorWeaponSchema>;
+
 
 export interface Armor {
   id: string;
@@ -557,6 +560,7 @@ export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;
 export const GenerateShareableContentInputSchema = BaseAiInputSchema.extend({
   problemDescription: z.string().describe('The problem description provided by the user.'),
   recipientName: z.string().optional().describe("The name of the person receiving the letter, for personalization."),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;
 
@@ -569,6 +573,7 @@ export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableCon
 export const ProcessFeelingReportInputSchema = BaseAiInputSchema.extend({
   emotion: z.string().describe("The user's selected emotion."),
   reportText: z.string().describe("The user's voice report explaining their feeling."),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 export type ProcessFeelingReportInput = z.infer<typeof ProcessFeelingReportInputSchema>;
 
@@ -577,6 +582,7 @@ export const ProcessFeelingReportOutputSchema = z.object({
     citedVerses: z.array(z.object({
         reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
         text: z.string().describe("The full text of the verse."),
+        bibleVersion: z.string().describe("The Bible version of the verse text."),
     })).describe('An array of relevant bible verses.'),
 });
 export type ProcessFeelingReportOutput = z.infer<typeof ProcessFeelingReportOutputSchema>;
@@ -591,24 +597,6 @@ export const ExplainPassageOutputSchema = z.object({
   explanation: z.string().describe("A clear and concise explanation of the passage."),
 });
 export type ExplainPassageOutput = z.infer<typeof ExplainPassageOutputSchema>;
-
-// From: armor-suggestion-flow.ts
-export const ArmorSuggestionInputSchema = BaseAiInputSchema.extend({
-  battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
-});
-export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
-
-export const ArmorWeaponSchema = z.object({
-    verseReference: z.string(),
-    verseText: z.string(),
-    bibleVersion: z.string(),
-});
-export type ArmorWeaponOutput = z.infer<typeof ArmorWeaponSchema>;
-
-export const ArmorSuggestionOutputSchema = z.object({
-    weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
-});
-export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
 
 
 // From: battle-plan-generation-flow.ts

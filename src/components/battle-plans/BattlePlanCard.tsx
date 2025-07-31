@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "../ui/button";
 import { useState } from "react";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,7 +51,7 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
           id: plan.planId, 
           title: plan.planTitle, 
           coverImageUrl: plan.planCoverImageUrl,
-          creatorName: (plan as any).creatorName, // Assume creatorName might be passed
+          creatorName: (plan as any).creatorName,
           creatorId: plan.planCreatorId
         } 
       : plan as BattlePlan;
@@ -62,14 +62,22 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!isCreator || !basePlan.id) return;
+    if (!isCreator || !basePlan.id || !user) return;
     
     setIsDeleting(true);
     try {
+        const batch = writeBatch(db);
         const planRef = doc(db, 'battlePlans', basePlan.id);
-        await deleteDoc(planRef);
+        batch.delete(planRef);
+
+        // Also delete the user's progress for this plan if it exists
+        const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, basePlan.id);
+        batch.delete(userPlanRef);
+
+        await batch.commit();
+        
         toast({ title: 'Plano Desmontado', description: `O plano "${basePlan.title}" foi excluído com sucesso.`});
-        // A UI se atualizará automaticamente pelo listener do Firestore na página principal.
+        // The UI should update automatically from the Firestore listener on the main page.
     } catch (error) {
         console.error("Error deleting battle plan:", error);
         toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir o plano.'});
@@ -97,7 +105,7 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
               <CardTitle className="text-base font-semibold line-clamp-2">
                 {basePlan.title}
               </CardTitle>
-              {isCreator && !userPlan && (
+              {isCreator && (
                 <AlertDialog>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

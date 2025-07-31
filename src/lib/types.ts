@@ -410,7 +410,7 @@ export interface Armor {
 }
 
 // --- Tipos do Centro de Treinamento ---
-export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNEY' | 'CONFESSION' | 'JOURNAL_ENTRY' | 'FAITH_CONFESSION';
+export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNEY' | 'CONFESSION' | 'JOURNAL_ENTRY' | 'FAITH_CONFESSION' | 'YOUTUBE_VIDEO';
 export type MissionStatus = 'PENDING' | 'COMPLETED';
 export type BattlePlanStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type UserBattlePlanStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
@@ -424,7 +424,7 @@ export interface Mission {
   content: {
     path: string;
     completionQueryParam?: string | null;
-    verse?: string | null; // Para 'BIBLE_READING'
+    verse?: string | null; // Para 'BIBLE_READING' ou a URL do vídeo
     details?: any; // Para detalhes extras como livro, capitulo, etc.
   };
   leaderNote?: string | null;
@@ -521,14 +521,6 @@ export const ProcessPrayerInputSchema = BaseAiInputSchema.extend({
 });
 export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
 
-export const ProcessPrayerOutputSchema = z.object({
-    responseText: z.string().describe('The devotional reflection based on the prayer.'),
-    citedVerses: z.array(z.object({
-      reference: z.string(),
-      text: z.string()
-    })).describe('An array of Bible verse references cited in the response.'),
-});
-export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
 
 // From: study-plan-generation.ts
 export const StudyPlanInputSchema = BaseAiInputSchema.extend({

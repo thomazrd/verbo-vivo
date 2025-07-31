@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw, CalendarDays, ListTodo } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw, CalendarDays, ListTodo, Youtube } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook, GenerateBattlePlanOutput } from "@/lib/types";
 import Image from "next/image";
@@ -33,7 +33,7 @@ const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
   day: z.number(),
   title: z.string().min(3, "O título da missão é muito curto."),
-  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
+  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION", "YOUTUBE_VIDEO"]),
   content: z.object({
     path: z.string(),
     completionQueryParam: z.string().optional().nullable(),
@@ -53,8 +53,9 @@ const planSchema = z.object({
 
 type PlanFormValues = z.infer<typeof planSchema>;
 
-const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
+const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean, verseLabel?: string, versePlaceholder?: string }> = {
+    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, verseLabel: "Referência Bíblica" },
+    YOUTUBE_VIDEO: { icon: Youtube, label: "Vídeo do YouTube", path: '/battle-plans/mission-video', requiresVerse: true, verseLabel: "Link do Vídeo", versePlaceholder: "https://www.youtube.com/watch?v=..." },
     PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'mission' },
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
@@ -230,7 +231,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
             <h3 className="font-semibold text-lg">Dia {day}</h3>
             {dayMissionIndices.map((fieldIndex) => {
                 const missionType = missions[fieldIndex]?.type;
-                const requiresVerse = MissionTypeDetails[missionType]?.requiresVerse;
+                const missionDetails = MissionTypeDetails[missionType];
                 const key = (fields[fieldIndex] as any).id;
 
                 return (
@@ -264,12 +265,22 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
                                 )}
                             />
                             
-                             {requiresVerse && (
+                             {missionType === 'BIBLE_READING' && (
                                 <BibleVerseSelector
                                     fieldIndex={fieldIndex}
                                     setValue={setValue}
                                     control={control}
                                 />
+                            )}
+                            {missionType === 'YOUTUBE_VIDEO' && (
+                                 <div className="space-y-1">
+                                    <Label>{missionDetails.verseLabel}</Label>
+                                    <Controller
+                                        control={control}
+                                        name={`missions.${fieldIndex}.content.verse`}
+                                        render={({ field }) => <Input {...field} value={field.value || ''} placeholder={missionDetails.versePlaceholder} />}
+                                    />
+                                 </div>
                             )}
                             
                              <Label>Nota do Líder (Opcional)</Label>

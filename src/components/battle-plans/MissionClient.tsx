@@ -98,23 +98,24 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     }
 
     const buildMissionPath = () => {
-        let path = mission.content.path;
         const params = new URLSearchParams();
-        
-        // Always add mission context
         if (mission.content.completionQueryParam) {
             params.set('mission', 'true');
         }
         params.set('userPlanId', userPlanId);
 
-        // Add specific parameters for Bible reading missions
+        let path = mission.content.path;
+
         if (mission.type === 'BIBLE_READING' && mission.content.details?.book && mission.content.details?.chapter) {
-            path = '/bible'; // Ensure the path is correct
+            path = '/bible';
             const details = mission.content.details;
             params.set('book', details.book.abbrev.pt);
             params.set('chapter', String(details.chapter));
             if (details.startVerse) params.set('startVerse', String(details.startVerse));
             if (details.endVerse) params.set('endVerse', String(details.endVerse));
+        } else if (mission.type === 'YOUTUBE_VIDEO' && mission.content.verse) {
+             path = `/battle-plans/mission-video/${userPlanId}`; // Pass userPlanId in path
+             params.set('missionId', mission.id); // Also pass missionId as param
         }
         
         return `${path}?${params.toString()}`;
@@ -134,6 +135,9 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
                 <CardContent>
                     {mission.type === 'BIBLE_READING' && (
                         <p className="text-lg">Leia e medite em: <strong className="font-mono">{mission.content.verse}</strong></p>
+                    )}
+                     {mission.type === 'YOUTUBE_VIDEO' && (
+                        <p className="text-lg">Assista ao vídeo: <strong className="font-mono">{mission.title}</strong></p>
                     )}
                     {mission.leaderNote && (
                         <blockquote className="mt-4 border-l-2 pl-4 italic text-muted-foreground">

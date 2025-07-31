@@ -8,6 +8,7 @@
  */
 
 import { ai, getModel } from '../genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import wav from 'wav';
 
@@ -60,7 +61,7 @@ export async function narrateChapter(input: NarrateChapterInput): Promise<Narrat
     },
     async (flowInput) => {
       const { media } = await ai.generate({
-        model: 'googleai/tts-1-hd',
+        model: googleAI.model('gemini-2.5-flash-preview-tts'),
         config: {
           responseModalities: ['AUDIO'],
           speechConfig: {

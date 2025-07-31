@@ -47,7 +47,7 @@ const planSchema = z.object({
   description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres.").max(500),
   durationDays: z.number().min(1, "O plano deve durar pelo menos 1 dia.").max(90, "O plano não pode exceder 90 dias."),
   coverImageUrl: z.string().url("URL da imagem de capa inválida."),
-  missions: z.array(missionSchema),
+  missions: z.array(missionSchema).min(1, "O plano deve ter pelo menos uma missão."),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
@@ -58,7 +58,7 @@ const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: 
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
     JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
-    FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'userPlanId' },
+    FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'mission' },
 };
 
 function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: number, control: any, setValue: any }) {
@@ -77,35 +77,39 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
             try {
                 const response = await axios.get('/api/bible/books');
                 setBooks(response.data);
+                 if (details?.book?.name && !details?.book?.chapters) {
+                    const fullBookData = response.data.find((b: BibleBook) => b.name === details.book.name);
+                    if (fullBookData) {
+                        setValue(`missions.${fieldIndex}.content.details.book`, fullBookData);
+                    }
+                }
             } catch (error) {
                 console.error("Failed to fetch Bible books", error);
             }
         };
         fetchBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-     useEffect(() => {
+    useEffect(() => {
         if (!details) return;
 
         const { book, chapter, startVerse, endVerse } = details;
-        if (!book || !chapter) {
+        if (!book?.name || !chapter) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
             return;
         }
         
-        const selectedBookObject = books.find(b => b.abbrev.pt === book.abbrev.pt);
-        if (!selectedBookObject) return;
-
-        let reference = `${selectedBookObject.name} ${chapter}`;
+        let reference = `${book.name} ${chapter}`;
         if (startVerse) {
             reference += `:${startVerse}`;
-            if (endVerse) {
+            if (endVerse && endVerse > startVerse) {
                 reference += `-${endVerse}`;
             }
         }
-        setValue(`missions.${fieldIndex}.content.verse`, reference);
+        setValue(`missions.${fieldIndex}.content.verse`, reference, { shouldValidate: true });
 
-    }, [details, fieldIndex, setValue, books]);
+    }, [details, fieldIndex, setValue]);
 
 
     return (
@@ -137,7 +141,7 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
                     control={control}
                     name={`missions.${fieldIndex}.content.details.chapter`}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value || '')}>
                             <SelectTrigger><SelectValue placeholder="Escolha um capítulo..." /></SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map(c => (
@@ -153,14 +157,14 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
                     control={control}
                     name={`missions.${fieldIndex}.content.details.startVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Início" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))}/>
+                       <Input type="number" placeholder="Início" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}/>
                     )}
                 />
                 <Controller
                     control={control}
                     name={`missions.${fieldIndex}.content.details.endVerse`}
                     render={({ field }) => (
-                       <Input type="number" placeholder="Fim" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))}/>
+                       <Input type="number" placeholder="Fim" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}/>
                     )}
                 />
             </div>
@@ -204,20 +208,14 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
                 details: {},
             },
             leaderNote: ""
-        });
+        }, { shouldFocus: true });
     };
 
     const handleTypeChange = (newType: MissionType, fieldIndex: number) => {
         const details = MissionTypeDetails[newType];
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
-        
-        const completionParam = details.completionQueryParam;
-        if (completionParam) {
-            setValue(`missions.${fieldIndex}.content.completionQueryParam`, completionParam);
-        } else {
-             setValue(`missions.${fieldIndex}.content.completionQueryParam`, undefined);
-        }
+        setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam);
 
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
@@ -281,7 +279,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
                     </Card>
                 )
             })}
-             <Button variant="outline" className="w-full" onClick={addMission}><Plus className="h-4 w-4 mr-2"/>Adicionar Missão</Button>
+             <Button type="button" variant="outline" className="w-full" onClick={addMission}><Plus className="h-4 w-4 mr-2"/>Adicionar Missão</Button>
         </div>
     )
 }
@@ -312,9 +310,9 @@ function parseVerseReference(ref: string) {
 
     return {
         book: book,
-        chapter: chapter,
-        startVerse: startVerse || null,
-        endVerse: endVerse || null,
+        chapter: parseInt(chapter),
+        startVerse: startVerse ? parseInt(startVerse) : undefined,
+        endVerse: endVerse ? parseInt(endVerse) : undefined,
     };
 }
 
@@ -347,6 +345,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   const { control, trigger, getValues, watch, setValue, reset } = form;
   const duration = watch('durationDays');
+  const missionsArray = watch('missions');
 
   useEffect(() => {
     if (isEditing) {
@@ -437,7 +436,11 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   const goToNextStep = async () => {
     let fieldsToValidate: (keyof PlanFormValues)[] = [];
-    if(currentStep === 2) fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
+    if (currentStep === 1) { // Details step
+      fieldsToValidate = ['title', 'description', 'durationDays', 'coverImageUrl'];
+    } else if (currentStep === 2) { // Missions step
+      fieldsToValidate = ['missions'];
+    }
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -491,7 +494,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             const planRef = doc(db, "battlePlans", planDocId);
             batch.set(planRef, planData);
             const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planDocId);
-            batch.set(userPlanRef, userPlanData);
+            batch.set(userPlanRef, planData);
             await batch.commit();
         }
 
@@ -503,6 +506,12 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       } finally {
           setIsSaving(false);
       }
+  }
+
+  const isNextDisabled = () => {
+    if (currentStep >= steps.length - 1) return true;
+    if (currentStep === 2 && missionsArray.length === 0) return true;
+    return false;
   }
 
   if (isLoading) {
@@ -719,13 +728,18 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       </AnimatePresence>
       
       {/* Navigation */}
-      <div className="mt-8 flex justify-between">
+      <div className="mt-8 flex justify-between items-start">
             <Button variant="outline" onClick={goToPreviousStep} disabled={currentStep <= (isEditing ? 1 : 0)}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
-            <Button onClick={goToNextStep} disabled={currentStep >= steps.length - 1}>
-                Avançar <ArrowRight className="h-4 w-4 ml-2"/>
-            </Button>
+            <div className="text-right">
+                <Button onClick={goToNextStep} disabled={isNextDisabled()}>
+                    Avançar <ArrowRight className="h-4 w-4 ml-2"/>
+                </Button>
+                 {currentStep === 2 && missionsArray.length === 0 && (
+                    <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
+                )}
+            </div>
         </div>
 
     </div>

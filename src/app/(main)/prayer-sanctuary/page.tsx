@@ -13,7 +13,7 @@ import { processPrayer } from '@/ai/flows/prayer-reflection';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, Square, Loader2, History } from 'lucide-react';
+import { Mic, Square, Loader2, History, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,6 +21,8 @@ import { PrayerResponseCard } from '@/components/prayer/PrayerResponseCard';
 import { PlanCreationModal } from '@/components/chat/PlanCreationModal';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -121,18 +123,22 @@ function PrayerSanctuaryContent() {
   const [processingText, setProcessingText] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [typedPrayer, setTypedPrayer] = useState("");
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({});
+  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({
+      onTranscriptChange: (newTranscript) => {
+        setTypedPrayer(newTranscript);
+      }
+  });
 
   useEffect(() => {
     if (error) {
@@ -192,71 +198,83 @@ function PrayerSanctuaryContent() {
     draw();
   }, [toast]);
 
-  const handleStart = async () => {
+  const handleStartRecording = async () => {
     if (isListening) return;
+    setTypedPrayer('');
     setProcessingText("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       visualizeAudio(stream);
       startListening(); // Hook will use the already granted permission
-      setSanctuaryState('recording');
     } catch (err) {
       console.error("Error accessing microphone:", err);
       toast({ variant: 'destructive', title: 'Erro de Microfone', description: 'Não foi possível acessar seu microfone. Verifique as permissões do navegador.' });
     }
   };
   
-  const handleStop = async () => {
+  const processAndSubmitPrayer = async (prayerText: string) => {
+      setProcessingText(prayerText);
+      setSanctuaryState('processing');
+
+      if (!prayerText) {
+          toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro, ou digite sua oração.", variant: "destructive"});
+          setSanctuaryState('idle');
+          setProcessingText("");
+          return;
+      }
+      
+      if(!user) return;
+
+      try {
+          const result = await processPrayer({ 
+              model: userProfile?.preferredModel, 
+              language: userProfile?.preferredLanguage || i18n.language,
+              prayerText 
+          });
+          await addDoc(collection(db, "prayers"), {
+              userId: user.uid,
+              prayerText,
+              responseText: result.responseText,
+              citedVerses: result.citedVerses,
+              createdAt: serverTimestamp(),
+          });
+          setLatestResponse(result);
+          setSanctuaryState('response');
+          if (missionId) {
+              const url = `/?missionCompleted=${missionId}`;
+              router.push(url);
+          }
+      } catch (err) {
+          console.error("Error processing prayer:", err);
+          toast({
+              title: "Erro ao processar sua oração.",
+              description: "Não foi possível encontrar uma passagem neste momento, mas saiba que Deus ouviu sua oração.",
+              variant: "destructive"
+          });
+          setSanctuaryState('idle');
+      }
+  }
+
+  const handleStopRecording = () => {
     stopListening();
     cleanupAudio();
-    
-    const prayerText = transcript.trim();
-    setProcessingText(prayerText);
-    setSanctuaryState('processing');
-
-    if (!prayerText) {
-        toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro.", variant: "destructive"});
-        setSanctuaryState('idle');
-        setProcessingText("");
-        return;
-    }
-    
-    if(!user) return;
-
-    try {
-        const result = await processPrayer({ 
-            model: userProfile?.preferredModel, 
-            language: userProfile?.preferredLanguage || i18n.language,
-            prayerText 
-        });
-        await addDoc(collection(db, "prayers"), {
-            userId: user.uid,
-            prayerText,
-            responseText: result.responseText,
-            citedVerses: result.citedVerses,
-            createdAt: serverTimestamp(),
-        });
-        setLatestResponse(result);
-        setSanctuaryState('response');
-        if (missionId) {
-            const url = `/?missionCompleted=${missionId}`;
-            router.push(url);
-        }
-    } catch (err) {
-        console.error("Error processing prayer:", err);
-        toast({
-            title: "Erro ao processar sua oração.",
-            description: "Não foi possível encontrar uma passagem neste momento, mas saiba que Deus ouviu sua oração.",
-            variant: "destructive"
-        });
-        setSanctuaryState('idle');
-    }
+    // A oração já está em `typedPrayer` por causa do onTranscriptChange
   };
+
+  const handleSendPrayer = () => {
+      const prayerText = (isListening ? transcript : typedPrayer).trim();
+      if (isListening) {
+          stopListening();
+          cleanupAudio();
+      }
+      processAndSubmitPrayer(prayerText);
+  }
   
   const handleReset = () => {
     setLatestResponse(null);
     setProcessingText("");
+    setTypedPrayer("");
     cleanupAudio();
     setSanctuaryState('idle');
   }
@@ -282,15 +300,34 @@ function PrayerSanctuaryContent() {
     switch (sanctuaryState) {
         case 'recording':
             return (
-                <div className="flex flex-col items-center gap-6 w-full max-w-md">
-                    <div className="w-full h-24">
-                        <AudioChart data={audioData} />
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                     <div className="w-full p-4 border bg-muted/50 rounded-lg min-h-[200px] flex flex-col">
+                        {isListening && <div className="w-full h-24 mb-4"><AudioChart data={audioData} /></div>}
+                        <Textarea
+                        value={typedPrayer}
+                        onChange={(e) => setTypedPrayer(e.target.value)}
+                        placeholder={isListening ? 'Ouvindo sua oração...' : 'Se preferir, pode digitar aqui...'}
+                        className="w-full h-full bg-transparent border-none focus-visible:ring-0 resize-none p-0 text-base flex-1"
+                        />
                     </div>
-                    <p className="text-xl text-muted-foreground">Ouvindo...</p>
-                    <Button onClick={handleStop} size="lg" variant="destructive">
-                        <Square className="mr-2 h-5 w-5" />
-                        Encerrar Oração
-                    </Button>
+                     <div className="flex items-center gap-4">
+                        <Button
+                            size="lg"
+                            onClick={isListening ? handleStopRecording : handleStartRecording}
+                            className={cn("w-28", isListening && 'bg-destructive hover:bg-destructive/90')}
+                        >
+                            {isListening ? (
+                                <Square className="mr-2 h-5 w-5" />
+                            ) : (
+                                <Mic className="mr-2 h-5 w-5" />
+                            )}
+                            {isListening ? 'Parar' : 'Falar'}
+                        </Button>
+                        <Button size="lg" className="w-28" onClick={handleSendPrayer} disabled={!typedPrayer.trim()}>
+                            <Send className="mr-2 h-5 w-5" />
+                            Enviar
+                        </Button>
+                    </div>
                 </div>
             )
         case 'processing':
@@ -324,7 +361,7 @@ function PrayerSanctuaryContent() {
                 <div className="flex flex-col items-center gap-6">
                     <h1 className="text-4xl font-bold tracking-tight text-center">{t('sanctuary_title')}</h1>
                     <p className="text-lg text-muted-foreground max-w-md text-center">Um lugar de calma e reflexão para derramar seu coração diante de Deus.</p>
-                    <Button onClick={handleStart} size="lg">
+                    <Button onClick={() => setSanctuaryState('recording')} size="lg">
                         <Mic className="mr-2 h-5 w-5" />
                         {t('pray_now_button')}
                     </Button>

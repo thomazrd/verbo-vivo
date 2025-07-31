@@ -328,6 +328,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [creationMode, setCreationMode] = useState<'ai' | 'manual' | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!planId);
   const isEditing = !!planId;
@@ -354,8 +355,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   useEffect(() => {
     if (isEditing) {
-        // Skip start step if editing
-        setCurrentStep(1); // Start at Details step
+      setCurrentStep(1); // Start at Details step
+      setCreationMode('manual'); // Editing is always manual flow
     }
   }, [isEditing]);
 
@@ -441,15 +442,16 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   const goToNextStep = async () => {
     let isValid = false;
-
-    if (currentStep === 1) { // After "Details"
+    const stepToValidate = isEditing ? currentStep : (creationMode === 'ai' ? 1 : currentStep);
+    
+    if (stepToValidate === 1) { // Validate Details
       isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
-    } else if (currentStep === 2) { // After "Missions"
+    } else if (stepToValidate === 2) { // Validate Missions
       isValid = getValues('missions').length > 0;
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
       }
-    } else { // After "Start" or "Review"
+    } else {
       isValid = true;
     }
     
@@ -458,13 +460,12 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     }
   };
 
-
   const goToPreviousStep = () => {
-    if (currentStep > 0) {
-      if (isEditing && currentStep === 1) { // On details step when editing
+    if (isEditing) {
         router.back();
         return;
-      }
+    }
+    if (currentStep > 0) {
       setCurrentStep(prev => prev - 1);
     } else {
         router.back();
@@ -521,21 +522,61 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const renderStepContent = () => {
+    // Editing flow is always manual and starts at step 1 (Details)
+    if (isEditing) {
+        switch(currentStep) {
+            case 1: // Details
+                return <Card>
+                    <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    </CardContent>
+                </Card>
+            case 2: // Missions
+                return <div className="space-y-4">
+                    {Array.from({ length: duration || 0 }, (_, i) => (
+                        <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
+                    ))}
+                </div>
+            case 3: // Review
+                return <Card>
+                    <CardHeader>
+                        <CardTitle>Revisar e Salvar</CardTitle>
+                        <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                            <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
+                        </div>
+                        <h2 className="text-2xl font-bold">{getValues('title')}</h2>
+                        <p className="text-muted-foreground">{getValues('description')}</p>
+                        <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
+                            <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
+                            <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
+                    </CardContent>
+                </Card>
+        }
+    }
+    
+    // Creation flow
     switch (currentStep) {
-        case 0: // Start
+        case 0: // Start (choice)
              return (
                  <Card>
                     <CardHeader>
-                        <CardTitle>1. Ponto de Partida</CardTitle>
+                        <CardTitle>Ponto de Partida</CardTitle>
                         <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
                     </CardHeader>
                     <CardContent className="grid md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => setCurrentStep(1)}>
+                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('ai'); setCurrentStep(1); }}>
                             <Wand2 className="h-8 w-8" />
                             <span className="font-bold">Criar com Inteligência Artificial</span>
                             <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
                         </Button>
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => setCurrentStep(2)}>
+                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('manual'); setCurrentStep(1); }}>
                             <Plus className="h-8 w-8" />
                             <span className="font-bold">Forjar Manualmente</span>
                             <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
@@ -543,23 +584,9 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     </CardContent>
                 </Card>
              )
-        case 1: // AI Prompt (or Details if editing)
-            if(isEditing) { // If editing, step 1 is Details
-                return (
-                    <Card>
-                        <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                             <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        </CardContent>
-                    </Card>
-                )
-            }
-            // If creating new, step 1 is AI prompt
-            return (
-                 <Card>
+        case 1: // Details OR AI Prompt
+             if (creationMode === 'ai') {
+                 return <Card>
                     <CardHeader>
                         <CardTitle>Criar com IA</CardTitle>
                         <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
@@ -605,81 +632,46 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                         )}
                     </CardContent>
                 </Card>
-            )
-        case 2: // Details (if coming from manual) OR Missions (if editing)
-            if(isEditing) {
-                return (
-                    <div className="space-y-4">
-                        {Array.from({ length: duration || 0 }, (_, i) => (
-                            <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
-                        ))}
+             }
+             // if creationMode === 'manual'
+             return <Card>
+                <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                        <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                        <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                </CardContent>
+            </Card>
+        case 2: // Missions
+            return <div className="space-y-4">
+                {Array.from({ length: duration || 0 }, (_, i) => (
+                    <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
+                ))}
+            </div>
+        case 3: // Review
+            return <Card>
+                <CardHeader>
+                    <CardTitle>Revisar e Finalizar</CardTitle>
+                    <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                        <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
                     </div>
-                )
-            }
-             return (
-                    <Card>
-                        <CardHeader><CardTitle>2. Detalhes do Plano</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                             <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                             <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        </CardContent>
-                    </Card>
-                )
-        case 3: // Missions OR Review (if editing)
-            if(isEditing) {
-                 return (
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Revisar e Salvar</CardTitle>
-                            <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                                <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
-                            </div>
-                            <h2 className="text-2xl font-bold">{getValues('title')}</h2>
-                            <p className="text-muted-foreground">{getValues('description')}</p>
-                            <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
-                             <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
-                             <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
-                        </CardContent>
-                    </Card>
-                )
-            }
-            return (
-                <div className="space-y-4">
-                    {Array.from({ length: duration || 0 }, (_, i) => (
-                        <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
-                    ))}
-                </div>
-            )
-        case 4: // Review
-            return (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>4. Revisão e Finalização</CardTitle>
-                        <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                            <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
-                        </div>
-                        <h2 className="text-2xl font-bold">{getValues('title')}</h2>
-                        <p className="text-muted-foreground">{getValues('description')}</p>
-                        <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
+                    <h2 className="text-2xl font-bold">{getValues('title')}</h2>
+                    <p className="text-muted-foreground">{getValues('description')}</p>
+                    <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
                         <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
                         <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
-                    </CardContent>
-                </Card>
-            )
+                </CardContent>
+            </Card>
         default:
             return null;
     }
   }
   
-  const showNextButton = currentStep < (isEditing ? 3 : steps.length - 1);
+  const showNextButton = currentStep < steps.length - 1 && (creationMode !== 'ai' || (creationMode === 'ai' && aiSuggestion !== null));
   const isNextDisabled = currentStep === 2 && missionsArray.length === 0;
 
   if (isLoading) {
@@ -716,7 +708,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                         <p className={`mt-1 text-xs ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}
@@ -737,13 +729,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
        <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={(currentStep === 0 && !isEditing)}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={(currentStep === 0 && !isEditing) || isSaving}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
             
             {showNextButton && (
                  <div className="text-right">
-                    <Button onClick={goToNextStep} disabled={isNextDisabled}>
+                    <Button onClick={goToNextStep} disabled={isNextDisabled || isSaving}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
                     {isNextDisabled && (

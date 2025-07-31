@@ -13,4 +13,5 @@ import '@/ai/flows/explain-passage-flow';
 import '@/ai/flows/armor-suggestion-flow';
 import '@/ai/flows/prayer-circle-suggestion-flow';
 import '@/ai/flows/battle-plan-generation-flow';
+import '@/ai/flows/bible-narration-flow';
     

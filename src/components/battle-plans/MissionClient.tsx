@@ -97,32 +97,31 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
         )
     }
 
-    let missionPath = mission.content.path;
-    const completionParam = mission.content.completionQueryParam;
-    
-    if (mission.type === 'BIBLE_READING' && mission.content.verse) {
-        const details = mission.content.details;
-        const bookAbbrev = details?.book?.abbrev?.pt;
-        const chapter = details?.chapter;
-        
-        if (bookAbbrev && chapter) {
-            const params = new URLSearchParams({
-                book: bookAbbrev,
-                chapter: String(chapter),
-                userPlanId: userPlanId
-            });
-            if(details.startVerse) params.set('startVerse', String(details.startVerse));
-            if(details.endVerse) params.set('endVerse', String(details.endVerse));
-
-            missionPath = `/bible?${params.toString()}`;
-        }
-    } else if (completionParam) {
+    const buildMissionPath = () => {
         const params = new URLSearchParams();
-        params.set('mission', 'true');
+        if (mission.content.completionQueryParam) {
+            params.set('mission', 'true');
+        }
         params.set('userPlanId', userPlanId);
-        missionPath = `${mission.content.path}?${params.toString()}`;
-    }
 
+        let path = mission.content.path;
+
+        if (mission.type === 'BIBLE_READING' && mission.content.details?.book && mission.content.details?.chapter) {
+            path = '/bible';
+            const details = mission.content.details;
+            params.set('book', details.book.abbrev.pt);
+            params.set('chapter', String(details.chapter));
+            if (details.startVerse) params.set('startVerse', String(details.startVerse));
+            if (details.endVerse) params.set('endVerse', String(details.endVerse));
+        } else if (mission.type === 'YOUTUBE_VIDEO' && mission.content.verse) {
+             path = `/battle-plans/mission-video/${userPlanId}`; // Pass userPlanId in path
+             params.set('missionId', mission.id); // Also pass missionId as param
+        }
+        
+        return `${path}?${params.toString()}`;
+    };
+    
+    const missionPath = buildMissionPath();
 
     return (
         <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -136,6 +135,9 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
                 <CardContent>
                     {mission.type === 'BIBLE_READING' && (
                         <p className="text-lg">Leia e medite em: <strong className="font-mono">{mission.content.verse}</strong></p>
+                    )}
+                     {mission.type === 'YOUTUBE_VIDEO' && (
+                        <p className="text-lg">Assista ao vídeo: <strong className="font-mono">{mission.title}</strong></p>
                     )}
                     {mission.leaderNote && (
                         <blockquote className="mt-4 border-l-2 pl-4 italic text-muted-foreground">

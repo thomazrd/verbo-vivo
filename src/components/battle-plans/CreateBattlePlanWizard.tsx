@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw, CalendarDays, ListTodo, Youtube } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook, GenerateBattlePlanOutput } from "@/lib/types";
 import Image from "next/image";
@@ -27,12 +27,13 @@ import axios from 'axios';
 import { generateBattlePlan } from "@/ai/flows/battle-plan-generation-flow";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Slider } from "../ui/slider";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
   day: z.number(),
   title: z.string().min(3, "O título da missão é muito curto."),
-  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
+  type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION", "YOUTUBE_VIDEO"]),
   content: z.object({
     path: z.string(),
     completionQueryParam: z.string().optional().nullable(),
@@ -52,8 +53,9 @@ const planSchema = z.object({
 
 type PlanFormValues = z.infer<typeof planSchema>;
 
-const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true },
+const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean, verseLabel?: string, versePlaceholder?: string }> = {
+    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, verseLabel: "Referência Bíblica" },
+    YOUTUBE_VIDEO: { icon: Youtube, label: "Vídeo do YouTube", path: '/battle-plans/mission-video', requiresVerse: true, verseLabel: "Link do Vídeo", versePlaceholder: "https://www.youtube.com/watch?v=..." },
     PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'mission' },
     FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
     CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
@@ -141,7 +143,7 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
                     control={control}
                     name={`missions.${fieldIndex}.content.details.chapter`}
                     render={({ field }) => (
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value || '')}>
+                        <Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={String(field.value || '')}>
                             <SelectTrigger><SelectValue placeholder="Escolha um capítulo..." /></SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map(c => (
@@ -196,18 +198,19 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
 
     const addMission = () => {
         const defaultType: MissionType = "BIBLE_READING";
+        const details = MissionTypeDetails[defaultType];
         append({
             id: uuidv4(),
             day: day,
             title: `Missão para o Dia ${day}`,
             type: defaultType,
             content: { 
-                path: MissionTypeDetails[defaultType].path, 
+                path: details.path, 
                 verse: "",
-                completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam || null,
+                completionQueryParam: details.completionQueryParam || null,
                 details: {},
             },
-            leaderNote: ""
+            leaderNote: "",
         }, { shouldFocus: true });
     };
 
@@ -216,7 +219,8 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
         setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam || null);
-
+        setValue(`missions.${fieldIndex}.content.details`, {});
+        
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
         }
@@ -227,7 +231,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
             <h3 className="font-semibold text-lg">Dia {day}</h3>
             {dayMissionIndices.map((fieldIndex) => {
                 const missionType = missions[fieldIndex]?.type;
-                const requiresVerse = MissionTypeDetails[missionType]?.requiresVerse;
+                const missionDetails = MissionTypeDetails[missionType];
                 const key = (fields[fieldIndex] as any).id;
 
                 return (
@@ -261,19 +265,29 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
                                 )}
                             />
                             
-                             {requiresVerse && (
+                             {missionType === 'BIBLE_READING' && (
                                 <BibleVerseSelector
                                     fieldIndex={fieldIndex}
                                     setValue={setValue}
                                     control={control}
                                 />
                             )}
+                            {missionType === 'YOUTUBE_VIDEO' && (
+                                 <div className="space-y-1">
+                                    <Label>{missionDetails.verseLabel}</Label>
+                                    <Controller
+                                        control={control}
+                                        name={`missions.${fieldIndex}.content.verse`}
+                                        render={({ field }) => <Input {...field} value={field.value || ''} placeholder={missionDetails.versePlaceholder} />}
+                                    />
+                                 </div>
+                            )}
                             
                              <Label>Nota do Líder (Opcional)</Label>
                              <Controller
                                 control={control}
                                 name={`missions.${fieldIndex}.leaderNote`}
-                                render={({ field }) => <Textarea {...field} placeholder="Um insight ou direção para esta missão..." />}
+                                render={({ field }) => <Textarea {...field} value={field.value || ''} placeholder="Um insight ou direção para esta missão..." />}
                             />
                         </CardContent>
                     </Card>
@@ -291,10 +305,10 @@ const steps = [
   { id: "review", name: "Revisão" },
 ];
 
-function parseVerseReference(ref: string | undefined) {
+function parseVerseReference(ref: string | undefined | null) {
   if (!ref) return null;
 
-  const match = ref.match(/^(.*?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
+  const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
   if (!match) return null;
 
   const [, bookName, chapter, startVerse, endVerse] = match;
@@ -335,6 +349,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   // AI Generation State
   const [problemDescription, setProblemDescription] = useState('');
+  const [durationDays, setDurationDays] = useState(7);
+  const [missionsPerDay, setMissionsPerDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<GenerateBattlePlanOutput | null>(null);
 
@@ -398,7 +414,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     setIsGenerating(true);
     setAiSuggestion(null);
     try {
-        const result = await generateBattlePlan({ problemDescription });
+        const result = await generateBattlePlan({ problemDescription, durationDays, missionsPerDay });
         setAiSuggestion(result);
     } catch(e) {
         console.error("AI plan generation failed", e);
@@ -438,7 +454,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(1); // Go to Details step for review
+    setCurrentStep(2);
   }
 
   const goToNextStep = async () => {
@@ -451,8 +467,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
       }
-    } else {
-      isValid = true;
+    } else { // All other steps can proceed
+        isValid = true;
     }
     
     if (isValid && currentStep < steps.length - 1) {
@@ -461,19 +477,14 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   };
 
   const goToPreviousStep = () => {
-    if (isEditing && currentStep === 1) {
-        router.back();
+    if (currentStep === 1 && !isEditing) {
+        setCreationMode(null);
+        setCurrentStep(0);
         return;
     }
+    
     if (currentStep > 0) {
-      // If we go back from missions step in AI mode, go back to AI prompt
-      if (currentStep === 2 && creationMode === 'ai') {
-        setCurrentStep(1);
-      } else {
         setCurrentStep(prev => prev - 1);
-      }
-    } else {
-        router.back();
     }
   };
   
@@ -489,18 +500,25 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       setIsSaving(true);
       const values = getValues();
       
-      // Sanitize data before saving
       const sanitizedMissions = values.missions.map(mission => ({
-        ...mission,
-        leaderNote: mission.leaderNote || null,
-        content: {
-          ...mission.content,
-          verse: mission.content.verse || null,
-          completionQueryParam: mission.content.completionQueryParam || null,
-        }
+          ...mission,
+          leaderNote: mission.leaderNote || null,
+          content: {
+              path: mission.content.path || null,
+              verse: mission.content.verse || null,
+              completionQueryParam: mission.content.completionQueryParam || null,
+              details: {
+                book: mission.content.details?.book || null,
+                chapter: mission.content.details?.chapter || null,
+                startVerse: mission.content.details?.startVerse || null,
+                endVerse: mission.content.details?.endVerse || null,
+              }
+          }
       }));
 
       const finalValues = { ...values, missions: sanitizedMissions };
+      console.log('Data to save:', JSON.stringify(finalValues, null, 2));
+
 
       try {
         if (isEditing && planId) {
@@ -539,118 +557,156 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       }
   }
 
-  const renderStepContent = () => {
+  const renderStepContent = () => {    
+    if (isEditing) {
+        if (currentStep === 1) return renderDetailsStep();
+        if (currentStep === 2) return renderMissionsStep();
+        if (currentStep === 3) return renderReviewStep();
+        return null;
+    }
+    
     switch (currentStep) {
-        case 0: // Start (choice)
-             return (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Ponto de Partida</CardTitle>
-                        <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('ai'); setCurrentStep(1); }}>
-                            <Wand2 className="h-8 w-8" />
-                            <span className="font-bold">Criar com Inteligência Artificial</span>
-                            <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
-                        </Button>
-                        <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('manual'); setCurrentStep(1); }}>
-                            <Plus className="h-8 w-8" />
-                            <span className="font-bold">Forjar Manualmente</span>
-                            <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
-                        </Button>
-                    </CardContent>
-                </Card>
-             )
-        case 1: // Details (Manual) or AI Prompt (AI)
-             if (creationMode === 'ai' && !isEditing) {
-                 return <Card>
-                    <CardHeader>
-                        <CardTitle>Criar com IA</CardTitle>
-                        <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Textarea placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro por exemplo..." className="min-h-[150px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
-                        <Button onClick={handleAiGeneration} disabled={isGenerating}> {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Plano de Batalha </Button>
-                        {isGenerating && ( <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p> )}
-                        {aiSuggestion && (
-                            <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold">Sugestão do General</h3>
-                                <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
-                                    <h4 className="font-bold">{aiSuggestion.title}</h4>
-                                    <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
-                                    <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias</p>
-                                    <Accordion type="single" collapsible className="w-full">
-                                        <AccordionItem value="item-1">
-                                            <AccordionTrigger>Ver {aiSuggestion.missions.length} missões sugeridas</AccordionTrigger>
-                                            <AccordionContent className="p-1">
-                                                <div className="space-y-2 max-h-60 overflow-y-auto pr-3">
-                                                {aiSuggestion.missions.sort((a,b) => a.day - b.day).map((mission, index) => {
-                                                    const Icon = MissionTypeDetails[mission.type]?.icon || BookOpen;
-                                                    return (
-                                                    <div key={index} className="p-2 border rounded-md bg-background">
-                                                        <p className="font-bold text-xs">Dia {mission.day}: {mission.title}</p>
-                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                            <Icon className="h-3 w-3" />
-                                                            <span>{MissionTypeDetails[mission.type]?.label}</span>
-                                                            {mission.content.verse && <span className="font-mono">({mission.content.verse})</span>}
-                                                        </div>
-                                                    </div>
-                                                )})}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-                                    <div className="flex gap-2 pt-2">
-                                        <Button onClick={() => handleUseAiSuggestion()}> <Check className="mr-2"/> Usar este Plano </Button>
-                                        <Button variant="outline" onClick={handleAiGeneration} disabled={isGenerating}> <RefreshCw className="mr-2"/> Gerar Novamente </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-             }
-             // if creationMode === 'manual' or isEditing
-             return <Card>
-                <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                        <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                        <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
-                </CardContent>
-            </Card>
-        case 2: // Missions
-            return <div className="space-y-4">
-                {Array.from({ length: duration || 0 }, (_, i) => (
-                    <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
-                ))}
-            </div>
-        case 3: // Review
-            return <Card>
-                <CardHeader>
-                    <CardTitle>Revisar e Finalizar</CardTitle>
-                    <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                        <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
-                    </div>
-                    <h2 className="text-2xl font-bold">{getValues('title')}</h2>
-                    <p className="text-muted-foreground">{getValues('description')}</p>
-                    <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
-                        <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
-                        <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
-                </CardContent>
-            </Card>
-        default:
+        case 0: return renderStartStep();
+        case 1:
+            if (creationMode === 'ai') return renderAiPromptStep();
+            if (creationMode === 'manual') return renderDetailsStep();
             return null;
+        case 2: return renderMissionsStep();
+        case 3: return renderReviewStep();
+        default: return null;
     }
   }
+
+  const renderStartStep = () => (
+    <Card>
+        <CardHeader>
+            <CardTitle>Ponto de Partida</CardTitle>
+            <CardDescription>Como você deseja iniciar a criação deste plano?</CardDescription>
+        </CardHeader>
+        <CardContent className="grid md:grid-cols-2 gap-4">
+            <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('ai'); setCurrentStep(1); }}>
+                <Wand2 className="h-8 w-8" />
+                <span className="font-bold">Criar com Inteligência Artificial</span>
+                <span className="text-xs font-normal text-muted-foreground">Descreva um problema e deixe a IA montar o plano.</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-6 flex-col gap-2" onClick={() => { setCreationMode('manual'); setCurrentStep(1); }}>
+                <Plus className="h-8 w-8" />
+                <span className="font-bold">Forjar Manualmente</span>
+                <span className="text-xs font-normal text-muted-foreground">Crie seu plano do zero, missão por missão.</span>
+            </Button>
+        </CardContent>
+    </Card>
+  )
   
-  const showNextButton = currentStep > 0 && currentStep < steps.length - 1 && (creationMode !== 'ai' || (creationMode === 'ai' && aiSuggestion !== null && currentStep > 0));
-  const isNextDisabled = currentStep === 2 && missionsArray.length === 0;
+  const renderAiPromptStep = () => (
+      <Card>
+        <CardHeader>
+            <CardTitle>Criar com IA</CardTitle>
+            <CardDescription>Descreva o desafio e ajuste as opções para a IA criar um plano de batalha estratégico.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="problem-description">Descrição do Problema</Label>
+              <Textarea id="problem-description" placeholder="Ex: Apatia espiritual na juventude, falta de comprometimento dos membros..." className="min-h-[120px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/> Duração do Plano</Label>
+                    <span className="font-bold text-primary">{durationDays} dias</span>
+                </div>
+                <Slider defaultValue={[7]} value={[durationDays]} min={3} max={30} step={1} onValueChange={(value) => setDurationDays(value[0])} />
+            </div>
+
+             <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="flex items-center gap-2"><ListTodo className="h-4 w-4"/> Missões por Dia</Label>
+                    <span className="font-bold text-primary">{missionsPerDay}</span>
+                </div>
+                <Slider defaultValue={[1]} value={[missionsPerDay]} min={1} max={3} step={1} onValueChange={(value) => setMissionsPerDay(value[0])} />
+            </div>
+
+
+            <Button onClick={handleAiGeneration} disabled={isGenerating}> {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Plano de Batalha </Button>
+            {isGenerating && ( <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p> )}
+            {aiSuggestion && (
+                <div className="pt-4 border-t">
+                    <h3 className="text-lg font-semibold">Sugestão do General</h3>
+                    <div className="p-4 border rounded-lg mt-2 space-y-3 bg-muted/30">
+                        <h4 className="font-bold">{aiSuggestion.title}</h4>
+                        <p className="text-sm text-muted-foreground">{aiSuggestion.description}</p>
+                        <p className="text-sm font-semibold">Duração: {aiSuggestion.durationDays} dias</p>
+                        <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="item-1">
+                                <AccordionTrigger>Ver {aiSuggestion.missions.length} missões sugeridas</AccordionTrigger>
+                                <AccordionContent className="p-1">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-3">
+                                    {aiSuggestion.missions.sort((a,b) => a.day - b.day).map((mission, index) => {
+                                        const Icon = MissionTypeDetails[mission.type]?.icon || BookOpen;
+                                        return (
+                                        <div key={index} className="p-2 border rounded-md bg-background">
+                                            <p className="font-bold text-xs">Dia {mission.day}: {mission.title}</p>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                <Icon className="h-3 w-3" />
+                                                <span>{MissionTypeDetails[mission.type]?.label}</span>
+                                                {mission.content.verse && <span className="font-mono">({mission.content.verse})</span>}
+                                            </div>
+                                        </div>
+                                    )})}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                        <div className="flex gap-2 pt-2">
+                            <Button onClick={() => handleUseAiSuggestion()}> <Check className="mr-2"/> Usar este Plano </Button>
+                            <Button variant="outline" onClick={handleAiGeneration} disabled={isGenerating}> <RefreshCw className="mr-2"/> Gerar Novamente </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </CardContent>
+    </Card>
+  )
+
+  const renderDetailsStep = () => (
+       <Card>
+            <CardHeader><CardTitle>Detalhes do Plano</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                    <Controller control={control} name="title" render={({ field, fieldState }) => ( <div> <Label htmlFor="title">Título do Plano</Label> <Input id="title" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="description" render={({ field, fieldState }) => ( <div> <Label htmlFor="description">Descrição</Label> <Textarea id="description" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="durationDays" render={({ field, fieldState }) => ( <div> <Label htmlFor="durationDays">Duração (dias)</Label> <Input id="durationDays" type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+                    <Controller control={control} name="coverImageUrl" render={({ field, fieldState }) => ( <div> <Label htmlFor="coverImageUrl">URL da Imagem de Capa</Label> <Input id="coverImageUrl" {...field} /> {fieldState.error && <p className="text-destructive text-sm mt-1">{fieldState.error.message}</p>} </div> )}/>
+            </CardContent>
+        </Card>
+  );
+
+  const renderMissionsStep = () => (
+      <div className="space-y-4">
+          {Array.from({ length: duration || 0 }, (_, i) => (
+              <MissionEditor key={i} control={control} day={i + 1} setValue={setValue} watch={watch} />
+          ))}
+      </div>
+  );
+
+  const renderReviewStep = () => (
+     <Card>
+        <CardHeader>
+            <CardTitle>Revisar e Finalizar</CardTitle>
+            <CardDescription>Confira se todas as informações estão corretas antes de finalizar.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                <Image src={getValues('coverImageUrl')} alt={getValues('title')} fill className="object-cover" />
+            </div>
+            <h2 className="text-2xl font-bold">{getValues('title')}</h2>
+            <p className="text-muted-foreground">{getValues('description')}</p>
+            <p className="font-semibold">{getValues('durationDays')} dias de treinamento, {getValues('missions').length} missões.</p>
+                <Button onClick={() => handleSavePlan('DRAFT')} variant="secondary" disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Salvar como Rascunho </Button>
+                <Button onClick={() => handleSavePlan('PUBLISHED')} disabled={isSaving}> {isSaving ? <Loader2 className="animate-spin mr-2"/> : null} Publicar Plano </Button>
+        </CardContent>
+    </Card>
+  );
+
 
   if (isLoading) {
       return (
@@ -661,6 +717,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           </div>
       )
   }
+
+  const stepIndex = isEditing ? currentStep : (creationMode ? currentStep : 0);
+  const isNextButtonVisible = stepIndex < steps.length - 1;
+  const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
@@ -680,13 +740,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
-                            {index < currentStep ? <Check/> : index + 1}
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === stepIndex ? 'bg-primary text-primary-foreground' : (index < stepIndex ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
+                            {index < stepIndex ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs text-center ${index === stepIndex ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < stepIndex ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}
@@ -707,16 +767,16 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       
       {/* Navigation */}
        <div className="mt-8 flex justify-between items-start">
-            <Button variant="outline" onClick={goToPreviousStep} disabled={(currentStep === 0 && !isEditing) || isSaving}>
+            <Button variant="outline" onClick={goToPreviousStep} disabled={isSaving}>
                 <ArrowLeft className="h-4 w-4 mr-2"/> Voltar
             </Button>
             
-            {currentStep < 3 && creationMode && (
+            {isNextButtonVisible && (
                  <div className="text-right">
-                    <Button onClick={goToNextStep} disabled={isNextDisabled || isSaving}>
+                    <Button onClick={goToNextStep} disabled={isNextButtonDisabled || isSaving}>
                         Avançar <ArrowRight className="h-4 w-4 ml-2"/>
                     </Button>
-                    {isNextDisabled && (
+                    {isNextButtonDisabled && (
                         <p className="text-xs text-destructive mt-1">Adicione pelo menos uma missão para continuar.</p>
                     )}
                 </div>

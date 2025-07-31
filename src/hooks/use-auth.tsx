@@ -6,6 +6,7 @@ import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
+import type { BibleVersion } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
@@ -48,7 +49,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-            setUserProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+            const data = docSnap.data();
+            const profile: UserProfile = {
+              uid: docSnap.id,
+              displayName: data.displayName || null,
+              email: data.email || null,
+              photoURL: data.photoURL || null,
+              createdAt: data.createdAt,
+              onboardingCompleted: data.onboardingCompleted || false,
+              armorOnboardingCompleted: data.armorOnboardingCompleted || false,
+              prayerCircleOnboardingCompleted: data.prayerCircleOnboardingCompleted || false,
+              role: data.role || 'USER',
+              preferredLanguage: data.preferredLanguage || null,
+              preferredModel: data.preferredModel || null,
+              preferredBibleVersion: data.preferredBibleVersion || null,
+              favoriteArmorIds: data.favoriteArmorIds || [],
+              congregationId: data.congregationId || null,
+              congregationStatus: data.congregationStatus || 'NONE',
+            };
+            setUserProfile(profile);
         } else {
             // This case can happen if the user document hasn't been created yet after signup.
             // The root page will handle redirecting to onboarding where the doc is created.

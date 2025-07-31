@@ -1,27 +1,29 @@
 
 match /users/{userId} {
   // Qualquer usuário autenticado pode ler perfis (para ver nomes, fotos, etc).
+  // Um usuário só pode escrever em seu próprio perfil.
   allow read: if isSignedIn();
-  
-  // Apenas o próprio usuário pode escrever em seu perfil.
-  allow write: if isProfileOwner(userId);
+  allow write: if isOwner(userId);
 
-  // Subcoleção de planos de estudo
+  // Regras para subcoleções de 'users'
   match /plans/{planId} {
-    // Apenas o dono do perfil pode acessar seus próprios planos.
-    allow read, write, delete: if isProfileOwner(userId);
+    allow read, write: if isOwner(userId);
   }
   
-  // Subcoleção de armaduras
   match /armors/{armorId} {
-     // Apenas o dono do perfil pode acessar suas próprias armaduras.
-    allow read, write, delete: if isProfileOwner(userId);
+    allow read, write: if isOwner(userId);
+  }
+
+  match /messages/{messageId} {
+    allow read, write: if isOwner(userId);
+  }
+
+  match /battlePlans/{userPlanId} {
+    allow read, write: if isOwner(userId);
   }
 }
 
-// Armaduras compartilhadas podem ser lidas por qualquer usuário autenticado.
-match /sharedArmors/{armorId} {
-    allow read: if isSignedIn();
-    // A escrita (criar/atualizar/deletar) é gerenciada pelo dono na sua própria coleção /users/{userId}/armors
-    allow write: if false;
+match /userPushTokens/{tokenId} {
+    // Um usuário só pode criar ou gerenciar seu próprio token.
+    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }

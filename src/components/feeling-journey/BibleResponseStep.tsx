@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -14,9 +15,10 @@ interface BibleResponseStepProps {
   reportText: string;
   onResponseReady: (response: ProcessFeelingReportOutput) => void;
   language: string;
+  bibleVersion: string;
 }
 
-export function BibleResponseStep({ emotion, reportText, onResponseReady, language }: BibleResponseStepProps) {
+export function BibleResponseStep({ emotion, reportText, onResponseReady, language, bibleVersion }: BibleResponseStepProps) {
   const { userProfile } = useAuth();
   const [response, setResponse] = useState<ProcessFeelingReportOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady, langua
           language: language,
           emotion: emotion.name,
           reportText: reportText,
+          bibleVersion: bibleVersion,
         });
         setResponse(result);
       } catch (err) {
@@ -37,7 +40,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady, langua
       }
     };
     getResponse();
-  }, [emotion, reportText, userProfile, language]);
+  }, [emotion, reportText, userProfile, language, bibleVersion]);
 
   if (error) {
     return (
@@ -83,7 +86,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady, langua
         <p className="whitespace-pre-wrap leading-relaxed">{response.responseText}</p>
         
         {response.citedVerses.map((verse, index) => (
-            <VerseCard key={index} reference={verse.reference} text={verse.text} />
+            <VerseCard key={index} reference={verse.reference} text={verse.text} bibleVersion={verse.bibleVersion} />
         ))}
       </div>
       

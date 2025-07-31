@@ -2,53 +2,62 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 
-const rulesDir = path.join(__dirname, '../rules');
-const baseFile = path.join(rulesDir, 'firestore.rules.base');
-const outputFile = path.join(__dirname, '../firestore.rules');
+const rulesDir = path.join(__dirname, '..', 'rules');
+const functionsDir = path.join(rulesDir, 'functions');
 const collectionsDir = path.join(rulesDir, 'collections');
+const outputFile = path.join(__dirname, '..', 'firestore.rules');
 
 const buildRules = () => {
   try {
-    console.log('Gerando firestore.rules...');
+    const parts = [];
 
-    const baseContent = fs.readFileSync(baseFile, 'utf8');
-    
-    let collectionsContent = '';
-    const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
-    
-    for (const file of collectionFiles) {
-        const filePath = path.join(collectionsDir, file);
-        collectionsContent += `\n// --- From: ${file} ---\n`;
-        collectionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
+    // 1. Add the header
+    parts.push("rules_version = '2';");
+    parts.push("service cloud.firestore {");
+    parts.push("  match /databases/{database}/documents {");
+
+    // 2. Add all function files
+    const functionFiles = fs.readdirSync(functionsDir).filter(f => f.endsWith('.rules'));
+    for (const file of functionFiles) {
+      parts.push(`    // --- From: ${file} ---`);
+      parts.push(fs.readFileSync(path.join(functionsDir, file), 'utf8'));
     }
 
-    const finalContent = baseContent.replace('// {{RULES_CONTENT}}', collectionsContent.trim());
-    fs.writeFileSync(outputFile, finalContent);
+    // 3. Add all collection rule files
+    const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
+    for (const file of collectionFiles) {
+      parts.push(`    // From: ${file}`);
+      parts.push(fs.readFileSync(path.join(collectionsDir, file), 'utf8'));
+    }
+    
+    // 4. Add the closing braces
+    parts.push("  }");
+    parts.push("}");
 
-    console.log('✅ firestore.rules foi gerado com sucesso!');
+    // 5. Join and write to file
+    fs.writeFileSync(outputFile, parts.join('\n\n'));
+    console.log(`✅ firestore.rules generated successfully at ${new Date().toLocaleTimeString()}`);
   } catch (error) {
-    console.error('❌ Erro ao gerar firestore.rules:', error);
+    console.error('❌ Error generating firestore.rules:', error);
+    process.exit(1);
   }
 };
 
-const watchMode = process.argv.includes('--watch');
+// --- Execution Logic ---
+const shouldWatch = process.argv.includes('--watch');
 
-if (watchMode) {
-  console.log('👀 Observando alterações na pasta /rules/collections...');
-  const watcher = chokidar.watch(collectionsDir, { ignored: outputFile, persistent: true });
+// Always build once on execution
+buildRules();
+
+if (shouldWatch) {
+  console.log('👀 Watching for changes in .rules files...');
+  const watcher = chokidar.watch(path.join(rulesDir, '**/*.rules'), {
+    persistent: true,
+    ignoreInitial: true,
+  });
+
   watcher.on('all', (event, filePath) => {
-    if (event === 'add' || event === 'change' || event === 'unlink') {
-        console.log(`[${event}] ${path.basename(filePath)}`);
-        buildRules();
-    }
+    console.log(`\nFile ${path.basename(filePath)} changed. Rebuilding...`);
+    buildRules();
   });
-  
-  const baseWatcher = chokidar.watch(baseFile, { persistent: true });
-  baseWatcher.on('change', (filePath) => {
-      console.log(`[change] ${path.basename(filePath)}`);
-      buildRules();
-  });
-
-} else {
-  buildRules();
 }

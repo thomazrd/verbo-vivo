@@ -190,8 +190,8 @@ export default function ChatPage() {
       const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,
         language: userProfile?.preferredLanguage || i18n.language,
+        bible_version_name: userProfile?.preferredBibleVersion?.name,
         user_question: text,
-        bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."],
         userId: user.uid,
         messageId: docRef.id,
       });

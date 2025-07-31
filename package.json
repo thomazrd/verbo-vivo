@@ -1,10 +1,9 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run rules:watch & next dev",
+    "dev": "next dev",
     "genkit:dev": "genkit start -- tsx genkit.dev.ts",
     "genkit:watch": "genkit start -- tsx --watch genkit.dev.ts",
     "rules:build": "node scripts/build-rules.js",
@@ -69,6 +68,7 @@
     "tailwindcss-animate": "1.0.7",
     "typescript": "5.4.5",
     "uuid": "^9.0.1",
+    "wav": "^1.0.2",
     "zod": "3.24.2"
   },
   "devDependencies": {

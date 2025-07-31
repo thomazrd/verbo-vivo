@@ -1,0 +1,19 @@
+// Funções de autenticação e propriedade reutilizáveis
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isOwner(userId) {
+  return isSignedIn() && request.auth.uid == userId;
+}
+
+function isCongregationMember(congregationId) {
+    // Permite a ação se o usuário for um MEMBRO ou ADMIN da congregação.
+    let userStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
+    return isSignedIn() && (userStatus == 'MEMBER' || userStatus == 'ADMIN');
+}
+
+function isCongregationAdmin(congregationId) {
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
+}

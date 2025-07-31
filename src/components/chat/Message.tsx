@@ -51,7 +51,7 @@ export function Message({ message }: MessageProps) {
             </div>
             
             {message.citedVerses && message.citedVerses.map((verse, index) => (
-                <VerseCard key={index} reference={verse.reference} text={verse.text} />
+                <VerseCard key={index} reference={verse.reference} text={verse.text} bibleVersion={verse.bibleVersion}/>
             ))}
 
             {message.hasPlanButton && (

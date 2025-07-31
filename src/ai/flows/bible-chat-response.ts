@@ -35,17 +35,17 @@ const bibleChatResponseFlow = ai.defineFlow(
     
     const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
 
+    // Extract the abbreviation, e.g., "NVI (pt)" -> "NVI"
+    const bibleVersionAbbrev = input.bible_version_name?.split(' ')[0] || 'NVI';
+
     const prompt = `Regras importantes:
 1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
     - **Estruture o texto em parágrafos curtos e bem definidos** para facilitar a leitura.
     - **Use formatação Markdown** (como **negrito** para destacar ideias importantes e listas com marcadores para organizar os pontos) para melhorar a legibilidade.
-2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16") e o texto completo na propriedade "verses". NÃO inclua os versículos na sua resposta principal.
+2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16"), o texto completo e a sigla da versão da Bíblia (use a versão '${bibleVersionAbbrev}') no campo "bibleVersion". NÃO inclua os versículos na sua resposta principal.
 3.  **Base Bíblica**: Use os versículos de referência fornecidos como a fonte primária, se eles forem relevantes para a pergunta. Caso contrário, encontre outros mais adequados.
 
-Pergunta do usuário: "${input.user_question}"
-
-Versículos de referência (use se aplicável):
-${(input.bible_verses || []).join('\n')}
+Pergunta do usuário: "{{user_question}}"
 `;
     
     const llmResponse = await ai.generate({

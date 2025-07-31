@@ -77,6 +77,7 @@ export default function PonteDaEsperancaPage() {
       const content = await generateShareableContent({ 
         model: userProfile?.preferredModel,
         language: userProfile?.preferredLanguage || i18n.language,
+        bibleVersion: userProfile?.preferredBibleVersion?.name || 'NVI',
         problemDescription: data.problemDescription,
         recipientName: data.isLetter ? data.recipientName : undefined,
       });

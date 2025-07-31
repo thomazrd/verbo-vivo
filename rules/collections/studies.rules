@@ -1,7 +1,7 @@
-
 match /studies/{studyId} {
-  // Permite leitura pública de estudos com status 'PUBLISHED'.
-  // Ninguém pode escrever diretamente, apenas o backend administrativo.
+  // Anyone can read published studies.
   allow read: if resource.data.status == 'PUBLISHED';
+  
+  // Writing is restricted (handled by admin panel/backend functions)
   allow write: if false; 
 }

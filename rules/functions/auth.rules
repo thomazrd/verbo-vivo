@@ -1,29 +1,17 @@
-// --- Helper Functions for Firestore Rules ---
+// Funções de autenticação e propriedade reutilizáveis
 
-// Checks if a user is authenticated.
 function isSignedIn() {
   return request.auth != null;
 }
 
-// Checks if the requesting user is the owner of a document.
 function isOwner(userId) {
   return isSignedIn() && request.auth.uid == userId;
 }
 
-// Checks if the user is a member of a specific congregation.
-// This is determined by checking for their document in the members subcollection.
 function isCongregationMember(congregationId) {
-    return isSignedIn() && exists(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid));
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status != 'PENDING';
 }
 
-// Checks if the user is an admin of a specific congregation.
-// This is determined by the `admins` map on the congregation document.
 function isCongregationAdmin(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
-}
-
-// Checks if the user is the author of a specific resource (e.g., post, comment).
-// This is a generic owner check based on an 'authorId' field.
-function isProfileOwner(authorId) {
-    return isSignedIn() && request.auth.uid == authorId;
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
 }

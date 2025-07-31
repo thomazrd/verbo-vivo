@@ -16,34 +16,32 @@ const buildRules = () => {
     if (!fs.existsSync(baseFile)) {
         throw new Error(`Arquivo base não encontrado em ${baseFile}`);
     }
-    let baseContent = fs.readFileSync(baseFile, 'utf8');
+    let finalContent = fs.readFileSync(baseFile, 'utf8') + '\n\n';
     
     // Process functions
-    let functionsContent = '';
     if (fs.existsSync(functionsDir)) {
         const functionFiles = fs.readdirSync(functionsDir).filter(f => f.endsWith('.rules'));
         for (const file of functionFiles) {
             const filePath = path.join(functionsDir, file);
-            functionsContent += `\n// --- From: ${file} ---\n`;
-            functionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
+            finalContent += `// --- From: ${file} ---\n`;
+            finalContent += fs.readFileSync(filePath, 'utf8') + '\n\n';
         }
     }
 
+    finalContent += '    // --- Rules for collections ---\n';
+    
     // Process collections
-    let collectionsContent = '';
     if (fs.existsSync(collectionsDir)) {
         const collectionFiles = fs.readdirSync(collectionsDir).filter(f => f.endsWith('.rules'));
         
         for (const file of collectionFiles) {
             const filePath = path.join(collectionsDir, file);
-            collectionsContent += `\n// --- From: ${file} ---\n`;
-            collectionsContent += fs.readFileSync(filePath, 'utf8') + '\n';
+            finalContent += `    // From: ${file}\n`;
+            finalContent += fs.readFileSync(filePath, 'utf8').split('\n').map(line => `    ${line}`).join('\n') + '\n\n';
         }
     }
 
-    // Replace placeholders
-    let finalContent = baseContent.replace('// {{FUNCTIONS_CONTENT}}', functionsContent.trim());
-    finalContent = finalContent.replace('// {{RULES_CONTENT}}', collectionsContent.trim());
+    finalContent += '  }\n}';
     
     fs.writeFileSync(outputFile, finalContent);
 

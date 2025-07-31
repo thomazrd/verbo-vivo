@@ -6,9 +6,10 @@ import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink, Menu } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink, Menu, Volume2, Pause, Play, StopCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
+import { narrateChapter } from '@/ai/flows/bible-narration-flow';
 import { SummaryDisplay } from './SummaryDisplay';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
@@ -51,6 +52,10 @@ export function VerseDisplay({
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  
+  const [narrationAudio, setNarrationAudio] = useState<HTMLAudioElement | null>(null);
+  const [isNarrating, setIsNarrating] = useState(false);
+  const [isNarrationLoading, setIsNarrationLoading] = useState(false);
 
   const { toast } = useToast();
   const { i18n } = useTranslation();
@@ -61,6 +66,16 @@ export function VerseDisplay({
 
   const contentRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    // Cleanup audio on component unmount or when chapter changes
+    return () => {
+      if (narrationAudio) {
+        narrationAudio.pause();
+        setNarrationAudio(null);
+        setIsNarrating(false);
+      }
+    };
+  }, [narrationAudio, book, chapter]);
 
   useEffect(() => {
     setSummary(null);
@@ -134,6 +149,43 @@ export function VerseDisplay({
     }
   }
 
+  const handleNarration = async () => {
+    if (isNarrating && narrationAudio) {
+      narrationAudio.pause();
+      setIsNarrating(false);
+      return;
+    }
+    if (narrationAudio) {
+      narrationAudio.play();
+      setIsNarrating(true);
+      return;
+    }
+
+    if (!chapterData) return;
+    setIsNarrationLoading(true);
+
+    const chapterText = chapterData.verses.map(v => `${v.number}. ${v.text}`).join('\n');
+    try {
+      const result = await narrateChapter({
+        model: userProfile?.preferredModel,
+        language: userProfile?.preferredLanguage || i18n.language,
+        textToNarrate: chapterText,
+      });
+
+      const audio = new Audio(result.audioDataUri);
+      setNarrationAudio(audio);
+      audio.play();
+      setIsNarrating(true);
+      audio.onended = () => setIsNarrating(false);
+
+    } catch (error: any) {
+      console.error("Error generating narration:", error);
+      toast({ variant: 'destructive', title: 'Erro de Narração', description: 'Não foi possível gerar o áudio.' });
+    } finally {
+      setIsNarrationLoading(false);
+    }
+  };
+
   const hasPrevChapter = chapter > 1;
   const hasNextChapter = chapter < book.chapters;
 
@@ -175,6 +227,10 @@ export function VerseDisplay({
                     <p className="text-lg text-muted-foreground mt-1">{chapterData.book.testament === 'VT' ? 'Antigo Testamento' : 'Novo Testamento'}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={handleNarration} disabled={isNarrationLoading}>
+                        {isNarrationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isNarrating ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />)}
+                        {isNarrating ? 'Pausar' : 'Ouvir'}
+                    </Button>
                     {!summary && (
                         <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isSummaryLoading}>
                             {isSummaryLoading ? (

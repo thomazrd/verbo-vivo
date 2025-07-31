@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import type { BibleBook } from '@/lib/types';
+import type { BibleBook, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BookMarked, Menu, CheckCircle } from 'lucide-react';
 import { VerseDisplay } from '@/components/bible/VerseDisplay';
@@ -15,12 +15,16 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/s
 import { Button } from '@/components/ui/button';
 import { useFocusMode } from '@/contexts/focus-mode-context';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
+import { useAuth } from '@/hooks/use-auth';
+import { useTranslation } from 'react-i18next';
 
 function BibleReaderContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isFocusMode, toggleFocusMode } = useFocusMode();
+  const { userProfile } = useAuth();
+  const { i18n } = useTranslation();
 
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
@@ -29,7 +33,7 @@ function BibleReaderContent() {
   const endVerse = searchParams.get('endVerse');
   
   const [allBooks, setAllBooks] = useState<BibleBook[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
+  const [selectedVersion, setSelectedVersion] = useState<BibleVersion>({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [loadingInitialState, setLoadingInitialState] = useState(true);
@@ -39,6 +43,17 @@ function BibleReaderContent() {
 
   const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  useEffect(() => {
+    const lang = i18n.language.split('-')[0];
+    const preferredVersion = userProfile?.preferredBibleVersion;
+    if (preferredVersion && preferredVersion.language === lang) {
+      setSelectedVersion(preferredVersion);
+    } else {
+      // Fallback for when language changes or no preference is set
+      setSelectedVersion({id: 'nvi', name: 'NVI (pt)', language: 'pt', apiSource: 'abibliadigital' });
+    }
+  }, [userProfile, i18n.language]);
 
   const updateUrlParams = useCallback((book: BibleBook | null, chapter: number | null) => {
     const params = new URLSearchParams(searchParams);

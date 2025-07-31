@@ -38,10 +38,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera, BrainCircuit } from "lucide-react";
+import { Loader2, Camera, BrainCircuit, BookMarked } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
+import type { BibleVersion } from "@/lib/types";
+import axios from "axios";
 
 const languages = [
     { code: 'pt', name: 'Português' },
@@ -68,9 +69,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { i18n, t } = useTranslation();
-  const [selectedLanguage, setSelectedLanguage] = React.useState(i18n.language);
-  const [selectedModel, setSelectedModel] = React.useState(userProfile?.preferredModel || 'gemini-1.5-flash');
-  
+
   const [isSavingLanguage, setIsSavingLanguage] = React.useState(false);
   const [isSavingModel, setIsSavingModel] = React.useState(false);
   const [isSavingProfile, setIsSavingProfile] = React.useState(false);
@@ -79,20 +78,24 @@ export default function SettingsPage() {
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const [bibleVersions, setBibleVersions] = React.useState<BibleVersion[]>([]);
+  const [isBibleVersionLoading, setIsBibleVersionLoading] = React.useState(false);
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: "",
     },
   });
+  
+  const currentLanguage = i18n.language.split('-')[0];
+  const preferredBibleVersion = userProfile?.preferredBibleVersion;
 
   React.useEffect(() => {
     if (userProfile) {
       form.setValue("displayName", userProfile.displayName || "");
-      setSelectedModel(userProfile.preferredModel || 'gemini-1.5-flash');
-      setSelectedLanguage(userProfile.preferredLanguage || i18n.language);
     }
-  }, [userProfile, form, i18n.language]);
+  }, [userProfile, form]);
   
   React.useEffect(() => {
     if (newAvatarFile) {
@@ -102,15 +105,29 @@ export default function SettingsPage() {
     }
   }, [newAvatarFile]);
 
+  React.useEffect(() => {
+    const fetchVersions = async () => {
+      setIsBibleVersionLoading(true);
+      try {
+        const response = await axios.get(`/api/bible/versions?lang=${currentLanguage}`);
+        setBibleVersions(response.data);
+      } catch (error) {
+        console.error("Failed to fetch bible versions", error);
+      } finally {
+        setIsBibleVersionLoading(false);
+      }
+    };
+    fetchVersions();
+  }, [currentLanguage]);
+
 
   const handleLanguageChange = async (newLang: string) => {
     if (!user) return;
     setIsSavingLanguage(true);
     try {
         await i18n.changeLanguage(newLang);
-        setSelectedLanguage(newLang);
         const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { preferredLanguage: newLang });
+        await updateDoc(userRef, { preferredLanguage: newLang, preferredBibleVersion: null }); // Reset bible version on lang change
         toast({
             title: t('toast_language_updated_title'),
             description: t('toast_language_updated_desc', { lang: languages.find(l => l.code === newLang)?.name }),
@@ -127,26 +144,35 @@ export default function SettingsPage() {
     }
   };
   
-  const handleModelChange = async (newModel: string) => {
+  const handlePreferenceChange = async (key: 'preferredModel' | 'preferredBibleVersion', value: any) => {
     if (!user) return;
-    setIsSavingModel(true);
-    setSelectedModel(newModel);
+    
+    const isModel = key === 'preferredModel';
+    if(isModel) setIsSavingModel(true);
+    else setIsSavingLanguage(true); // Share loader for language/version
+
     try {
         const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { preferredModel: newModel });
+        await updateDoc(userRef, { [key]: value });
+        
+        let toastDesc = isModel
+          ? t('toast_model_updated_desc', { model: aiModels.find(m => m.id === value)?.name })
+          : t('toast_bible_version_updated_desc', { version: value.name });
+
         toast({
-            title: t('toast_model_updated_title'),
-            description: t('toast_model_updated_desc', { model: aiModels.find(m => m.id === newModel)?.name }),
+            title: t('toast_preference_updated_title'),
+            description: toastDesc,
         });
     } catch (error) {
-        console.error("Error changing AI model:", error);
+        console.error(`Error changing ${key}:`, error);
         toast({
             variant: "destructive",
             title: t('toast_error'),
-            description: t('toast_model_error'),
+            description: t('toast_preference_error_desc'),
         });
     } finally {
-        setIsSavingModel(false);
+        if(isModel) setIsSavingModel(false);
+        else setIsSavingLanguage(false);
     }
   };
 
@@ -301,7 +327,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                     {isSavingLanguage && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                     <Select
-                        value={selectedLanguage}
+                        value={currentLanguage}
                         onValueChange={handleLanguageChange}
                         disabled={isSavingLanguage}
                     >
@@ -318,6 +344,35 @@ export default function SettingsPage() {
                     </Select>
                 </div>
             </div>
+            <div className="flex items-center justify-between">
+                <Label htmlFor="bible-version-select" className="flex items-center gap-2">
+                    <BookMarked className="h-4 w-4" />
+                    {t('bible_version_label')}
+                </Label>
+                <div className="flex items-center gap-2">
+                    {isSavingLanguage && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Select
+                        value={preferredBibleVersion?.id}
+                        onValueChange={(val) => handlePreferenceChange('preferredBibleVersion', bibleVersions.find(v => v.id === val))}
+                        disabled={isSavingLanguage || isBibleVersionLoading || bibleVersions.length === 0}
+                    >
+                        <SelectTrigger id="bible-version-select" className="w-[240px]">
+                            <SelectValue placeholder={t('select_bible_version_placeholder')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {isBibleVersionLoading ? (
+                                <div className="p-2">Carregando...</div>
+                            ) : (
+                                bibleVersions.map((v) => (
+                                    <SelectItem key={v.id} value={v.id}>
+                                        {v.name}
+                                    </SelectItem>
+                                ))
+                            )}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
              <div className="flex items-center justify-between">
                 <Label htmlFor="model-select" className="flex items-center gap-2">
                     <BrainCircuit className="h-4 w-4" />
@@ -326,8 +381,8 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                     {isSavingModel && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                     <Select
-                        value={selectedModel}
-                        onValueChange={handleModelChange}
+                        value={userProfile?.preferredModel || 'gemini-1.5-flash'}
+                        onValueChange={(val) => handlePreferenceChange('preferredModel', val)}
                         disabled={isSavingModel}
                     >
                         <SelectTrigger id="model-select" className="w-[240px]">

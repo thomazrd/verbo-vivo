@@ -77,6 +77,12 @@ export interface BibleCharacter {
 }
 
 // --- Tipos da Comunidade da Congregação ---
+export interface BibleVersion {
+  id: string;
+  name: string;
+  language: string;
+  apiSource: 'abibliadigital' | 'apibible';
+}
 
 export interface UserProfile {
   uid: string;
@@ -90,6 +96,7 @@ export interface UserProfile {
   role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
   preferredLanguage?: string | null;
   preferredModel?: string | null; // e.g., "gemini-1.5-flash"
+  preferredBibleVersion?: BibleVersion | null;
   favoriteArmorIds?: string[];
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
@@ -349,12 +356,7 @@ export interface Suggestion {
 
 // --- Tipos da API da Bíblia ---
 
-export interface BibleVersion {
-  id: string;
-  name: string;
-  language: string;
-  apiSource: 'abibliadigital' | 'apibible';
-}
+
 
 export interface BibleBook {
   id?: string;

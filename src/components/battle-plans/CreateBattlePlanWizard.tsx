@@ -496,11 +496,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           ...mission.content,
           verse: mission.content.verse || null,
           completionQueryParam: mission.content.completionQueryParam || null,
-          details: mission.content.details || null, // Ensure details is null if not present
+          details: mission.content.details || null,
         }
       }));
 
       const finalValues = { ...values, missions: sanitizedMissions };
+      
+      console.log("Data to save:", JSON.stringify(finalValues, null, 2));
 
       try {
         if (isEditing && planId) {
@@ -679,7 +681,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       )
   }
 
-  const stepToDisplay = isEditing ? currentStep : currentStep;
+  const stepToDisplay = currentStep;
   const isNextButtonVisible = currentStep < steps.length - 1;
   const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 

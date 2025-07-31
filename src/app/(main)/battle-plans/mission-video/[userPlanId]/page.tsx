@@ -78,7 +78,7 @@ function VideoMissionPageContent() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black">
+      <div className="flex min-h-screen w-full items-center justify-center bg-black">
         <Loader2 className="h-10 w-10 animate-spin text-white" />
       </div>
     );
@@ -86,7 +86,7 @@ function VideoMissionPageContent() {
 
   if (error || !mission || !mission.content.verse) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-4 text-center">
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black text-white p-4 text-center">
         <p>Erro ao carregar a missão: {error || "URL do vídeo não encontrada."}</p>
         <Button variant="link" onClick={() => router.push('/home')}>Voltar para Home</Button>
       </div>
@@ -96,7 +96,7 @@ function VideoMissionPageContent() {
   const videoId = getYoutubeVideoId(mission.content.verse);
   if (!videoId) {
     return (
-        <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-4 text-center">
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black text-white p-4 text-center">
             <p>URL do YouTube inválida.</p>
             <Button variant="link" onClick={() => router.push('/home')}>Voltar para Home</Button>
         </div>
@@ -104,7 +104,7 @@ function VideoMissionPageContent() {
   }
 
   return (
-    <div className="relative h-screen w-screen bg-black flex flex-col items-center justify-center p-4">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black p-4">
         <div className="w-full max-w-4xl space-y-4">
             <div className="text-white bg-black/50 p-2 rounded-md">
                 <h1 className="font-bold text-lg">{mission.title}</h1>
@@ -154,7 +154,7 @@ function VideoMissionPageContent() {
 
 export default function VideoMissionPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-black"><Loader2 className="h-10 w-10 animate-spin text-white" /></div>}>
+    <Suspense fallback={<div className="flex min-h-screen w-full items-center justify-center bg-black"><Loader2 className="h-10 w-10 animate-spin text-white" /></div>}>
         <VideoMissionPageContent />
     </Suspense>
   )

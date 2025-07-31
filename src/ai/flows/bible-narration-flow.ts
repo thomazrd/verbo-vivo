@@ -10,7 +10,6 @@
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
 import wav from 'wav';
-import { googleAI } from '@genkit-ai/googleai';
 
 const NarrationInputSchema = z.object({
   textToNarrate: z.string().describe('The full text of the Bible chapter to be narrated.'),
@@ -61,7 +60,7 @@ export async function narrateChapter(input: NarrateChapterInput): Promise<Narrat
     },
     async (flowInput) => {
       const { media } = await ai.generate({
-        model: googleAI.model('tts-1'),
+        model: 'googleai/tts-1',
         config: {
           responseModalities: ['AUDIO'],
           speechConfig: {

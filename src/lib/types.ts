@@ -493,6 +493,7 @@ export type ChatHistoryItem = z.infer<typeof ChatHistoryItemSchema>;
 // From: bible-chat-response.ts
 export const BibleChatResponseInputSchema = BaseAiInputSchema.extend({
   user_question: z.string().describe("The user's question or message."),
+  bible_version_name: z.string().optional().describe('The preferred Bible version name (e.g., "NVI", "ACF").'),
   history: z.array(ChatHistoryItemSchema).optional().describe('The recent chat history.'),
   userId: z.string(),
   messageId: z.string(),
@@ -504,6 +505,7 @@ export const BibleChatResponseOutputSchema = z.object({
     verses: z.array(z.object({
         reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
         text: z.string().describe("The full text of the verse."),
+        bibleVersion: z.string().optional().describe("The Bible version of the verse text."),
     })).describe('An array of relevant bible verses.'),
 });
 export type BibleChatResponseOutput = z.infer<typeof BibleChatResponseOutputSchema>;

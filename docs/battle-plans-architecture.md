@@ -116,4 +116,4 @@ match /missionLogs/{logId} {
 }
 ```
 
-Esta arquitetura garante um sistema seguro e funcional, onde os líderes podem criar conteúdo e acompanhar suas comunidades de forma saudável, e os soldados têm controle total sobre sua privacidade e progresso.
+Esta arquitetura garante um sistema seguro e funcional, onde os líderes podem criar conteúdo e acompanhar suas comunidades de forma saudável, e os soldados têm controle total sobre sua privacidade e progresso!

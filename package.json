@@ -8,7 +8,7 @@
     "genkit:watch": "genkit start -- tsx --watch genkit.dev.ts",
     "rules:build": "node scripts/build-rules.js",
     "rules:watch": "node scripts/build-rules.js --watch",
-    "build": "next build",
+    "build": "npm run rules:build && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

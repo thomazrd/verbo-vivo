@@ -72,6 +72,9 @@ export const useNotifications = () => {
         }
       });
       notificationState.updateState({ notifications: newNotifications, unreadCount: newUnreadCount });
+    }, (error) => {
+        // Adiciona tratamento de erro para o listener
+        console.error("FirebaseError in notification snapshot listener:", error);
     });
     
     // --- Push Notifications Setup ---
@@ -121,7 +124,7 @@ export const useNotifications = () => {
         } catch(err: any) {
              if (err.code === 'messaging/permission-blocked' || err.code === 'messaging/permission-default') {
                 console.log('Notification permission not granted.');
-            } else if (err.code === 'messaging/token-subscribe-failed') {
+            } else if (err.code === 'messaging/token-subscribe-failed' || err.code === 'messaging/requests-failed-with-code-403') {
                  console.error('FCM token subscription failed. This is likely due to the Firebase Cloud Messaging API (V1) not being enabled. Please enable it in your Google Cloud Console: https://console.cloud.google.com/apis/library/fcm.googleapis.com');
             } else {
                 console.error('An error occurred while retrieving token. ', err);

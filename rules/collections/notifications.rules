@@ -1,0 +1,7 @@
+
+// Permite que um usuário leia uma notificação apenas se for o destinatário.
+// Ninguém pode escrever ou apagar notificações pelo lado do cliente.
+match /notifications/{notificationId} {
+  allow read: if request.auth.uid == resource.data.recipientId;
+  allow write, delete: if false;
+}

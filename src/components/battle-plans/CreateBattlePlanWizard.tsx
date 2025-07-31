@@ -141,7 +141,7 @@ function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: num
                     control={control}
                     name={`missions.${fieldIndex}.content.details.chapter`}
                     render={({ field }) => (
-                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value || '')}>
+                        <Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={String(field.value || '')}>
                             <SelectTrigger><SelectValue placeholder="Escolha um capítulo..." /></SelectTrigger>
                             <SelectContent>
                                 {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map(c => (
@@ -196,18 +196,19 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
 
     const addMission = () => {
         const defaultType: MissionType = "BIBLE_READING";
+        const details = MissionTypeDetails[defaultType];
         append({
             id: uuidv4(),
             day: day,
             title: `Missão para o Dia ${day}`,
             type: defaultType,
             content: { 
-                path: MissionTypeDetails[defaultType].path, 
+                path: details.path, 
                 verse: "",
-                completionQueryParam: MissionTypeDetails[defaultType].completionQueryParam || null,
+                completionQueryParam: details.completionQueryParam || null,
                 details: {},
             },
-            leaderNote: ""
+            leaderNote: "",
         }, { shouldFocus: true });
     };
 
@@ -216,7 +217,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
         setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam || null);
-        setValue(`missions.${fieldIndex}.content.details`, {}); // Reset details
+        setValue(`missions.${fieldIndex}.content.details`, {});
         
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
@@ -274,7 +275,7 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
                              <Controller
                                 control={control}
                                 name={`missions.${fieldIndex}.leaderNote`}
-                                render={({ field }) => <Textarea {...field} placeholder="Um insight ou direção para esta missão..." />}
+                                render={({ field }) => <Textarea {...field} value={field.value || ''} placeholder="Um insight ou direção para esta missão..." />}
                             />
                         </CardContent>
                     </Card>
@@ -292,10 +293,10 @@ const steps = [
   { id: "review", name: "Revisão" },
 ];
 
-function parseVerseReference(ref: string | undefined) {
+function parseVerseReference(ref: string | undefined | null) {
   if (!ref) return null;
 
-  const match = ref.match(/^(.*?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
+  const match = ref.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(\d+))?$/);
   if (!match) return null;
 
   const [, bookName, chapter, startVerse, endVerse] = match;
@@ -439,7 +440,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         durationDays: aiSuggestion.durationDays,
         missions: formattedMissions,
     });
-    setCurrentStep(2); // Go directly to Missions step for review
+    setCurrentStep(2);
   }
 
   const goToNextStep = async () => {
@@ -452,7 +453,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
       }
-    } else if (currentStep === 0) { // Start step
+    } else { // All other steps can proceed
         isValid = true;
     }
     
@@ -462,16 +463,17 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   };
 
   const goToPreviousStep = () => {
-    if (currentStep === 0 && !isEditing) {
-        router.back();
-        return;
-    }
-    
-    if(isEditing && currentStep === 1) {
+    if (isEditing && currentStep === 1) {
         router.back();
         return;
     }
 
+    if (currentStep === 1 && !isEditing) {
+        setCreationMode(null);
+        setCurrentStep(0);
+        return;
+    }
+    
     if (currentStep > 0) {
         setCurrentStep(prev => prev - 1);
     }
@@ -496,13 +498,15 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           ...mission.content,
           verse: mission.content.verse || null,
           completionQueryParam: mission.content.completionQueryParam || null,
-          details: mission.content.details || null,
+          details: {
+            ...mission.content.details,
+            startVerse: mission.content.details?.startVerse || null,
+            endVerse: mission.content.details?.endVerse || null,
+          }
         }
       }));
 
       const finalValues = { ...values, missions: sanitizedMissions };
-      
-      console.log("Data to save:", JSON.stringify(finalValues, null, 2));
 
       try {
         if (isEditing && planId) {
@@ -541,7 +545,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       }
   }
 
-  const renderStepContent = () => {
+  const renderStepContent = () => {    
     if (isEditing) {
         if (currentStep === 1) return renderDetailsStep();
         if (currentStep === 2) return renderMissionsStep();
@@ -681,7 +685,6 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       )
   }
 
-  const stepToDisplay = currentStep;
   const isNextButtonVisible = currentStep < steps.length - 1;
   const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 
@@ -703,13 +706,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === stepToDisplay ? 'bg-primary text-primary-foreground' : (index < stepToDisplay ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
-                            {index < stepToDisplay ? <Check/> : index + 1}
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
+                            {index < currentStep ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs text-center ${index === stepToDisplay ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs text-center ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < stepToDisplay ? 'bg-primary/50' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}

@@ -216,7 +216,8 @@ function MissionEditor({ control, day, setValue, watch }: { control: any, day: n
         setValue(`missions.${fieldIndex}.type`, newType);
         setValue(`missions.${fieldIndex}.content.path`, details.path);
         setValue(`missions.${fieldIndex}.content.completionQueryParam`, details.completionQueryParam || null);
-
+        setValue(`missions.${fieldIndex}.content.details`, {}); // Reset details
+        
         if(!details.requiresVerse) {
             setValue(`missions.${fieldIndex}.content.verse`, '');
         }
@@ -451,6 +452,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       if (!isValid) {
         toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
       }
+    } else if (currentStep === 0) { // Start step
+        isValid = true;
     }
     
     if (isValid && currentStep < steps.length - 1) {
@@ -464,12 +467,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
         return;
     }
     
+    if(isEditing && currentStep === 1) {
+        router.back();
+        return;
+    }
+
     if (currentStep > 0) {
-        if(isEditing) {
-            router.back();
-        } else {
-            setCurrentStep(prev => prev - 1);
-        }
+        setCurrentStep(prev => prev - 1);
     }
   };
   
@@ -492,6 +496,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
           ...mission.content,
           verse: mission.content.verse || null,
           completionQueryParam: mission.content.completionQueryParam || null,
+          details: mission.content.details || null, // Ensure details is null if not present
         }
       }));
 
@@ -535,16 +540,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   }
 
   const renderStepContent = () => {
-    // If editing, always show details
     if (isEditing) {
-        // Based on currentStep, show details or missions
         if (currentStep === 1) return renderDetailsStep();
         if (currentStep === 2) return renderMissionsStep();
         if (currentStep === 3) return renderReviewStep();
         return null;
     }
     
-    // Logic for creation flow
     switch (currentStep) {
         case 0: return renderStartStep();
         case 1:
@@ -677,7 +679,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       )
   }
 
-  const isNextButtonVisible = currentStep > 0 && currentStep < steps.length - 1;
+  const stepToDisplay = isEditing ? currentStep : currentStep;
+  const isNextButtonVisible = currentStep < steps.length - 1;
   const isNextButtonDisabled = currentStep === 2 && missionsArray.length === 0;
 
   return (
@@ -698,13 +701,13 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
-                            {index < currentStep ? <Check/> : index + 1}
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === stepToDisplay ? 'bg-primary text-primary-foreground' : (index < stepToDisplay ? 'bg-green-500 text-white' : 'bg-muted border')}`}>
+                            {index < stepToDisplay ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs text-center ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs text-center ${index === stepToDisplay ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
-                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < currentStep ? 'bg-primary/50' : 'bg-muted'}`} />
+                        <div className={`h-0.5 w-8 sm:w-16 mx-2 ${index < stepToDisplay ? 'bg-primary/50' : 'bg-muted'}`} />
                     )}
                 </div>
             ))}

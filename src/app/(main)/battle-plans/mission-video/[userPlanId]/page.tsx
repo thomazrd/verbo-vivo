@@ -9,6 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { BattlePlan, Mission, UserBattlePlan } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
+import { Button } from '@/components/ui/button';
 
 function getYoutubeVideoId(url: string): string | null {
   const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -68,6 +69,12 @@ function VideoMissionPageContent() {
   const handleModalClose = () => {
     router.push('/home'); // Or back to battle plans
   };
+  
+   useEffect(() => {
+    const handleEnd = () => handleVideoEnd();
+    window.addEventListener('videoEnded', handleEnd);
+    return () => window.removeEventListener('videoEnded', handleEnd);
+  }, []);
 
   if (isLoading) {
     return (
@@ -79,7 +86,7 @@ function VideoMissionPageContent() {
 
   if (error || !mission || !mission.content.verse) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-white p-4 text-center">
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-4 text-center">
         <p>Erro ao carregar a missão: {error || "URL do vídeo não encontrada."}</p>
         <Button variant="link" onClick={() => router.push('/home')}>Voltar para Home</Button>
       </div>
@@ -88,23 +95,33 @@ function VideoMissionPageContent() {
   
   const videoId = getYoutubeVideoId(mission.content.verse);
   if (!videoId) {
-    return <div className="flex h-screen w-screen items-center justify-center bg-black text-white"><p>URL do YouTube inválida.</p></div>
+    return (
+        <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-4 text-center">
+            <p>URL do YouTube inválida.</p>
+            <Button variant="link" onClick={() => router.push('/home')}>Voltar para Home</Button>
+        </div>
+    )
   }
 
   return (
-    <div className="relative h-screen w-screen bg-black flex flex-col items-center justify-center">
-        <div className="absolute top-4 left-4 z-20 text-white bg-black/50 p-2 rounded-md">
-            <h1 className="font-bold">{mission.title}</h1>
+    <div className="relative h-screen w-screen bg-black flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-4xl space-y-4">
+            <div className="text-white bg-black/50 p-2 rounded-md">
+                <h1 className="font-bold text-lg">{mission.title}</h1>
+            </div>
+            
+            <div className="aspect-video w-full">
+                <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&controls=1&enablejsapi=1`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+            </div>
         </div>
-      <iframe
-        className="w-full h-full z-10"
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&controls=1&enablejsapi=1`}
-        title="YouTube video player"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        onEnded={handleVideoEnd} // Note: This is a conceptual example, direct onEnded is not a prop. We'll use the API.
-      ></iframe>
+
        {missionCompleted && (
         <MissionCompletionModal 
             userPlanId={userPlanId}
@@ -125,31 +142,15 @@ function VideoMissionPageContent() {
         }
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
-                // This is a workaround to communicate with React state
                 const customEvent = new CustomEvent('videoEnded');
                 window.dispatchEvent(customEvent);
             }
         }
-        window.addEventListener('videoEnded', () => {
-            // This is where React will listen
-            // This script is injected, so direct call to React state setter is not possible
-            // The React component will listen for this 'videoEnded' event
-        });
       `}}/>
     </div>
   );
 }
 
-
-// Event listener setup in a React component
-function YouTubePlayerController({ onVideoEnd }: { onVideoEnd: () => void }) {
-  useEffect(() => {
-    const handleEnd = () => onVideoEnd();
-    window.addEventListener('videoEnded', handleEnd);
-    return () => window.removeEventListener('videoEnded', handleEnd);
-  }, [onVideoEnd]);
-  return null;
-}
 
 export default function VideoMissionPageWrapper() {
   return (

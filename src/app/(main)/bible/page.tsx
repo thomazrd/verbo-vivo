@@ -11,7 +11,7 @@ import BookSelector from '@/components/bible/BookSelector';
 import { ChapterGrid } from '@/components/bible/ChapterGrid';
 import { VersionSelector } from '@/components/bible/VersionSelector';
 import { useWindowSize } from '@/hooks/use-window-size';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { useFocusMode } from '@/contexts/focus-mode-context';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
@@ -38,6 +38,7 @@ function BibleReaderContent() {
   const isDesktop = width >= 768;
 
   const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const updateUrlParams = useCallback((book: BibleBook | null, chapter: number | null) => {
     const params = new URLSearchParams(searchParams);
@@ -117,6 +118,7 @@ function BibleReaderContent() {
   const handleChapterSelect = (chapter: number) => {
     setSelectedChapter(chapter);
     updateUrlParams(selectedBook, chapter);
+    setIsSheetOpen(false); // Close mobile sheet on selection
   };
   
   const handleBackToBooks = () => {
@@ -146,7 +148,7 @@ function BibleReaderContent() {
 
   const handlePrevChapter = () => {
     if (selectedBook && selectedChapter && selectedChapter > 1) {
-      const prevChapter = selectedChapter + 1;
+      const prevChapter = selectedChapter - 1; // Corrected from +1 to -1
       setSelectedChapter(prevChapter);
       updateUrlParams(selectedBook, prevChapter);
     }
@@ -183,6 +185,19 @@ function BibleReaderContent() {
         onToggleFullscreen={handleToggleFullscreen}
       />
   );
+
+  const navigationSidebar = (
+    <div className="flex flex-col h-full">
+        <div className="p-4 border-b">
+            <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
+        </div>
+        {!selectedBook ? (
+             <BookSelector allBooks={allBooks} onBookSelect={handleBookSelect} />
+        ) : (
+             <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} />
+        )}
+    </div>
+  );
   
   if (isFocusMode) {
      return (
@@ -198,27 +213,50 @@ function BibleReaderContent() {
     <>
       <div className="grid h-full md:grid-cols-[350px_1fr]">
         <aside className="border-r flex-col hidden md:flex">
-            <div className="p-4 border-b">
-                <VersionSelector selectedVersion={selectedVersion} onVersionChange={setSelectedVersion} />
-            </div>
-            {!selectedBook ? (
-                 <BookSelector allBooks={allBooks} onBookSelect={handleBookSelect} />
-            ) : (
-                 <ChapterGrid book={selectedBook} onChapterSelect={handleChapterSelect} onBack={handleBackToBooks} selectedChapter={selectedChapter} />
-            )}
+            {navigationSidebar}
         </aside>
         <main className="overflow-y-auto h-full">
           {mainContent || (
             <div className="flex h-full items-center justify-center p-12 text-center">
                 <div className="flex flex-col items-center gap-4">
-                <BookMarked className="h-16 w-16 text-muted-foreground" />
-                <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
-                <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura.</p>
+                    <BookMarked className="h-16 w-16 text-muted-foreground" />
+                    <h2 className="text-2xl font-semibold">Selecione um Livro e Capítulo</h2>
+                    <p className="text-muted-foreground max-w-sm">Use o painel de navegação para começar sua leitura.</p>
+                     <div className="md:hidden mt-4">
+                        <Sheet>
+                             <SheetTrigger asChild>
+                                <Button>
+                                    <Menu className="mr-2 h-4 w-4"/>
+                                    Selecionar Livro
+                                </Button>
+                             </SheetTrigger>
+                             <SheetContent side="left" className="p-0">
+                                {navigationSidebar}
+                             </SheetContent>
+                        </Sheet>
+                    </div>
                 </div>
             </div>
           )}
         </main>
       </div>
+
+       {!isDesktop && selectedChapter && (
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button
+                        variant="outline"
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 shadow-lg"
+                    >
+                        <Menu className="mr-2 h-4 w-4" />
+                        {selectedBook?.name} {selectedChapter}
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 flex flex-col">
+                    {navigationSidebar}
+                </SheetContent>
+            </Sheet>
+        )}
 
        {missionUserPlanId && (
         <>

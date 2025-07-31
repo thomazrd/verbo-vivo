@@ -6,7 +6,7 @@ import axios from 'axios';
 import type { BibleBook, BibleChapter, BibleVersion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, Loader2, Expand, Shrink, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateChapterSummary } from '@/ai/flows/chapter-summary-generation';
 import { SummaryDisplay } from './SummaryDisplay';
@@ -17,6 +17,9 @@ import { useFocusMode } from '@/contexts/focus-mode-context';
 import { useWindowSize } from '@/hooks/use-window-size';
 import { SelectionPopover } from './SelectionPopover';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetTrigger, SheetContent } from '../ui/sheet';
+import BookSelector from './BookSelector';
+import { ChapterGrid } from './ChapterGrid';
 
 interface VerseDisplayProps {
   version: BibleVersion;

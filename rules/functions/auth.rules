@@ -9,7 +9,9 @@ function isOwner(userId) {
 }
 
 function isCongregationMember(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status != 'PENDING';
+    // Permite a ação se o usuário for um MEMBRO ou ADMIN da congregação.
+    let userStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
+    return isSignedIn() && (userStatus == 'MEMBER' || userStatus == 'ADMIN');
 }
 
 function isCongregationAdmin(congregationId) {

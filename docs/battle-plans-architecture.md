@@ -76,8 +76,8 @@ function isPlanCreator(planId) {
 }
 
 match /battlePlans/{planId} {
-  // Leitura: Qualquer usuário autenticado pode ler planos publicados.
-  allow read: if isSignedIn() && resource.data.status == 'PUBLISHED';
+  // Leitura: Qualquer usuário autenticado pode ler planos publicados OU se for o criador do plano.
+  allow read: if isSignedIn() && (resource.data.status == 'PUBLISHED' || resource.data.creatorId == request.auth.uid);
 
   // Criação: Qualquer usuário autenticado pode criar um plano (será um líder).
   allow create: if isSignedIn();

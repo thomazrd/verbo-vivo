@@ -176,10 +176,9 @@ match /prayerCircles/{circleId} {
     // From: prayers.rules
 
 
-// Regras para a coleção 'prayers' que armazena as orações do Santuário.
 match /prayers/{prayerId} {
-  // Um usuário só pode ler e escrever (criar, atualizar, apagar) suas próprias orações.
-  allow read, write: if request.auth.uid == resource.data.userId;
+  // Um usuário só pode ler e escrever suas próprias orações.
+  allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
 }
 
 
@@ -232,8 +231,11 @@ match /users/{userId}/battlePlans/{userPlanId} {
     // From: userPushTokens.rules
 
 match /userPushTokens/{tokenId} {
-    // Um usuário só pode criar ou gerenciar seu próprio token.
-    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+  // A user can only create or delete their own push token document.
+  // The document ID is the token itself, so we check the userId field.
+  // Read and update are disallowed for security.
+  allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+  allow read, update: if false;
 }
 
 

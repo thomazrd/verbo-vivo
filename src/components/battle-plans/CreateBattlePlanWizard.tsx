@@ -442,21 +442,22 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
   const goToNextStep = async () => {
     let isValid = false;
 
-    if(currentStep === 1) { // After "Details"
-        isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
+    if (currentStep === 1) { // After "Details"
+      isValid = await trigger(['title', 'description', 'durationDays', 'coverImageUrl']);
     } else if (currentStep === 2) { // After "Missions"
-        isValid = getValues('missions').length > 0;
-        if (!isValid) {
-            toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
-        }
-    } else {
-        isValid = true;
+      isValid = getValues('missions').length > 0;
+      if (!isValid) {
+        toast({ variant: 'destructive', title: 'Missões Vazias', description: 'Adicione pelo menos uma missão para continuar.' });
+      }
+    } else { // After "Start" or "Review"
+      isValid = true;
     }
-
+    
     if (isValid && currentStep < steps.length - 1) {
-        setCurrentStep(prev => prev + 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
+
 
   const goToPreviousStep = () => {
     if (currentStep > 0) {
@@ -560,7 +561,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             return (
                  <Card>
                     <CardHeader>
-                        <CardTitle>1. Criar com IA</CardTitle>
+                        <CardTitle>Criar com IA</CardTitle>
                         <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -709,10 +710,10 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
             {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted border'}`}>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${index === currentStep ? 'bg-primary text-primary-foreground' : (index < currentStep ? 'bg-primary/50 text-primary-foreground' : 'bg-muted border')}`}>
                             {index < currentStep ? <Check/> : index + 1}
                         </div>
-                        <p className={`mt-1 text-xs ${index <= currentStep ? 'font-semibold' : ''}`}>{step.name}</p>
+                        <p className={`mt-1 text-xs ${index === currentStep ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{step.name}</p>
                     </div>
                     {index < steps.length - 1 && (
                         <div className={`h-0.5 w-16 mx-2 ${index < currentStep ? 'bg-primary' : 'bg-muted'}`} />

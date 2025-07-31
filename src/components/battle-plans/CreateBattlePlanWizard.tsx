@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw, CalendarDays, ListTodo } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook, GenerateBattlePlanOutput } from "@/lib/types";
 import Image from "next/image";
@@ -27,6 +27,7 @@ import axios from 'axios';
 import { generateBattlePlan } from "@/ai/flows/battle-plan-generation-flow";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Slider } from "../ui/slider";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -337,6 +338,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   // AI Generation State
   const [problemDescription, setProblemDescription] = useState('');
+  const [durationDays, setDurationDays] = useState(7);
+  const [missionsPerDay, setMissionsPerDay] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<GenerateBattlePlanOutput | null>(null);
 
@@ -400,7 +403,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     setIsGenerating(true);
     setAiSuggestion(null);
     try {
-        const result = await generateBattlePlan({ problemDescription });
+        const result = await generateBattlePlan({ problemDescription, durationDays, missionsPerDay });
         setAiSuggestion(result);
     } catch(e) {
         console.error("AI plan generation failed", e);
@@ -588,10 +591,31 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       <Card>
         <CardHeader>
             <CardTitle>Criar com IA</CardTitle>
-            <CardDescription>Descreva o desafio ou problema que sua comunidade está enfrentando. A IA usará isso para criar um plano de batalha estratégico.</CardDescription>
+            <CardDescription>Descreva o desafio e ajuste as opções para a IA criar um plano de batalha estratégico.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-            <Textarea placeholder="Ex: Na minha igreja, os fiéis estão adorando outros deuses como o dinheiro por exemplo..." className="min-h-[150px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
+        <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="problem-description">Descrição do Problema</Label>
+              <Textarea id="problem-description" placeholder="Ex: Apatia espiritual na juventude, falta de comprometimento dos membros..." className="min-h-[120px]" value={problemDescription} onChange={(e) => setProblemDescription(e.target.value)} />
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/> Duração do Plano</Label>
+                    <span className="font-bold text-primary">{durationDays} dias</span>
+                </div>
+                <Slider defaultValue={[7]} value={[durationDays]} min={3} max={30} step={1} onValueChange={(value) => setDurationDays(value[0])} />
+            </div>
+
+             <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="flex items-center gap-2"><ListTodo className="h-4 w-4"/> Missões por Dia</Label>
+                    <span className="font-bold text-primary">{missionsPerDay}</span>
+                </div>
+                <Slider defaultValue={[1]} value={[missionsPerDay]} min={1} max={3} step={1} onValueChange={(value) => setMissionsPerDay(value[0])} />
+            </div>
+
+
             <Button onClick={handleAiGeneration} disabled={isGenerating}> {isGenerating ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Plano de Batalha </Button>
             {isGenerating && ( <p className="text-sm text-muted-foreground">A IA está montando uma estratégia... Isso pode levar um momento.</p> )}
             {aiSuggestion && (
@@ -750,4 +774,3 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
     </div>
   );
 }
-

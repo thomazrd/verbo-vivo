@@ -1,4 +1,5 @@
 
+
 import type { Timestamp, FieldValue } from "firebase/firestore";
 import { z } from "zod";
 
@@ -422,11 +423,11 @@ export interface Mission {
   type: MissionType;
   content: {
     path: string;
-    completionQueryParam?: string;
-    verse?: string; // Para 'BIBLE_READING'
+    completionQueryParam?: string | null;
+    verse?: string | null; // Para 'BIBLE_READING'
     details?: any; // Para detalhes extras como livro, capitulo, etc.
   };
-  leaderNote?: string;
+  leaderNote?: string | null;
 }
 
 export interface BattlePlan {
@@ -619,6 +620,8 @@ export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
 // From: battle-plan-generation-flow.ts
 export const GenerateBattlePlanInputSchema = BaseAiInputSchema.extend({
   problemDescription: z.string().describe('The problem description provided by the user.'),
+  durationDays: z.number().describe('The exact number of days the plan should last.'),
+  missionsPerDay: z.number().describe('The exact number of missions to generate for each day.'),
 });
 export type GenerateBattlePlanInput = z.infer<typeof GenerateBattlePlanInputSchema>;
 
@@ -627,16 +630,16 @@ export const AiMissionSchema = z.object({
     title: z.string(),
     type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
     content: z.object({
-        verse: z.string().optional(),
+        verse: z.string().optional().nullable(),
     }),
-    leaderNote: z.string().optional(),
+    leaderNote: z.string().optional().nullable(),
 });
 export type AiMission = z.infer<typeof AiMissionSchema>;
 
 export const GenerateBattlePlanOutputSchema = z.object({
   title: z.string(),
   description: z.string(),
-  durationDays: z.number().min(3).max(14),
+  durationDays: z.number(),
   missions: z.array(AiMissionSchema),
 });
 export type GenerateBattlePlanOutput = z.infer<typeof GenerateBattlePlanOutputSchema>;

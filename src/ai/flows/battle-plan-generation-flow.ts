@@ -34,10 +34,10 @@ const generateBattlePlanFlow = ai.defineFlow(
       system: `Você é um Estrategista Espiritual e Pastor experiente. Sua missão é criar um "Plano de Batalha" bíblico, prático e sensível para ajudar um líder a guiar sua comunidade através de um problema específico.
 
 REGRAS IMPORTANTES:
-1.  **Analise o Problema:** Entenda profundamente a raiz espiritual do problema descrito pelo usuário.
-2.  **Duração:** O plano deve ter entre 5 e 10 dias.
-3.  **Título e Descrição:** Crie um título inspirador e uma descrição curta e encorajadora para o plano.
-4.  **Missões Diárias:** Para cada dia, crie uma missão com um título claro.
+1.  **DURAÇÃO:** O plano DEVE ter EXATAMENTE {{durationDays}} dias. Nem mais, nem menos.
+2.  **MISSÕES DIÁRIAS:** Cada dia DEVE ter EXATAMENTE {{missionsPerDay}} missão(ões).
+3.  **Análise do Problema:** Entenda profundamente a raiz espiritual do problema descrito pelo usuário.
+4.  **Título e Descrição:** Crie um título inspirador e uma descrição curta e encorajadora para o plano.
 5.  **Variedade de Missões:** Combine OBRIGATORIAMENTE diferentes tipos de missão para um plano equilibrado:
     *   **BIBLE_READING:** Essencial. O campo 'content.verse' DEVE conter uma referência bíblica clara (ex: "Efésios 6:10-18").
     *   **PRAYER_SANCTUARY:** Momentos de oração focada. O campo 'content.verse' deve ser nulo.
@@ -61,6 +61,9 @@ REGRAS IMPORTANTES:
     if (!output) {
       throw new Error('A IA não conseguiu gerar um plano de batalha. Tente novamente com uma descrição diferente.');
     }
+    
+    // Ensure the output duration matches the input request
+    output.durationDays = input.durationDays;
 
     return output;
   }

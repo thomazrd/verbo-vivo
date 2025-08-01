@@ -510,6 +510,16 @@ export const BibleChatResponseOutputSchema = z.object({
 });
 export type BibleChatResponseOutput = z.infer<typeof BibleChatResponseOutputSchema>;
 
+export const BibleChatResponseStreamSchema = z.object({
+    text: z.string().describe("A chunk of the streaming response text."),
+    verses: z.array(z.object({
+        reference: z.string(),
+        text: z.string(),
+        bibleVersion: z.string().optional(),
+    })).optional().describe("The final list of cited verses, sent with the last chunk."),
+});
+export type BibleChatResponseStream = z.infer<typeof BibleChatResponseStreamSchema>;
+
 
 // From: guided-meditation-generation.ts
 export const MeditationQuestionsInputSchema = BaseAiInputSchema.extend({

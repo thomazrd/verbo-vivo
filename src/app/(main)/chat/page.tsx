@@ -187,25 +187,88 @@ export default function ChatPage() {
       // Add user message to Firestore. The onSnapshot listener will handle UI updates.
       const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
-      const aiResponse = await bibleChatResponse({
-        model: userProfile?.preferredModel,
-        language: userProfile?.preferredLanguage || i18n.language,
-        bible_version_name: userProfile?.preferredBibleVersion?.name,
-        user_question: text,
-        userId: user.uid,
-        messageId: docRef.id,
-      });
-
-      const aiMessage: Omit<Message, 'id'> = {
-        text: aiResponse.response,
+      // Create an optimistic AI message in the UI
+      const optimisticAiMessageId = "ai-response-" + Date.now();
+      const aiMessage: Message = {
+        id: optimisticAiMessageId,
+        text: "...",
         sender: "ai",
         createdAt: Timestamp.now(),
-        citedVerses: aiResponse.verses,
+        citedVerses: [],
+        hasPlanButton: false,
+        topic: text,
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      scrollToBottom();
+
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: userProfile?.preferredModel,
+          language: userProfile?.preferredLanguage || i18n.language,
+          bible_version_name: userProfile?.preferredBibleVersion?.name,
+          user_question: text,
+          userId: user.uid,
+          messageId: docRef.id,
+        }),
+      });
+
+      if (!response.body) {
+        throw new Error("The response body is empty.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+      let finalVerses: any[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('data: ').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+            try {
+                const parsed = JSON.parse(line);
+                if (parsed.text) {
+                    accumulatedText += parsed.text;
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === optimisticAiMessageId
+                        ? { ...msg, text: accumulatedText }
+                        : msg
+                    ));
+                }
+                if (parsed.verses) {
+                    finalVerses = parsed.verses;
+                }
+            } catch (e) {
+                console.error("Error parsing stream chunk", e);
+            }
+        }
+      }
+
+      const finalAiMessage: Omit<Message, 'id'> = {
+        text: accumulatedText,
+        sender: "ai",
+        createdAt: Timestamp.now(),
+        citedVerses: finalVerses,
         hasPlanButton: true,
         topic: text,
       };
-      // Add AI message to Firestore. The onSnapshot listener will handle UI updates.
-      await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
+
+      // Update the optimistic message with the final one from the server
+      // Note: We are not adding a new message here, but updating the one in Firestore.
+      // This requires a different approach than addDoc. For simplicity in this example,
+      // we will add a new final message and delete the optimistic one.
+      // A better approach would be to have the backend return the final message ID
+      // and update it.
+      // For now, let's just add the final message.
+      await addDoc(collection(db, `users/${user.uid}/messages`), finalAiMessage);
+
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticAiMessageId));
 
     } catch (error) {
       console.error("Error sending message:", error);

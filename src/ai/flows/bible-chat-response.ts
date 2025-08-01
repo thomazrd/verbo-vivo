@@ -9,12 +9,16 @@
 
 import { ai, getModel } from '../genkit';
 import { z } from 'zod';
-import type { BibleChatResponseInput, BibleChatResponseOutput } from '@/lib/types';
-import { BibleChatResponseInputSchema, BibleChatResponseOutputSchema } from '@/lib/types';
+import type { BibleChatResponseInput, BibleChatResponseOutput, BibleChatResponseStream } from '@/lib/types';
+import { BibleChatResponseInputSchema, BibleChatResponseOutputSchema, BibleChatResponseStreamSchema } from '@/lib/types';
 
 
 export async function bibleChatResponse(input: BibleChatResponseInput): Promise<BibleChatResponseOutput> {
   return bibleChatResponseFlow(input);
+}
+
+export async function bibleChatResponseStream(input: BibleChatResponseInput) {
+    return bibleChatResponseStreamingFlow.stream(input);
 }
 
 const systemPrompts: Record<string, string> = {
@@ -25,6 +29,16 @@ const systemPrompts: Record<string, string> = {
     ja: "あなたは聖書を深く理解している、思いやりのある知識豊富なAIアシスタントです。あなたの仕事は、ユーザーの質問に日本語で明確かつ温かく答えることです。"
 };
 
+const promptTemplate = `Regras importantes:
+1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
+    - **Estruture o texto em parágrafos curtos e bem definidos** para facilitar a leitura.
+    - **Use formatação Markdown** (como **negrito** para destacar ideias importantes e listas com marcadores para organizar os pontos) para melhorar a legibilidade.
+2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16"), o texto completo e a sigla da versão da Bíblia (use a versão '{{bible_version_abbrev}}') no campo "bibleVersion". NÃO inclua os versículos na sua resposta principal.
+3.  **Base Bíblica**: Use os versículos de referência fornecidos como a fonte primária, se eles forem relevantes para a pergunta. Caso contrário, encontre outros mais adequados.
+
+Pergunta do usuário: "{{user_question}}"
+`;
+
 const bibleChatResponseFlow = ai.defineFlow(
   {
     name: 'bibleChatResponseFlow',
@@ -34,20 +48,11 @@ const bibleChatResponseFlow = ai.defineFlow(
   async (input) => {
     
     const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
-
-    // Extract the abbreviation, e.g., "NVI (pt)" -> "NVI"
     const bibleVersionAbbrev = input.bible_version_name?.split(' ')[0] || 'NVI';
+    const prompt = promptTemplate
+        .replace('{{bible_version_abbrev}}', bibleVersionAbbrev)
+        .replace('{{user_question}}', input.user_question);
 
-    const prompt = `Regras importantes:
-1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
-    - **Estruture o texto em parágrafos curtos e bem definidos** para facilitar a leitura.
-    - **Use formatação Markdown** (como **negrito** para destacar ideias importantes e listas com marcadores para organizar os pontos) para melhorar a legibilidade.
-2.  **Citação de Versículos**: Identifique de 1 a 3 versículos BÍBLICOS RELEVANTES que fundamentam sua resposta. Para cada um, forneça a referência (ex: "João 3:16"), o texto completo e a sigla da versão da Bíblia (use a versão '${bibleVersionAbbrev}') no campo "bibleVersion". NÃO inclua os versículos na sua resposta principal.
-3.  **Base Bíblica**: Use os versículos de referência fornecidos como a fonte primária, se eles forem relevantes para a pergunta. Caso contrário, encontre outros mais adequados.
-
-Pergunta do usuário: "{{user_question}}"
-`;
-    
     const llmResponse = await ai.generate({
       system: systemPrompt,
       prompt,
@@ -62,4 +67,49 @@ Pergunta do usuário: "{{user_question}}"
 
     return llmResponse.output!;
   }
+);
+
+
+const bibleChatResponseStreamingFlow = ai.defineFlow(
+    {
+        name: 'bibleChatResponseStreamingFlow',
+        inputSchema: BibleChatResponseInputSchema,
+        outputSchema: BibleChatResponseOutputSchema,
+        streamSchema: BibleChatResponseStreamSchema,
+    },
+    async (input, { sendChunk }) => {
+        const systemPrompt = systemPrompts[input.language || 'pt'] || systemPrompts.pt;
+        const bibleVersionAbbrev = input.bible_version_name?.split(' ')[0] || 'NVI';
+        const prompt = promptTemplate
+            .replace('{{bible_version_abbrev}}', bibleVersionAbbrev)
+            .replace('{{user_question}}', input.user_question);
+
+        const { stream, response } = ai.generateStream({
+            system: systemPrompt,
+            prompt,
+            model: getModel(input.model),
+            output: {
+                schema: BibleChatResponseOutputSchema,
+            },
+            config: {
+                temperature: 0.7,
+            },
+        });
+
+        for await (const chunk of stream) {
+            if (chunk.output?.response) {
+                sendChunk({ text: chunk.output.response });
+            }
+        }
+
+        const finalResponse = await response;
+        if (!finalResponse.output) {
+            throw new Error("Failed to get final response from the model.");
+        }
+
+        // Send the verses in the final chunk
+        sendChunk({ text: '', verses: finalResponse.output.verses });
+
+        return finalResponse.output;
+    }
 );

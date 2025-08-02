@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";

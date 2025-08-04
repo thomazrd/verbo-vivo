@@ -8,16 +8,17 @@ import type { User } from "firebase/auth";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import type { PostType } from "@/lib/types";
+import type { PostType, BibleVerseContent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image as ImageIcon, Palette, X, Youtube } from "lucide-react";
+import { Loader2, Image as ImageIcon, Palette, X, Youtube, BookOpen } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { VerseSelector } from "./VerseSelector";
 
 interface CreatePostFormProps {
   user: User;
@@ -54,6 +55,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   const [youtubeVideo, setYoutubeVideo] = useState<YoutubeVideoInfo | null>(null);
   const [useYoutubeThumbnail, setUseYoutubeThumbnail] = useState(true);
   const [backgroundStyle, setBackgroundStyle] = useState('');
+  const [bibleVerseContent, setBibleVerseContent] = useState<BibleVerseContent | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +72,10 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   const clearYoutube = useCallback(() => {
     setYoutubeVideo(null);
     setUseYoutubeThumbnail(true);
+  }, []);
+  
+  const clearVerse = useCallback(() => {
+    setBibleVerseContent(null);
   }, []);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -97,6 +103,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
         return;
       }
       clearYoutube();
+      clearVerse();
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setPostType('IMAGE');
@@ -106,16 +113,23 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   
   const handleSelectBg = (styleId: string) => {
     clearYoutube();
+    clearVerse();
     setBackgroundStyle(styleId);
     setPostType('BACKGROUND_TEXT');
     clearMedia();
   }
   
+  const handleSelectVerse = () => {
+    handleResetType();
+    setPostType('BIBLE_VERSE');
+  }
+
   const handleResetType = () => {
     setPostType('TEXT');
     setBackgroundStyle('');
     clearMedia();
     clearYoutube();
+    clearVerse();
   }
 
   const resetForm = useCallback(() => {
@@ -126,7 +140,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }, [handleResetType]);
 
   const handleSubmit = async () => {
-    if (!text.trim() && !mediaFile && !youtubeVideo) {
+    if (!text.trim() && !mediaFile && !youtubeVideo && !bibleVerseContent) {
         toast({ variant: 'destructive', title: 'Publicação vazia', description: 'Escreva algo ou adicione uma mídia.' });
         return;
     }
@@ -138,14 +152,24 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     }
 
     try {
-        let content: any = { text: text || '' };
-
-        if (finalPostType === 'VIDEO' && youtubeVideo) {
-            content.videoId = youtubeVideo.id;
-            content.videoUrl = youtubeVideo.url;
-            content.thumbnailUrl = youtubeVideo.thumbnail;
-        } else if (finalPostType === 'BACKGROUND_TEXT') {
-            content.backgroundStyle = backgroundStyle || null;
+        let content: any;
+        
+        switch (finalPostType) {
+            case 'TEXT':
+                content = { text: text || '' };
+                break;
+            case 'VIDEO':
+                content = { text: text || '', videoId: youtubeVideo!.id, videoUrl: youtubeVideo!.url, thumbnailUrl: youtubeVideo!.thumbnail };
+                break;
+            case 'BACKGROUND_TEXT':
+                content = { text: text || '', backgroundStyle: backgroundStyle || null };
+                break;
+            case 'BIBLE_VERSE':
+                content = bibleVerseContent;
+                break;
+            case 'IMAGE':
+                content = { text: text || '', imageUrl: '' }; // imageUrl will be updated later
+                break;
         }
 
         const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
@@ -200,7 +224,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        if (text || mediaFile || backgroundStyle) {
+        if (text || mediaFile || backgroundStyle || bibleVerseContent) {
             return;
         }
         setIsExpanded(false);
@@ -208,7 +232,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [formRef, text, mediaFile, backgroundStyle]);
+  }, [formRef, text, mediaFile, backgroundStyle, bibleVerseContent]);
 
   const currentBgClass = backgroundStyles.find(bg => bg.id === backgroundStyle)?.class || 'bg-background';
   const currentBgId = backgroundStyles.find(bg => bg.id === backgroundStyle)?.id || '';
@@ -240,16 +264,20 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                 <AvatarFallback>{user.displayName?.[0].toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <Textarea
-                  ref={textareaRef}
-                  placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
-                  value={text}
-                  onChange={handleTextChange}
-                  className={cn(
-                      "min-h-[100px] resize-none text-base border-none focus-visible:ring-0 !p-0 shadow-none bg-transparent",
-                      postType === 'BACKGROUND_TEXT' && `min-h-[180px] text-center text-2xl font-bold flex items-center justify-center p-4 rounded-lg text-white ${currentBgClass}`
-                  )}
-                />
+                {postType === 'BIBLE_VERSE' ? (
+                    <VerseSelector onVerseSelected={setBibleVerseContent} />
+                ) : (
+                    <Textarea
+                        ref={textareaRef}
+                        placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
+                        value={text}
+                        onChange={handleTextChange}
+                        className={cn(
+                            "min-h-[100px] resize-none text-base border-none focus-visible:ring-0 !p-0 shadow-none bg-transparent",
+                            postType === 'BACKGROUND_TEXT' && `min-h-[180px] text-center text-2xl font-bold flex items-center justify-center p-4 rounded-lg text-white ${currentBgClass}`
+                        )}
+                    />
+                )}
             </div>
         </div>
         
@@ -290,6 +318,9 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Adicionar Imagem">
                 <ImageIcon className="h-5 w-5 text-green-500" />
              </Button>
+              <Button variant="ghost" size="icon" onClick={handleSelectVerse} title="Compartilhar Versículo">
+                <BookOpen className="h-5 w-5 text-indigo-500" />
+             </Button>
              <Button variant="ghost" size="icon" onClick={() => handleSelectBg(currentBgId ? '' : 'gradient_blue')} title="Fundo Colorido">
                 <Palette className="h-5 w-5 text-blue-500" />
              </Button>
@@ -304,7 +335,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
         </div>
 
         <div className="px-4 py-2">
-            <Button onClick={handleSubmit} disabled={isUploading} className="w-full">
+            <Button onClick={handleSubmit} disabled={isUploading || (!text.trim() && !mediaFile && !youtubeVideo && !bibleVerseContent)} className="w-full">
                 {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
             </Button>
         </div>

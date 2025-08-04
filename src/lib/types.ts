@@ -124,7 +124,7 @@ export interface CongregationMember {
   status: 'PENDING' | 'MEMBER' | 'ADMIN';
 }
 
-export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';
+export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT' | 'BIBLE_VERSE';
 
 export interface TextContent {
   text: string;
@@ -148,6 +148,14 @@ export interface BackgroundTextContent {
   backgroundStyle: string; // ex: 'gradient_blue'
 }
 
+export interface BibleVerseContent {
+  text: string; // The verse text
+  reference: string;
+  version: string;
+  theme?: string; // e.g., "hope", "faith"
+}
+
+
 export interface Post {
   id: string;
   authorId: string;
@@ -155,7 +163,7 @@ export interface Post {
   authorPhotoURL: string | null;
   createdAt: Timestamp;
   postType: PostType;
-  content: TextContent | ImageContent | VideoContent | BackgroundTextContent;
+  content: TextContent | ImageContent | VideoContent | BackgroundTextContent | BibleVerseContent;
   likeCount: number;
   commentCount: number;
   likes?: string[];

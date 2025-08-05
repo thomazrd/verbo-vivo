@@ -498,27 +498,35 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       case 'BIBLE_VERSE':
         const verseContent = post.content as BibleVerseContent;
         return (
-            <div className="bg-gradient-to-br from-background to-secondary text-foreground p-8 min-h-[250px] flex flex-col justify-center items-center text-center relative">
-                <Image
-                    src="https://dynamic.tiggomark.com.br/images/logo_icon_color.png"
-                    alt="Verbo Vivo Icon"
-                    width={40}
-                    height={40}
-                    className="absolute top-4 left-4 opacity-50"
-                />
-                <blockquote
-                    className="font-serif italic text-2xl md:text-3xl"
-                    style={{ textShadow: '0 1px 2px hsl(var(--background))' }}
-                >
-                    “{verseContent.text}”
-                </blockquote>
-                <p
-                    className="mt-4 font-semibold text-lg opacity-90"
-                    style={{ textShadow: '0 1px 2px hsl(var(--background))' }}
-                >
-                    — {verseContent.reference} ({verseContent.version})
-                </p>
-            </div>
+          <div className="relative min-h-[300px] aspect-video flex flex-col justify-center items-center text-center text-white p-8 overflow-hidden">
+            <Image 
+                src="https://placehold.co/1280x720.png"
+                alt="Fundo celestial"
+                fill
+                className="object-cover -z-10"
+                data-ai-hint="heavenly sky"
+            />
+            <div className="absolute inset-0 bg-slate-800/60 -z-10"></div>
+            <Image
+                src="https://dynamic.tiggomark.com.br/images/logo_icon_white.png"
+                alt="Verbo Vivo Icon"
+                width={48}
+                height={48}
+                className="absolute top-5 right-5 opacity-70"
+            />
+            <blockquote
+              className="font-serif italic text-3xl md:text-4xl"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+            >
+              “{verseContent.text}”
+            </blockquote>
+            <p
+              className="mt-4 font-semibold text-xl opacity-90"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+            >
+              — {verseContent.reference} ({verseContent.version})
+            </p>
+          </div>
         );
       case 'TEXT':
       default:

@@ -11,11 +11,12 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { PostType, BibleVerseContent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { downloadVerseImage } from "@/lib/download-verse-image";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image as ImageIcon, Palette, X, Youtube, BookOpen } from "lucide-react";
+import { Loader2, Image as ImageIcon, Palette, X, Youtube, BookOpen, Download } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { VerseSelector } from "./VerseSelector";
@@ -265,7 +266,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
             </Avatar>
             <div className="flex-1">
                 {postType === 'BIBLE_VERSE' ? (
-                    <VerseSelector onVerseSelected={setBibleVerseContent} />
+                    <VerseSelector onVerseSelected={setBibleVerseContent} onCancel={handleResetType} />
                 ) : (
                     <Textarea
                         ref={textareaRef}

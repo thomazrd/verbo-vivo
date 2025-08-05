@@ -86,7 +86,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady, langua
         <p className="whitespace-pre-wrap leading-relaxed">{response.responseText}</p>
         
         {response.citedVerses.map((verse, index) => (
-            <VerseCard key={index} reference={verse.reference} text={verse.text} bibleVersion={verse.bibleVersion} />
+            <VerseCard key={index} reference={verse.reference} text={verse.text} version={verse.bibleVersion} />
         ))}
       </div>
       

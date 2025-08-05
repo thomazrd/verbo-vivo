@@ -1,10 +1,9 @@
 
-
 interface VerseData {
   reference: string;
   text: string;
   version: string;
-  authorName: string;
+  authorName?: string | null;
 }
 
 function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
@@ -75,7 +74,7 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   
   // Medir o texto da referência para centralizar o conjunto (ícone + texto)
   context.font = 'bold 32px "PT Sans", sans-serif';
-  context.fillStyle = '#4338ca'; // Cor da referência (indigo-900/90)
+  context.fillStyle = '#5a67d8'; // Cor da referência (indigo-600)
   const referenceText = `${verseData.reference} (${verseData.version})`;
   const referenceMetrics = context.measureText(referenceText);
   const iconWidth = 28;
@@ -87,7 +86,7 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   context.save();
   context.translate(headerStartX, referenceY - 14); // Ajuste vertical
   context.scale(1.2, 1.2); // Aumenta o tamanho do ícone
-  context.fillStyle = '#4338ca'; // Cor do ícone
+  context.fillStyle = '#5a67d8'; // Cor do ícone
   context.fill(bookOpenIconPath);
   context.restore();
 
@@ -97,10 +96,11 @@ export const downloadVerseImage = (verseData: VerseData): void => {
 
 
   // Marca d'água 'Verbo Vivo' sutil no rodapé
+  const authorText = verseData.authorName ? `Compartilhado por ${verseData.authorName} via Verbo Vivo` : 'Compartilhado via Verbo Vivo';
   context.font = 'bold 20px "PT Sans", sans-serif';
   context.fillStyle = 'rgba(0, 0, 0, 0.25)'; // Cor sutil
   context.textAlign = 'center';
-  context.fillText('Compartilhado via Verbo Vivo', width / 2, height - 30);
+  context.fillText(authorText, width / 2, height - 30);
 
 
   const link = document.createElement('a');
@@ -108,4 +108,3 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   link.href = canvas.toDataURL('image/png');
   link.click();
 };
-

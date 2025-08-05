@@ -27,6 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { BookOpen } from 'lucide-react';
 import { downloadVerseImage } from '@/lib/download-verse-image';
+import { VerseCard } from '../chat/VerseCard';
 
 
 function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
@@ -363,17 +364,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       }
   }
 
-  const handleDownload = () => {
-    if (post.postType !== 'BIBLE_VERSE') return;
-    const verseContent = post.content as BibleVerseContent;
-    downloadVerseImage({
-      reference: verseContent.reference,
-      text: verseContent.text,
-      version: verseContent.version,
-      authorName: post.authorName,
-    });
-  };
-
   const PostText = ({ text }: { text: string }) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
@@ -496,17 +486,13 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       case 'BIBLE_VERSE':
         const verseContent = post.content as BibleVerseContent;
         return (
-          <div className="px-4 py-2">
-            <div className="border bg-muted/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                <h4 className="font-semibold text-sm text-primary">{verseContent.reference}</h4>
-                <span className="text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">{verseContent.version}</span>
-              </div>
-              <blockquote className="border-l-2 border-primary/50 pl-3 italic text-muted-foreground text-sm leading-relaxed">
-                “{verseContent.text}”
-              </blockquote>
-            </div>
+          <div className="p-4">
+            <VerseCard 
+                reference={verseContent.reference}
+                text={verseContent.text}
+                version={verseContent.version}
+                authorName={post.authorName}
+            />
           </div>
         );
       case 'TEXT':
@@ -566,12 +552,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
                   <MessageCircle className="h-4 w-4"/>
                   <span className="font-semibold">Comentar</span>
               </Button>
-               {post.postType === 'BIBLE_VERSE' && (
-                  <Button variant="ghost" size="sm" className="w-full gap-2 h-8" onClick={handleDownload}>
-                      <Download className="h-4 w-4" />
-                      <span className="font-semibold">Baixar</span>
-                  </Button>
-              )}
           </div>
       </div>
        {showComments && (

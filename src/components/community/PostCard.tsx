@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { downloadVerseImage } from '@/lib/download-verse-image';
+import { BookOpen } from 'lucide-react';
 
 
 function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
@@ -280,7 +281,6 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     );
 }
 
-
 export function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -498,26 +498,26 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       case 'BIBLE_VERSE':
         const verseContent = post.content as BibleVerseContent;
         return (
-            <div 
-                className="bg-cover bg-center text-white p-8 min-h-[250px] flex flex-col justify-center items-center text-center relative"
-                style={{backgroundImage: 'url(https://dynamic.tiggomark.com.br/images/paper_texture.jpg)'}}
-            >
-                <div className="absolute inset-0 bg-primary/80 backdrop-blur-[1px]"></div>
-                <div className="relative z-10 flex flex-col items-center">
-                    <Image
-                      src="https://dynamic.tiggomark.com.br/images/logo_branca.png" 
-                      alt="Verbo Vivo Icon"
-                      width={64}
-                      height={64}
-                      className="opacity-80 mb-4"
-                    />
-                    <blockquote className="font-serif italic text-2xl md:text-3xl text-shadow-md">
-                        “{verseContent.text}”
-                    </blockquote>
-                    <p className="mt-4 font-semibold text-lg text-shadow-sm opacity-90">
-                        — {verseContent.reference} ({verseContent.version})
-                    </p>
-                </div>
+            <div className="bg-gradient-to-br from-background to-secondary text-foreground p-8 min-h-[250px] flex flex-col justify-center items-center text-center relative">
+                <Image
+                    src="https://dynamic.tiggomark.com.br/images/logo_icon_color.png"
+                    alt="Verbo Vivo Icon"
+                    width={40}
+                    height={40}
+                    className="absolute top-4 left-4 opacity-50"
+                />
+                <blockquote
+                    className="font-serif italic text-2xl md:text-3xl"
+                    style={{ textShadow: '0 1px 2px hsl(var(--background))' }}
+                >
+                    “{verseContent.text}”
+                </blockquote>
+                <p
+                    className="mt-4 font-semibold text-lg opacity-90"
+                    style={{ textShadow: '0 1px 2px hsl(var(--background))' }}
+                >
+                    — {verseContent.reference} ({verseContent.version})
+                </p>
             </div>
         );
       case 'TEXT':
@@ -629,5 +629,3 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
     </div>
   )
 }
-
-    

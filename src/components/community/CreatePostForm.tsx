@@ -128,21 +128,6 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     clearMedia();
   }
   
-  const handleVerseSelected = async (verse: BibleVerseContent) => {
-    setIsUploading(true);
-    try {
-      await createPost('BIBLE_VERSE', verse);
-      toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
-      setIsVerseSelectorOpen(false); // Close the modal on success
-      resetForm();
-    } catch (error) {
-      console.error('Error posting verse:', error);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível compartilhar seu versículo.' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const createPost = async (type: PostType, contentPayload: any) => {
     const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
     const postData = {
@@ -171,6 +156,21 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
       });
     }
   }
+
+  const handleVerseSelected = async (verse: BibleVerseContent) => {
+    setIsUploading(true);
+    try {
+      await createPost('BIBLE_VERSE', verse);
+      toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
+      setIsVerseSelectorOpen(false); // Close the modal on success
+      resetForm();
+    } catch (error) {
+      console.error('Error posting verse:', error);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível compartilhar seu versículo.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!text.trim() && !mediaFile && !youtubeVideo) {

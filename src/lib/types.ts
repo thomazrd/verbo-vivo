@@ -244,6 +244,7 @@ export const SharedContentSchema = z.object({
     verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
     verse_text: z.string().describe("O texto do versículo."),
     bible_version: z.string().describe("A versão da Bíblia do texto do versículo. Ex: 'NVI'"),
+    explanation: z.string().describe("Uma breve explicação ou aplicação do versículo.")
   })),
   conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
 });
@@ -575,7 +576,17 @@ export const GenerateShareableContentInputSchema = BaseAiInputSchema.extend({
 export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;
 
 // The output is the content object itself.
-export const GenerateShareableContentOutputSchema = SharedContentSchema;
+export const GenerateShareableContentOutputSchema = z.object({
+  title: z.string().describe("Um título curto e acolhedor para a página"),
+  opening: z.string().describe("Um parágrafo de abertura que mostra empatia pelo problema, sem mencioná-lo diretamente."),
+  sections: z.array(z.object({
+    verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
+    verse_text: z.string().describe("O texto do versículo."),
+    bible_version: z.string().describe("A versão da Bíblia do texto do versículo. Ex: 'NVI'"),
+    explanation: z.string().describe("Uma breve explicação ou aplicação do versículo.")
+  })),
+  conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
+});
 export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;
 
 

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -74,7 +73,7 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
         .map(v => v.text);
 
       if (verses.length > 0) {
-        const reference = `${selectedBook.name} ${selectedChapter}:${startVerse}${endVerse && endVerse !== startVerse ? `-${endVerse}` : ''}`;
+        const reference = `${selectedBook.name} ${selectedChapter}:${startVerse}${endVerse && endVerse !== start ? `-${endVerse}` : ''}`;
         setFetchedVerse({
           reference: reference,
           text: verses.join(' '),
@@ -127,7 +126,7 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
 
       <div className="space-y-3 p-1" onMouseDown={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-           <Select onValueChange={handleBookChange} disabled={isLoadingBooks}>
+           <Select onValueChange={handleBookChange} value={selectedBook?.id || ""} disabled={isLoadingBooks}>
               <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
               <SelectContent>
                   {books.map(book => (

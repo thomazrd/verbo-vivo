@@ -38,7 +38,7 @@ const bibleChatResponseFlow = ai.defineFlow(
     // Extract the abbreviation, e.g., "NVI (pt)" -> "NVI"
     const bibleVersionAbbrev = input.bible_version_name?.split(' ')[0] || 'NVI';
 
-    const prompt = `Regras importantes:
+    const promptTemplate = `Regras importantes:
 1.  **Resposta Principal**: Elabore uma resposta solidária, contextual e biblicamente sólida na propriedade "response".
     - **Considere o histórico da conversa** para fornecer uma resposta relevante e que não se repita.
     - **Estruture o texto em parágrafos curtos e bem definidos** para facilitar a leitura.
@@ -59,20 +59,25 @@ Modelo: {{this.parts.0.text}}
 Nova Pergunta do usuário: "{{user_question}}"
 `;
     
-    const llmResponse = await ai.generate({
+    const prompt = ai.definePrompt({
+      name: 'bibleChatPrompt',
+      input: { schema: BibleChatResponseInputSchema },
+      output: { schema: BibleChatResponseOutputSchema },
       system: systemPrompt,
-      prompt,
-      model: getModel(input.model),
-      output: {
-        schema: BibleChatResponseOutputSchema,
-      },
-      config: {
-        temperature: 0.7,
-      },
-      // Pass the input object directly to be used by the prompt template
-      variables: input,
+      prompt: promptTemplate
     });
 
-    return llmResponse.output!;
+    const { output } = await prompt(input, {
+        model: getModel(input.model),
+        config: {
+            temperature: 0.7,
+        }
+    });
+
+    if (!output) {
+      throw new Error("A IA não conseguiu gerar uma resposta.");
+    }
+
+    return output;
   }
 );

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -12,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 
 interface VerseSelectorProps {
   onVerseSelected: (verseContent: BibleVerseContent) => void;
@@ -115,62 +117,71 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
   const chapters = selectedBook ? Array.from({ length: selectedBook.chapters }, (_, i) => i + 1) : [];
 
   return (
-    <div className="space-y-3 p-3 bg-muted/50 rounded-lg border-l-4 border-primary relative">
-        <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 text-muted-foreground" onClick={onCancel}>
-            <X className="h-4 w-4" />
-        </Button>
-      <p className="text-sm font-semibold">Compartilhar Versículo</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-         <Select onValueChange={handleBookChange} disabled={isLoadingBooks}>
-            <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
-            <SelectContent>
-                {books.map(book => (
-                    <SelectItem key={book.id} value={book.id!}>{book.name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-        <Select onValueChange={setSelectedChapter} value={selectedChapter} disabled={!selectedBook}>
-            <SelectTrigger><SelectValue placeholder="Capítulo" /></SelectTrigger>
-            <SelectContent>
-                {chapters.map(c => (
-                    <SelectItem key={c} value={String(c)}>{c}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+    <>
+      <DialogHeader>
+        <DialogTitle>Compartilhar Versículo</DialogTitle>
+        <DialogDescription>
+          Selecione o livro, capítulo e versículo(s) que deseja compartilhar.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-3 p-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+           <Select onValueChange={handleBookChange} disabled={isLoadingBooks}>
+              <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
+              <SelectContent>
+                  {books.map(book => (
+                      <SelectItem key={book.id} value={book.id!}>{book.name}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+          <Select onValueChange={setSelectedChapter} value={selectedChapter} disabled={!selectedBook}>
+              <SelectTrigger><SelectValue placeholder="Capítulo" /></SelectTrigger>
+              <SelectContent>
+                  {chapters.map(c => (
+                      <SelectItem key={c} value={String(c)}>{c}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+        </div>
+         <div className="grid grid-cols-2 gap-2">
+             <Input type="number" placeholder="Verso inicial" value={startVerse} onChange={e => setStartVerse(e.target.value)} disabled={!selectedChapter} />
+             <Input type="number" placeholder="Verso final (opc)" value={endVerse} onChange={e => setEndVerse(e.target.value)} disabled={!startVerse} />
+         </div>
+        
+        {isLoadingVerse && (
+          <div className="flex items-center justify-center p-4 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            Buscando...
+          </div>
+        )}
+        {error && !isLoadingVerse && (
+          <div className="flex items-center p-2 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            {error}
+          </div>
+        )}
+        {fetchedVerse && !isLoadingVerse && (
+          <Card>
+              <CardContent className="p-4">
+                  <blockquote className="italic text-card-foreground">
+                      “{fetchedVerse.text}”
+                  </blockquote>
+                  <p className="text-right font-semibold text-primary mt-2">
+                      — {fetchedVerse.reference} ({fetchedVerse.version})
+                  </p>
+              </CardContent>
+          </Card>
+        )}
       </div>
-       <div className="grid grid-cols-2 gap-2">
-           <Input type="number" placeholder="Verso inicial" value={startVerse} onChange={e => setStartVerse(e.target.value)} disabled={!selectedChapter} />
-           <Input type="number" placeholder="Verso final (opc)" value={endVerse} onChange={e => setEndVerse(e.target.value)} disabled={!startVerse} />
-       </div>
-      
-      {isLoadingVerse && (
-        <div className="flex items-center justify-center p-4 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          Buscando...
-        </div>
-      )}
-      {error && !isLoadingVerse && (
-        <div className="flex items-center p-2 text-destructive text-sm">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          {error}
-        </div>
-      )}
-      {fetchedVerse && !isLoadingVerse && (
-        <Card>
-            <CardContent className="p-4">
-                <blockquote className="italic text-card-foreground">
-                    “{fetchedVerse.text}”
-                </blockquote>
-                <p className="text-right font-semibold text-primary mt-2">
-                    — {fetchedVerse.reference} ({fetchedVerse.version})
-                </p>
-                <Button className="w-full mt-4" onClick={handleConfirm}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Confirmar Versículo
-                </Button>
-            </CardContent>
-        </Card>
-      )}
-    </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button onClick={handleConfirm} disabled={!fetchedVerse || isLoadingVerse}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Confirmar Versículo
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+
 "use strict";
 /**
  * @fileoverview Cloud Functions para o sistema de notificações do Verbo Vivo.
@@ -37,7 +38,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCongregation = exports.requestToJoinCongregation = exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewComment = exports.onNewPostLike = void 0;
+exports.createCongregation = exports.requestToJoinCongregation = exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewPost = exports.onNewComment = exports.onNewPostLike = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -89,6 +90,7 @@ function getNotificationMessage(type) {
         case "NEW_COMMENT": return "comentou na sua publicação.";
         case "REPLY": return "respondeu ao seu comentário.";
         case "CONGREGATION_APPROVAL": return "aprovou sua entrada na congregação.";
+        case "NEW_POST": return "publicou na sua comunidade.";
         default: return "interagiu com você.";
     }
 }
@@ -157,6 +159,41 @@ exports.onNewComment = functions.region(region)
             await createAndSendNotification(Object.assign(Object.assign({}, baseNotification), { recipientId: (_d = postDoc.data()) === null || _d === void 0 ? void 0 : _d.authorId, type: "NEW_COMMENT" }));
         }
     }
+});
+// NOVO Gatilho para Novas Publicações
+exports.onNewPost = functions.region(region)
+    .firestore.document("congregations/{congregationId}/posts/{postId}")
+    .onCreate(async (snapshot, context) => {
+    const { congregationId, postId } = context.params;
+    const postData = snapshot.data();
+    const authorId = postData.authorId;
+    // Buscar todos os membros da congregação
+    const membersSnapshot = await db.collection(`congregations/${congregationId}/members`).get();
+    if (membersSnapshot.empty) {
+        console.log("No members found in congregation to notify:", congregationId);
+        return;
+    }
+    const notificationPromises = [];
+    membersSnapshot.forEach((memberDoc) => {
+        const memberId = memberDoc.id;
+        // Não notificar o autor da publicação
+        if (memberId === authorId) {
+            return;
+        }
+        const notificationData = {
+            recipientId: memberId,
+            actorId: authorId,
+            actorName: postData.authorName || "Alguém",
+            actorPhotoURL: postData.authorPhotoURL || null,
+            type: "NEW_POST",
+            entityId: postId,
+            entityPath: `/community/${congregationId}`,
+        };
+        // Adiciona a promessa de notificação à lista
+        notificationPromises.push(createAndSendNotification(notificationData));
+    });
+    // Aguarda todas as notificações serem criadas e enviadas
+    await Promise.all(notificationPromises);
 });
 // Gatilho para Aprovação na Congregação (agora acionado pela Cloud Function)
 // A função onUpdate não é mais necessária para aprovação, mas pode ser útil para outras transições de status.
@@ -327,3 +364,5 @@ exports.createCongregation = functions.region(region)
     }
 });
 //# sourceMappingURL=index.js.map
+
+    

@@ -12,11 +12,7 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-function generateInviteCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-type NotificationType = "NEW_COMMENT" | "REPLY" | "POST_LIKE" | "CONGREGATION_APPROVAL";
+type NotificationType = "NEW_POST" | "NEW_COMMENT" | "REPLY" | "POST_LIKE" | "CONGREGATION_APPROVAL";
 
 /**
  * Função principal que cria um documento de notificação e envia um push.
@@ -80,6 +76,7 @@ function getNotificationMessage(type: NotificationType): string {
     case "NEW_COMMENT": return "comentou na sua publicação.";
     case "REPLY": return "respondeu ao seu comentário.";
     case "CONGREGATION_APPROVAL": return "aprovou sua entrada na congregação.";
+    case "NEW_POST": return "publicou na sua comunidade.";
     default: return "interagiu com você.";
   }
 }
@@ -159,6 +156,49 @@ export const onNewComment = functions.region(region)
                 });
             }
         }
+    });
+
+// NOVO Gatilho para Novas Publicações
+export const onNewPost = functions.region(region)
+    .firestore.document("congregations/{congregationId}/posts/{postId}")
+    .onCreate(async (snapshot, context) => {
+        const {congregationId, postId} = context.params;
+        const postData = snapshot.data();
+        const authorId = postData.authorId;
+        
+        // Buscar todos os membros da congregação
+        const membersSnapshot = await db.collection(`congregations/${congregationId}/members`).get();
+        if (membersSnapshot.empty) {
+            console.log("No members found in congregation to notify:", congregationId);
+            return;
+        }
+
+        const notificationPromises: Promise<any>[] = [];
+
+        membersSnapshot.forEach((memberDoc) => {
+            const memberId = memberDoc.id;
+            
+            // Não notificar o autor da publicação
+            if (memberId === authorId) {
+                return;
+            }
+
+            const notificationData = {
+                recipientId: memberId,
+                actorId: authorId,
+                actorName: postData.authorName || "Alguém",
+                actorPhotoURL: postData.authorPhotoURL || null,
+                type: "NEW_POST" as NotificationType,
+                entityId: postId,
+                entityPath: `/community/${congregationId}`,
+            };
+
+            // Adiciona a promessa de notificação à lista
+            notificationPromises.push(createAndSendNotification(notificationData));
+        });
+
+        // Aguarda todas as notificações serem criadas e enviadas
+        await Promise.all(notificationPromises);
     });
 
 // Gatilho para Aprovação na Congregação (agora acionado pela Cloud Function)
@@ -347,3 +387,5 @@ export const createCongregation = functions.region(region)
             throw new functions.https.HttpsError("internal", "Ocorreu um erro ao criar a congregação.");
         }
     });
+
+    

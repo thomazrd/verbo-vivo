@@ -130,7 +130,7 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
               <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
               <SelectContent>
                   {books.map(book => (
-                      <SelectItem key={book.id} value={book.id!}>{book.name}</SelectItem>
+                      <SelectItem key={book.id || book.name} value={book.id || ''}>{book.name}</SelectItem>
                   ))}
               </SelectContent>
           </Select>

@@ -81,7 +81,9 @@ export const downloadVerseImage = (verseData: VerseData): void => {
     context.font = 'normal 36px "Palatino Linotype", "Book Antiqua", Palatino, serif';
     context.fillStyle = 'rgba(255, 255, 255, 0.9)';
     const referenceText = `— ${verseData.reference} (${verseData.version})`;
-    const referenceY = (height / 2) + (context.measureText(verseData.text).actualBoundingBoxDescent + 100);
+    const textMetrics = context.measureText(`“${verseData.text}”`);
+    const textHeight = (textMetrics.actualBoundingBoxAscent || 0) + (textMetrics.actualBoundingBoxDescent || 0);
+    const referenceY = (height / 2) + (textHeight / 2) + 60;
     context.fillText(referenceText, width / 2, referenceY);
 
 

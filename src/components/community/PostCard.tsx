@@ -25,7 +25,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { downloadVerseImage } from '@/lib/download-verse-image';
 import { BookOpen } from 'lucide-react';
 
 
@@ -378,19 +377,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
         </p>
     );
   };
-  
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if(post.postType === 'BIBLE_VERSE') {
-      const verseContent = post.content as BibleVerseContent;
-      downloadVerseImage({
-        reference: verseContent.reference,
-        text: verseContent.text,
-        version: verseContent.version,
-        authorName: post.authorName,
-      });
-    }
-  }
 
   if (!user) return null;
 
@@ -498,34 +484,17 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       case 'BIBLE_VERSE':
         const verseContent = post.content as BibleVerseContent;
         return (
-          <div className="relative min-h-[300px] aspect-video flex flex-col justify-center items-center text-center text-white p-8 overflow-hidden">
-            <Image 
-                src="https://placehold.co/1280x720.png"
-                alt="Fundo celestial"
-                fill
-                className="object-cover -z-10"
-                data-ai-hint="heavenly sky"
-            />
-            <div className="absolute inset-0 bg-slate-800/60 -z-10"></div>
-            <Image
-                src="https://dynamic.tiggomark.com.br/images/logo_icon_white.png"
-                alt="Verbo Vivo Icon"
-                width={48}
-                height={48}
-                className="absolute top-5 right-5 opacity-70"
-            />
-            <blockquote
-              className="font-serif italic text-3xl md:text-4xl"
-              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
-            >
-              “{verseContent.text}”
-            </blockquote>
-            <p
-              className="mt-4 font-semibold text-xl opacity-90"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-            >
-              — {verseContent.reference} ({verseContent.version})
-            </p>
+          <div className="px-4 py-2">
+            <div className="border bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <h4 className="font-semibold text-sm text-primary">{verseContent.reference}</h4>
+                <span className="text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">{verseContent.version}</span>
+              </div>
+              <blockquote className="border-l-2 border-primary/50 pl-3 italic text-muted-foreground text-sm leading-relaxed">
+                “{verseContent.text}”
+              </blockquote>
+            </div>
           </div>
         );
       case 'TEXT':
@@ -585,12 +554,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
                   <MessageCircle className="h-4 w-4"/>
                   <span className="font-semibold">Comentar</span>
               </Button>
-              {post.postType === 'BIBLE_VERSE' && (
-                <Button variant="ghost" size="sm" className="w-full gap-2 h-8" onClick={handleDownload}>
-                  <Download className="h-4 w-4"/>
-                  <span className="font-semibold">Baixar</span>
-                </Button>
-              )}
           </div>
       </div>
        {showComments && (

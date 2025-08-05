@@ -69,6 +69,8 @@ Nova Pergunta do usuário: "{{user_question}}"
       config: {
         temperature: 0.7,
       },
+      // Pass the input object directly to be used by the prompt template
+      variables: input,
     });
 
     return llmResponse.output!;

@@ -48,11 +48,7 @@ const bibleChatResponseFlow = ai.defineFlow(
 {{#if history}}
 Histórico da Conversa Anterior (para contexto):
 {{#each history}}
-{{#if (eq this.role 'user')}}
-Usuário: {{this.parts.0.text}}
-{{else}}
-Modelo: {{this.parts.0.text}}
-{{/if}}
+{{this.role}}: {{this.parts.0.text}}
 {{/each}}
 {{/if}}
 

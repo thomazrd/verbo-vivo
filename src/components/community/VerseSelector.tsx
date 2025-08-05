@@ -126,7 +126,7 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
 
       <div className="space-y-3 p-1" onMouseDown={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-           <Select onValueChange={handleBookChange} value={selectedBook?.abbrev.pt} disabled={isLoadingBooks}>
+           <Select onValueChange={handleBookChange} value={selectedBook?.abbrev.pt || ''} disabled={isLoadingBooks}>
               <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
               <SelectContent>
                   {books.map(book => (

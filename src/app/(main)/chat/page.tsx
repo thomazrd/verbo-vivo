@@ -20,7 +20,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import type { Message } from "@/lib/types";
+import type { Message, ChatHistoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
 import { Button } from "@/components/ui/button";
@@ -187,11 +187,19 @@ export default function ChatPage() {
       // Add user message to Firestore. The onSnapshot listener will handle UI updates.
       const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
+      const conversationHistory: ChatHistoryItem[] = messages
+        .slice(-4) // Get last 4 messages for context
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }],
+        }));
+
       const aiResponse = await bibleChatResponse({
         model: userProfile?.preferredModel,
         language: userProfile?.preferredLanguage || i18n.language,
         bible_version_name: userProfile?.preferredBibleVersion?.name,
         user_question: text,
+        history: conversationHistory,
         userId: user.uid,
         messageId: docRef.id,
       });

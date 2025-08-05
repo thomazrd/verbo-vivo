@@ -121,7 +121,11 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }
   
   const handleSelectVerse = () => {
-    handleResetType();
+    // Correção: Não resetar o tipo, apenas limpar outras mídias.
+    clearMedia();
+    clearYoutube();
+    setBackgroundStyle('');
+    setBibleVerseContent(null);
     setPostType('BIBLE_VERSE');
   }
 

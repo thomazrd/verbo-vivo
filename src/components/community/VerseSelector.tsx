@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useAuth } from '@/hooks/use-auth';
 import type { BibleChapter, BibleVerseContent, BibleBook } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -32,6 +32,7 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
   const [endVerse, setEndVerse] = useState<string>('');
 
   const [isLoadingVerse, setIsLoadingVerse] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedVerse, setFetchedVerse] = useState<BibleVerseContent | null>(null);
 
@@ -97,10 +98,11 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
   }, [fetchFullVerse]);
 
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (fetchedVerse) {
-      onVerseSelected(fetchedVerse);
-      toast({ title: "Versículo Anexado!", description: "Sua postagem está pronta para ser compartilhada." });
+      setIsSaving(true);
+      await onVerseSelected(fetchedVerse);
+      setIsSaving(false);
     }
   };
   
@@ -176,9 +178,9 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
 
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button onClick={handleConfirm} disabled={!fetchedVerse || isLoadingVerse}>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Confirmar Versículo
+        <Button onClick={handleConfirm} disabled={!fetchedVerse || isLoadingVerse || isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+            Confirmar e Postar
         </Button>
       </DialogFooter>
     </>

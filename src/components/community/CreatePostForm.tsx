@@ -126,14 +126,24 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     clearMedia();
     clearYoutube();
     setBackgroundStyle('');
-    setBibleVerseContent(null);
-    setPostType('BIBLE_VERSE');
+    setBibleVerseContent(null); // Reset before opening
     setIsVerseSelectorOpen(true);
   }
 
-  const handleVerseSelected = (verse: BibleVerseContent) => {
-    setBibleVerseContent(verse);
-    setIsVerseSelectorOpen(false); // Close modal on selection
+  const handleVerseSelected = async (verse: BibleVerseContent) => {
+    setIsVerseSelectorOpen(false); // Close modal
+    setIsUploading(true); // Show loading state on main form
+    
+    try {
+       await createPost('BIBLE_VERSE', verse);
+       toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
+       resetForm();
+    } catch(error) {
+       console.error('Error posting verse:', error);
+       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível compartilhar seu versículo.' });
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   const handleResetType = () => {
@@ -150,9 +160,38 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     setIsUploading(false);
     setIsExpanded(false);
   }, [handleResetType]);
+  
+  const createPost = async (type: PostType, contentPayload: any) => {
+    const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
+    const postData = {
+      authorId: user.uid,
+      authorName: user.displayName || user.email,
+      authorPhotoURL: user.photoURL,
+      postType: type,
+      content: contentPayload,
+      likeCount: 0,
+      commentCount: 0,
+      likes: [],
+      createdAt: serverTimestamp(),
+    };
+    
+    const postDoc = await addDoc(postCollectionRef, postData);
+    
+    if (type === 'IMAGE' && mediaFile) {
+      const postId = postDoc.id;
+      const storagePath = `media/${congregationId}/${user.uid}/${postId}/${mediaFile.name}`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, mediaFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      await updateDoc(postDoc, {
+          'content.imageUrl': downloadURL,
+          'content.thumbnailUrl': downloadURL
+      });
+    }
+  }
 
   const handleSubmit = async () => {
-    if (!text.trim() && !mediaFile && !youtubeVideo && !bibleVerseContent) {
+    if (!text.trim() && !mediaFile && !youtubeVideo) {
         toast({ variant: 'destructive', title: 'Publicação vazia', description: 'Escreva algo ou adicione uma mídia.' });
         return;
     }
@@ -176,39 +215,12 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
             case 'BACKGROUND_TEXT':
                 content = { text: text || '', backgroundStyle: backgroundStyle || null };
                 break;
-            case 'BIBLE_VERSE':
-                content = bibleVerseContent;
-                break;
             case 'IMAGE':
                 content = { text: text || '', imageUrl: '' }; // imageUrl will be updated later
                 break;
         }
 
-        const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
-        const postDoc = await addDoc(postCollectionRef, {
-            authorId: user.uid,
-            authorName: user.displayName || user.email,
-            authorPhotoURL: user.photoURL,
-            postType: finalPostType,
-            content,
-            likeCount: 0,
-            commentCount: 0,
-            likes: [],
-            createdAt: serverTimestamp(),
-        });
-        const postId = postDoc.id;
-
-        if (finalPostType === 'IMAGE' && mediaFile) {
-            const storagePath = `media/${congregationId}/${user.uid}/${postId}/${mediaFile.name}`;
-            const storageRef = ref(storage, storagePath);
-            await uploadBytes(storageRef, mediaFile);
-            const downloadURL = await getDownloadURL(storageRef);
-
-            await updateDoc(postDoc, {
-                'content.imageUrl': downloadURL,
-                'content.thumbnailUrl': downloadURL
-            });
-        }
+        await createPost(finalPostType, content);
         
         toast({ title: 'Sucesso!', description: 'Sua publicação foi compartilhada.' });
         resetForm();
@@ -236,7 +248,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        if (text || mediaFile || backgroundStyle || bibleVerseContent) {
+        if (text || mediaFile || backgroundStyle) {
             return;
         }
         setIsExpanded(false);
@@ -244,7 +256,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [formRef, text, mediaFile, backgroundStyle, bibleVerseContent]);
+  }, [formRef, text, mediaFile, backgroundStyle]);
 
   const currentBgClass = backgroundStyles.find(bg => bg.id === backgroundStyle)?.class || 'bg-background';
   const currentBgId = backgroundStyles.find(bg => bg.id === backgroundStyle)?.id || '';
@@ -277,30 +289,16 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                   <AvatarFallback>{user.displayName?.[0].toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                  {postType === 'BIBLE_VERSE' && bibleVerseContent ? (
-                      <div className="p-3 bg-muted/50 rounded-lg border-l-4 border-primary relative">
-                          <blockquote className="italic text-card-foreground">
-                              “{bibleVerseContent.text}”
-                          </blockquote>
-                          <p className="text-right font-semibold text-primary mt-2">
-                              — {bibleVerseContent.reference} ({bibleVerseContent.version})
-                          </p>
-                           <Button variant="outline" size="sm" className="absolute -top-3 -right-3 h-7" onClick={() => setIsVerseSelectorOpen(true)}>
-                               <Edit className="h-3 w-3 mr-1"/> Alterar
-                          </Button>
-                      </div>
-                  ) : (
-                      <Textarea
-                          ref={textareaRef}
-                          placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
-                          value={text}
-                          onChange={handleTextChange}
-                          className={cn(
-                              "min-h-[100px] resize-none text-base border-none focus-visible:ring-0 !p-0 shadow-none bg-transparent",
-                              postType === 'BACKGROUND_TEXT' && `min-h-[180px] text-center text-2xl font-bold flex items-center justify-center p-4 rounded-lg text-white ${currentBgClass}`
-                          )}
-                      />
-                  )}
+                  <Textarea
+                      ref={textareaRef}
+                      placeholder={postType === 'BACKGROUND_TEXT' ? 'Escreva algo impactante...' : 'No que você está pensando?'}
+                      value={text}
+                      onChange={handleTextChange}
+                      className={cn(
+                          "min-h-[100px] resize-none text-base border-none focus-visible:ring-0 !p-0 shadow-none bg-transparent",
+                          postType === 'BACKGROUND_TEXT' && `min-h-[180px] text-center text-2xl font-bold flex items-center justify-center p-4 rounded-lg text-white ${currentBgClass}`
+                      )}
+                  />
               </div>
           </div>
           
@@ -358,12 +356,12 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
           </div>
 
           <div className="px-4 py-2">
-              <Button onClick={handleSubmit} disabled={isUploading || (!text.trim() && !mediaFile && !youtubeVideo && !bibleVerseContent)} className="w-full">
+              <Button onClick={handleSubmit} disabled={isUploading || (!text.trim() && !mediaFile && !youtubeVideo)} className="w-full">
                   {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
               </Button>
           </div>
       </div>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()}>
           <VerseSelector 
               onVerseSelected={handleVerseSelected}
               onCancel={() => setIsVerseSelectorOpen(false)}

@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { BookOpen } from 'lucide-react';
+import { downloadVerseImage } from '@/lib/download-verse-image';
 
 
 function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
@@ -362,6 +363,17 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       }
   }
 
+  const handleDownload = () => {
+    if (post.postType !== 'BIBLE_VERSE') return;
+    const verseContent = post.content as BibleVerseContent;
+    downloadVerseImage({
+      reference: verseContent.reference,
+      text: verseContent.text,
+      version: verseContent.version,
+      authorName: post.authorName,
+    });
+  };
+
   const PostText = ({ text }: { text: string }) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
@@ -554,6 +566,12 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
                   <MessageCircle className="h-4 w-4"/>
                   <span className="font-semibold">Comentar</span>
               </Button>
+               {post.postType === 'BIBLE_VERSE' && (
+                  <Button variant="ghost" size="sm" className="w-full gap-2 h-8" onClick={handleDownload}>
+                      <Download className="h-4 w-4" />
+                      <span className="font-semibold">Baixar</span>
+                  </Button>
+              )}
           </div>
       </div>
        {showComments && (

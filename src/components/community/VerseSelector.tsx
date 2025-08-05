@@ -104,8 +104,8 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
     }
   };
   
-  const handleBookChange = (bookId: string) => {
-    const book = books.find(b => b.id === bookId) || null;
+  const handleBookChange = (bookAbbrev: string) => {
+    const book = books.find(b => b.abbrev.pt === bookAbbrev) || null;
     setSelectedBook(book);
     setSelectedChapter('');
     setStartVerse('');
@@ -126,11 +126,11 @@ export function VerseSelector({ onVerseSelected, onCancel }: VerseSelectorProps)
 
       <div className="space-y-3 p-1" onMouseDown={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-           <Select onValueChange={handleBookChange} value={selectedBook?.id || ""} disabled={isLoadingBooks}>
+           <Select onValueChange={handleBookChange} value={selectedBook?.abbrev.pt} disabled={isLoadingBooks}>
               <SelectTrigger><SelectValue placeholder={isLoadingBooks ? "Carregando..." : "Escolha um livro"} /></SelectTrigger>
               <SelectContent>
                   {books.map(book => (
-                      <SelectItem key={book.id || book.name} value={book.id || ''}>{book.name}</SelectItem>
+                      <SelectItem key={book.abbrev.pt} value={book.abbrev.pt}>{book.name}</SelectItem>
                   ))}
               </SelectContent>
           </Select>

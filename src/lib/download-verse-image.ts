@@ -29,7 +29,7 @@ function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y:
   const totalTextHeight = lineCount * lineHeight;
   let startY = y - totalTextHeight / 2 + lineHeight / 2;
   
-  if(startY - (lineHeight / 2) < 100) startY = 100;
+  if(startY - (lineHeight / 2) < 150) startY = 150; // Ensure it does not go too high
 
   for (const l of lines) {
     context.fillText(l.trim(), x, startY);
@@ -39,46 +39,68 @@ function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y:
   return startY;
 }
 
+// SVG path for the BookOpen icon
+const bookOpenIconPath = new Path2D("M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z");
+
 export const downloadVerseImage = (verseData: VerseData): void => {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   if (!context) return;
 
-  const width = 1280;
-  const height = 720;
+  const width = 1200;
+  const height = 630; // 1.91:1 aspect ratio for social media
   canvas.width = width;
   canvas.height = height;
 
-  // Use um fundo que respeita a identidade visual do app
-  const gradient = context.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, '#FFFFFF'); // Branco no topo
-  gradient.addColorStop(1, '#E8F0FE'); // Azul claro de fundo do app
+  // Gradiente de fundo consistente com o PostCard
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, '#f3e8ff');    // from-purple-100
+  gradient.addColorStop(0.5, '#e0e7ff'); // via-indigo-100
+  gradient.addColorStop(1, '#f1f5f9');    // to-slate-100
   context.fillStyle = gradient;
   context.fillRect(0, 0, width, height);
 
-  // Texto do versículo com a cor de texto principal
+  // -- Conteúdo Centralizado ---
   const maxWidth = width - 160;
-  context.font = 'italic 52px Georgia, serif';
-  context.fillStyle = '#312E38'; // Cor de texto principal (foreground)
+  
+  // 1. Renderizar o texto do versículo primeiro para obter sua altura e posição
+  context.font = 'italic 50px Georgia, serif';
+  context.fillStyle = '#312e81'; // Cor do texto do versículo (indigo-950/90)
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  
-  const lastLineY = wrapText(context, `“${verseData.text}”`, width / 2, height / 2, maxWidth, 64);
+  const lastLineY = wrapText(context, `“${verseData.text}”`, width / 2, height / 2 + 20, maxWidth, 62);
 
-  // Texto da referência com a cor primária
-  context.font = 'normal 36px "Palatino Linotype", "Book Antiqua", Palatino, serif';
-  context.fillStyle = '#75A9FF'; // Cor primária
-  const referenceText = `— ${verseData.reference} (${verseData.version})`;
-  const referenceY = lastLineY + 20; // Espaçamento
-  context.fillText(referenceText, width / 2, referenceY);
+  // 2. Renderizar a referência e o ícone ACIMA do texto do versículo
+  const referenceY = (height / 2 + 20) - ((lastLineY - (height / 2 + 20)) / 2) - 100; // Posição calculada
   
-  // Marca d'água sutil
-  context.globalAlpha = 0.5;
-  context.font = 'bold 20px "PT Sans", sans-serif';
-  context.fillStyle = '#A375FF'; // Cor de destaque (accent)
+  // Medir o texto da referência para centralizar o conjunto (ícone + texto)
+  context.font = 'bold 32px "PT Sans", sans-serif';
+  context.fillStyle = '#4338ca'; // Cor da referência (indigo-900/90)
+  const referenceText = `${verseData.reference} (${verseData.version})`;
+  const referenceMetrics = context.measureText(referenceText);
+  const iconWidth = 28;
+  const iconGap = 12;
+  const totalHeaderWidth = iconWidth + iconGap + referenceMetrics.width;
+  const headerStartX = (width - totalHeaderWidth) / 2;
+
+  // Desenhar o Ícone
+  context.save();
+  context.translate(headerStartX, referenceY - 14); // Ajuste vertical
+  context.scale(1.2, 1.2); // Aumenta o tamanho do ícone
+  context.fillStyle = '#4338ca'; // Cor do ícone
+  context.fill(bookOpenIconPath);
+  context.restore();
+
+  // Escrever a Referência
   context.textAlign = 'left';
-  context.fillText('Gerado por Verbo Vivo', 40, height - 30);
-  context.globalAlpha = 1.0;
+  context.fillText(referenceText, headerStartX + iconWidth + iconGap, referenceY);
+
+
+  // Marca d'água 'Verbo Vivo' sutil no rodapé
+  context.font = 'bold 20px "PT Sans", sans-serif';
+  context.fillStyle = 'rgba(0, 0, 0, 0.25)'; // Cor sutil
+  context.textAlign = 'center';
+  context.fillText('Compartilhado via Verbo Vivo', width / 2, height - 30);
 
 
   const link = document.createElement('a');
@@ -86,3 +108,4 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   link.href = canvas.toDataURL('image/png');
   link.click();
 };
+

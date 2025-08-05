@@ -9,8 +9,8 @@ import { bibleBooksByAbbrev } from '@/lib/bible-books-by-abbrev';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '../ui/use-toast';
-import { Card, CardContent } from '../ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface VerseSelectorProps {
   onVerseSelected: (verseContent: BibleVerseContent) => void;

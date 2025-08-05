@@ -11,12 +11,11 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { PostType, BibleVerseContent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { downloadVerseImage } from "@/lib/download-verse-image";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image as ImageIcon, Palette, X, Youtube, BookOpen, Download, Edit } from "lucide-react";
+import { Loader2, Image as ImageIcon, Palette, X, Youtube, BookOpen } from "lucide-react";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { VerseSelector } from "./VerseSelector";
@@ -57,7 +56,6 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   const [youtubeVideo, setYoutubeVideo] = useState<YoutubeVideoInfo | null>(null);
   const [useYoutubeThumbnail, setUseYoutubeThumbnail] = useState(true);
   const [backgroundStyle, setBackgroundStyle] = useState('');
-  const [bibleVerseContent, setBibleVerseContent] = useState<BibleVerseContent | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isVerseSelectorOpen, setIsVerseSelectorOpen] = useState(false);
   
@@ -77,9 +75,19 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     setUseYoutubeThumbnail(true);
   }, []);
   
-  const clearVerse = useCallback(() => {
-    setBibleVerseContent(null);
-  }, []);
+  const handleResetType = () => {
+    setPostType('TEXT');
+    setBackgroundStyle('');
+    clearMedia();
+    clearYoutube();
+  }
+
+  const resetForm = useCallback(() => {
+    setText('');
+    handleResetType();
+    setIsUploading(false);
+    setIsExpanded(false);
+  }, [handleResetType]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
@@ -106,7 +114,6 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
         return;
       }
       clearYoutube();
-      clearVerse();
       setMediaFile(file);
       setMediaPreview(URL.createObjectURL(file));
       setPostType('IMAGE');
@@ -116,50 +123,26 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   
   const handleSelectBg = (styleId: string) => {
     clearYoutube();
-    clearVerse();
     setBackgroundStyle(styleId);
     setPostType('BACKGROUND_TEXT');
     clearMedia();
   }
   
-  const handleSelectVerse = () => {
-    clearMedia();
-    clearYoutube();
-    setBackgroundStyle('');
-    setIsVerseSelectorOpen(true);
-  }
-
   const handleVerseSelected = async (verse: BibleVerseContent) => {
     setIsUploading(true);
-    
     try {
-       await createPost('BIBLE_VERSE', verse);
-       toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
-       setIsVerseSelectorOpen(false);
-       resetForm();
-    } catch(error) {
-       console.error('Error posting verse:', error);
-       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível compartilhar seu versículo.' });
+      await createPost('BIBLE_VERSE', verse);
+      toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
+      setIsVerseSelectorOpen(false); // Close the modal on success
+      resetForm();
+    } catch (error) {
+      console.error('Error posting verse:', error);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível compartilhar seu versículo.' });
     } finally {
       setIsUploading(false);
     }
   };
-  
-  const handleResetType = () => {
-    setPostType('TEXT');
-    setBackgroundStyle('');
-    clearMedia();
-    clearYoutube();
-    clearVerse();
-  }
 
-  const resetForm = useCallback(() => {
-    setText('');
-    handleResetType();
-    setIsUploading(false);
-    setIsExpanded(false);
-  }, [handleResetType]);
-  
   const createPost = async (type: PostType, contentPayload: any) => {
     const postCollectionRef = collection(db, 'congregations', congregationId, 'posts');
     const postData = {
@@ -281,7 +264,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
 
   return (
     <div ref={formRef} className={cn("flex flex-col gap-0 bg-card sm:rounded-lg border-b sm:border", className)}>
-        <Dialog open={isVerseSelectorOpen} onOpenChange={setIsVerseSelectorOpen}>
+        <Dialog open={isVerseSelectorOpen} onOpenChange={setIsVerseSelectorOpen} modal={true}>
           <div className="flex items-start gap-4 p-4">
               <Avatar className="h-10 w-10 border">
                   <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
@@ -339,7 +322,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                   <ImageIcon className="h-5 w-5 text-green-500" />
                </Button>
                 <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleSelectVerse} title="Compartilhar Versículo">
+                    <Button variant="ghost" size="icon" title="Compartilhar Versículo">
                         <BookOpen className="h-5 w-5 text-indigo-500" />
                     </Button>
                 </DialogTrigger>

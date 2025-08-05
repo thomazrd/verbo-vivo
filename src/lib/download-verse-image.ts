@@ -29,14 +29,13 @@ function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y:
   const totalTextHeight = lineCount * lineHeight;
   let startY = y - totalTextHeight / 2 + lineHeight / 2;
   
-  if(startY - (lineHeight / 2) < 100) startY = 100; // Prevent text from going off top
+  if(startY - (lineHeight / 2) < 100) startY = 100;
 
   for (const l of lines) {
     context.fillText(l.trim(), x, startY);
     startY += lineHeight;
   }
   
-  // Return the y position of the last line of text for reference positioning
   return startY;
 }
 
@@ -50,58 +49,40 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   canvas.width = width;
   canvas.height = height;
 
-  // Create gradient background matching the PostCard
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, '#5b21b6'); // from-purple-800
-  gradient.addColorStop(0.5, '#312e81'); // via-indigo-900
-  gradient.addColorStop(1, '#0f172a'); // to-slate-900
+  // Use um fundo que respeita a identidade visual do app
+  const gradient = context.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, '#FFFFFF'); // Branco no topo
+  gradient.addColorStop(1, '#E8F0FE'); // Azul claro de fundo do app
   context.fillStyle = gradient;
   context.fillRect(0, 0, width, height);
 
-  // Verse Text properties
-  const maxWidth = width - 160; // 80px padding on each side
+  // Texto do versículo com a cor de texto principal
+  const maxWidth = width - 160;
   context.font = 'italic 52px Georgia, serif';
-  context.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  context.fillStyle = '#312E38'; // Cor de texto principal (foreground)
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-  context.shadowBlur = 10;
-  context.shadowOffsetY = 2;
   
   const lastLineY = wrapText(context, `“${verseData.text}”`, width / 2, height / 2, maxWidth, 64);
-  
-  // Clear shadow for reference text
-  context.shadowColor = 'transparent';
-  context.shadowBlur = 0;
-  context.shadowOffsetY = 0;
 
-  // Reference Text
+  // Texto da referência com a cor primária
   context.font = 'normal 36px "Palatino Linotype", "Book Antiqua", Palatino, serif';
-  context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  context.fillStyle = '#75A9FF'; // Cor primária
   const referenceText = `— ${verseData.reference} (${verseData.version})`;
-  const referenceY = lastLineY; // Position below the main text
+  const referenceY = lastLineY + 20; // Espaçamento
   context.fillText(referenceText, width / 2, referenceY);
+  
+  // Marca d'água sutil
+  context.globalAlpha = 0.5;
+  context.font = 'bold 20px "PT Sans", sans-serif';
+  context.fillStyle = '#A375FF'; // Cor de destaque (accent)
+  context.textAlign = 'left';
+  context.fillText('Gerado por Verbo Vivo', 40, height - 30);
+  context.globalAlpha = 1.0;
 
-  // Watermark / Logo
-  const logoImage = new Image();
-  logoImage.crossOrigin = "anonymous";
-  logoImage.src = 'https://dynamic.tiggomark.com.br/images/logo_icon_white.png';
-  logoImage.onload = () => {
-    context.globalAlpha = 0.5;
-    context.drawImage(logoImage, width - 40 - 16, 16, 40, 40); // 40x40px icon, 16px from top-right
-    context.globalAlpha = 1.0;
 
-    // Download logic
-    const link = document.createElement('a');
-    link.download = `${verseData.reference.replace(/[:\s]/g, '_')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }
-  logoImage.onerror = () => { // Fallback if logo fails
-    console.error("Could not load logo for canvas.");
-    const link = document.createElement('a');
-    link.download = `${verseData.reference.replace(/[:\s]/g, '_')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }
+  const link = document.createElement('a');
+  link.download = `${verseData.reference.replace(/[:\s]/g, '_')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 };

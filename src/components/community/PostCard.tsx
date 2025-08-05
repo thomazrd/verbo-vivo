@@ -499,13 +499,26 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
       case 'BIBLE_VERSE':
         const verseContent = post.content as BibleVerseContent;
         return (
-            <div className="bg-gradient-to-tr from-primary/90 to-accent/90 text-white p-6 min-h-[200px] flex flex-col justify-center items-center text-center">
-                <blockquote className="font-serif italic text-2xl md:text-3xl text-shadow">
-                    “{verseContent.text}”
-                </blockquote>
-                <p className="mt-4 font-semibold text-lg text-shadow-sm">
-                    — {verseContent.reference} ({verseContent.version})
-                </p>
+            <div 
+                className="bg-cover bg-center text-white p-8 min-h-[250px] flex flex-col justify-center items-center text-center relative"
+                style={{backgroundImage: 'url(https://dynamic.tiggomark.com.br/images/paper_texture.jpg)'}}
+            >
+                <div className="absolute inset-0 bg-primary/80 backdrop-blur-[1px]"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                    <Image
+                      src="https://dynamic.tiggomark.com.br/images/logo_branca.png" 
+                      alt="Verbo Vivo Icon"
+                      width={64}
+                      height={64}
+                      className="opacity-80 mb-4"
+                    />
+                    <blockquote className="font-serif italic text-2xl md:text-3xl text-shadow-md">
+                        “{verseContent.text}”
+                    </blockquote>
+                    <p className="mt-4 font-semibold text-lg text-shadow-sm opacity-90">
+                        — {verseContent.reference} ({verseContent.version})
+                    </p>
+                </div>
             </div>
         );
       case 'TEXT':
@@ -583,7 +596,7 @@ function PostCard({ post, congregationId, onLike }: { post: Post, congregationId
                 comment={comment}
                 allComments={comments}
                 congregationId={congregationId}
-                postId={post.id}
+                postId={postId}
                 postAuthorId={post.authorId}
                 onCommentSubmit={fetchComments}
             />

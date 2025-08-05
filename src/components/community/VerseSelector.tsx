@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -15,7 +16,7 @@ import { Label } from '../ui/label';
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 
 interface VerseSelectorProps {
-  onVerseSelected: (verseContent: BibleVerseContent) => void;
+  onVerseSelected: (verseContent: BibleVerseContent) => Promise<void>;
   onCancel: () => void;
 }
 

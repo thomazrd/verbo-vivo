@@ -126,17 +126,16 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
     clearMedia();
     clearYoutube();
     setBackgroundStyle('');
-    setBibleVerseContent(null); // Reset before opening
     setIsVerseSelectorOpen(true);
   }
 
   const handleVerseSelected = async (verse: BibleVerseContent) => {
-    setIsVerseSelectorOpen(false); // Close modal
-    setIsUploading(true); // Show loading state on main form
+    setIsUploading(true);
     
     try {
        await createPost('BIBLE_VERSE', verse);
        toast({ title: "Versículo Postado!", description: "Sua postagem foi compartilhada com a comunidade." });
+       setIsVerseSelectorOpen(false);
        resetForm();
     } catch(error) {
        console.error('Error posting verse:', error);
@@ -281,8 +280,8 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
   }
 
   return (
-    <Dialog open={isVerseSelectorOpen} onOpenChange={setIsVerseSelectorOpen}>
-      <div ref={formRef} className={cn("flex flex-col gap-0 bg-card sm:rounded-lg border-b sm:border", className)}>
+    <div ref={formRef} className={cn("flex flex-col gap-0 bg-card sm:rounded-lg border-b sm:border", className)}>
+        <Dialog open={isVerseSelectorOpen} onOpenChange={setIsVerseSelectorOpen}>
           <div className="flex items-start gap-4 p-4">
               <Avatar className="h-10 w-10 border">
                   <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
@@ -339,9 +338,11 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Adicionar Imagem">
                   <ImageIcon className="h-5 w-5 text-green-500" />
                </Button>
-                <Button variant="ghost" size="icon" onClick={handleSelectVerse} title="Compartilhar Versículo">
-                  <BookOpen className="h-5 w-5 text-indigo-500" />
-               </Button>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleSelectVerse} title="Compartilhar Versículo">
+                        <BookOpen className="h-5 w-5 text-indigo-500" />
+                    </Button>
+                </DialogTrigger>
                <Button variant="ghost" size="icon" onClick={() => handleSelectBg(currentBgId ? '' : 'gradient_blue')} title="Fundo Colorido">
                   <Palette className="h-5 w-5 text-blue-500" />
                </Button>
@@ -360,13 +361,13 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                   {isUploading ? <Loader2 className="animate-spin" /> : 'Publicar'}
               </Button>
           </div>
-      </div>
-      <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()}>
-          <VerseSelector 
-              onVerseSelected={handleVerseSelected}
-              onCancel={() => setIsVerseSelectorOpen(false)}
-          />
-      </DialogContent>
-    </Dialog>
+            <DialogContent className="max-w-2xl" onOpenChange={setIsVerseSelectorOpen}>
+              <VerseSelector
+                onVerseSelected={handleVerseSelected}
+                onCancel={() => setIsVerseSelectorOpen(false)}
+              />
+            </DialogContent>
+        </Dialog>
+    </div>
   );
 }

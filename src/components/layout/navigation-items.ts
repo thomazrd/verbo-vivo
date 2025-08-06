@@ -16,12 +16,14 @@ import {
   BookOpenCheck,
   LockKeyhole,
   HandHeart,
+  Swords, // Adicionado ícone de espadas para Treinamento
 } from "lucide-react";
 import type { TFunction } from 'i18next';
 
 export const mainNavItems = (t: TFunction) => [
   { href: "/home", label: t('nav_home'), icon: Home },
   { href: "/studies", label: t('nav_studies'), icon: GraduationCap },
+  { href: "/battle-plans", label: 'Treinamento', icon: Swords }, // Item de Treinamento adicionado
   { href: "/community", label: t('nav_community'), icon: Users },
   { href: "/armor", label: 'Minha Armadura', icon: Shield },
   { href: "/bible", label: t('feature_bible_reader_title'), icon: BookMarked },

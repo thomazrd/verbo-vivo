@@ -5,17 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookHeart,
-  LayoutDashboard,
-  BookCopy,
+  Gauge as LayoutDashboard,
+  Books as BookCopy,
   Lightbulb,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  SignOut,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";
-import { signOut } from "firebase/auth";
+import { signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 interface AdminSidebarProps {
@@ -33,7 +33,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
   ];
   
   const handleSignOut = async () => {
-    await signOut(auth);
+    await firebaseSignOut(auth);
     // The layout's auth check will handle the redirect
   };
 
@@ -41,7 +41,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
   return (
     <div
       className={cn(
-        "hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:flex-col border-r bg-background transition-[width] duration-300 ease-in-out",
+        "hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:flex-col border-e bg-background transition-[width] duration-300 ease-in-out",
         isCollapsed ? "md:w-16" : "md:w-56"
       )}
     >
@@ -94,8 +94,8 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
              <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" className="w-full justify-center" size={isCollapsed ? 'icon' : 'default'} onClick={handleSignOut}>
-                    <LogOut className="h-5 w-5" />
-                    {!isCollapsed && <span className="ml-2">Sair</span>}
+                    <SignOut className="h-5 w-5" />
+                    {!isCollapsed && <span className="ms-2">Sair</span>}
                   </Button>
                 </TooltipTrigger>
                 {isCollapsed && <TooltipContent side="right">Sair</TooltipContent>}
@@ -111,5 +111,3 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
     </div>
   );
 }
-
-    

@@ -19,6 +19,8 @@ export default {
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'],
         serif: ['var(--font-serif)', 'serif'],
+        jp: ['var(--font-jp)', 'sans-serif'],
+        sc: ['var(--font-sc)', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

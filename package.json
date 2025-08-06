@@ -89,6 +89,7 @@
     "jest-environment-jsdom": "^30.0.4",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.1",
+    "ts-jest": "^29.4.0",
     "ts-jest": "^29.4.0"
   }
 }

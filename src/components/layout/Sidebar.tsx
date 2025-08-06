@@ -11,17 +11,17 @@ import {
   HeartHandshake,
   Users,
   BookUser,
-  BookMarked,
-  Share2,
-  ChevronLeft,
-  ChevronRight,
-  Home,
+  BookBookmark as BookMarked,
+  ShareNetwork as Share2,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  House as Home,
   Smile,
   Newspaper,
   Shield,
   LockKeyhole,
   GraduationCap,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";
@@ -59,7 +59,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   return (
     <div
       className={cn(
-        "hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:flex-col border-r bg-background transition-[width] duration-300 ease-in-out",
+        "hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:flex-col border-e bg-background transition-[width] duration-300 ease-in-out",
         isCollapsed ? "md:w-[68px]" : "md:w-[220px] lg:w-[280px]"
       )}
     >

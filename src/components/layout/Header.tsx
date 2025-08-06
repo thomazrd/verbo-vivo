@@ -12,8 +12,6 @@ import {
   MessageSquare,
   BookOpen,
   NotebookText,
-  LogOut,
-  Settings,
   User,
   Users,
   BookUser,
@@ -27,7 +25,9 @@ import {
   Shield,
   LockKeyhole,
   GraduationCap,
-} from "lucide-react";
+  SignOut,
+  Gear,
+} from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   DropdownMenu,
@@ -148,12 +148,12 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <Gear className="me-2 h-4 w-4" />
                   <span>{t('nav_settings')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <SignOut className="me-2 h-4 w-4" />
                   <span>{t('sign_out_button')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

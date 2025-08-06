@@ -5,20 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookHeart,
-  MessageSquare,
-  Users,
-  NotebookText,
   ChevronLeft,
   ChevronRight,
-  Home,
-  Shield,
-  GraduationCap,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";
 import { useTranslation } from "react-i18next";
+import { mainNavItems, secondaryNavItems } from "./navigation-items";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -29,19 +24,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
-  
-  const navItems = [
-    { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/studies", label: "Estudar", icon: GraduationCap },
-    { href: "/community", label: t('nav_community'), icon: Users },
-    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/armor", label: 'Minha Armadura', icon: Shield },
-    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
-  ];
-
-  const secondaryNavItems = [
-    { href: "/settings", label: t('nav_settings'), icon: Settings },
-  ]
 
   return (
     <nav
@@ -61,7 +43,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <TooltipProvider delayDuration={0}>
             <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4">
-              {navItems.map((item) => (
+              {mainNavItems(t).map((item) => (
                 <li key={item.href}>
                   {isCollapsed ? (
                     <Tooltip>
@@ -95,7 +77,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               ))}
             </ul>
              <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4 mt-auto border-t">
-              {secondaryNavItems.map((item) => (
+              {secondaryNavItems(t).map((item) => (
                 <li key={item.href}>
                   {isCollapsed ? (
                     <Tooltip>

@@ -10,23 +10,14 @@ import { cn } from "@/lib/utils";
 import {
   BookHeart,
   MessageSquare,
-  BookOpen,
-  NotebookText,
-  User,
   Users,
-  BookUser,
-  HeartHandshake,
+  NotebookText,
   Menu,
-  BookMarked,
-  Share2,
   Home,
-  Smile,
-  Newspaper,
   Shield,
-  LockKeyhole,
   GraduationCap,
-  LogOut,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -47,21 +38,14 @@ import {
 import { NotificationBell } from "../notifications/NotificationBell";
 import { WisdomPearl } from "./WisdomPearl";
 import { useTranslation } from "react-i18next";
+import { ScrollArea } from "../ui/scroll-area";
+import { secondaryNavItems, mainNavItems } from "./navigation-items";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const { t } = useTranslation();
-
-  const navItems = [
-    { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/studies", label: "Estudar", icon: GraduationCap },
-    { href: "/community", label: t('nav_community'), icon: Users },
-    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/armor", label: 'Minha Armadura', icon: Shield },
-    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
-  ];
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -70,6 +54,60 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      {/* Mobile Menu */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="md:hidden shrink-0">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Abrir menu de navegação</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="flex flex-col p-0">
+          <div className="flex h-16 items-center border-b px-4 shrink-0">
+            <Link href="/home" className="flex items-center gap-2 font-semibold">
+              <BookHeart className="h-6 w-6 text-primary" />
+              <span className="">Verbo Vivo</span>
+            </Link>
+          </div>
+          <ScrollArea className="flex-1">
+            <nav className="grid items-start p-4 text-base font-medium gap-1">
+              {mainNavItems(t).map((item) => (
+                 <SheetClose asChild key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                      pathname.startsWith(item.href) && "bg-muted text-primary"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                </SheetClose>
+              ))}
+            </nav>
+            <div className="px-4"><div className="border-t my-2"></div></div>
+            <nav className="grid items-start p-4 text-base font-medium gap-1">
+               {secondaryNavItems(t).map((item) => (
+                 <SheetClose asChild key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                      pathname.startsWith(item.href) && "bg-muted text-primary"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                </SheetClose>
+              ))}
+            </nav>
+
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
       <div className="flex-1 items-center justify-center hidden md:flex">
          <WisdomPearl />
       </div>
@@ -84,7 +122,7 @@ export function Header() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || 'Avatar do usuário'} />
                     <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                      {userProfile?.displayName?.[0]?.toUpperCase() || <User />}
+                      {userProfile?.displayName?.[0]?.toUpperCase() || <UserIcon />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>

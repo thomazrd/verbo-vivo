@@ -50,6 +50,7 @@ const languages = [
     { code: 'es', name: 'Español' },
     { code: 'zh', name: '中文 (Chinês)' },
     { code: 'ja', name: '日本語 (Japonês)' },
+    { code: 'ar', name: 'العربية (Árabe)' },
 ];
 
 const aiModels = [

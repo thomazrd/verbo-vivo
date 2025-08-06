@@ -1,4 +1,3 @@
-
 "use strict";
 /**
  * @fileoverview Cloud Functions para o sistema de notificações do Verbo Vivo.
@@ -41,12 +40,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCongregation = exports.requestToJoinCongregation = exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewPost = exports.onNewComment = exports.onNewPostLike = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const cors = __importStar(require("cors"));
 admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
-function generateInviteCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+// Configuração do CORS
+const corsHandler = cors({
+    origin: (origin, callback) => {
+        // Permite requisições de localhost para desenvolvimento local
+        if (!origin || /localhost:\d+$/.test(origin) || origin.endsWith('cloudworkstations.dev') || origin.endsWith('firebaseapp.com') || origin.endsWith('web.app')) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+});
 /**
  * Função principal que cria um documento de notificação e envia um push.
  */
@@ -221,148 +230,178 @@ exports.onCongregationApproval = functions.region(region)
  * Função Chamável para Aprovar Membros
  */
 exports.approveCongregationMemberRequest = functions.region(region)
-    .https.onCall(async (data, context) => {
-    var _a, _b, _c;
-    const adminUid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
-    const { congregationId, targetUserId } = data;
-    if (!adminUid) {
-        throw new functions.https.HttpsError("unauthenticated", "Você deve estar logado para realizar esta ação.");
-    }
-    if (!congregationId || !targetUserId) {
-        throw new functions.https.HttpsError("invalid-argument", " congregationId e targetUserId são obrigatórios.");
-    }
-    const congregationRef = db.doc(`congregations/${congregationId}`);
-    const memberRef = db.doc(`congregations/${congregationId}/members/${targetUserId}`);
-    const userRef = db.doc(`users/${targetUserId}`);
-    const congregationDoc = await congregationRef.get();
-    if (!congregationDoc.exists) {
-        throw new functions.https.HttpsError("not-found", "Congregação não encontrada.");
-    }
-    // Verificar se o chamador é um admin da congregação
-    const isAdmin = ((_c = (_b = congregationDoc.data()) === null || _b === void 0 ? void 0 : _b.admins) === null || _c === void 0 ? void 0 : _c[adminUid]) === true;
-    if (!isAdmin) {
-        throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para aprovar membros.");
-    }
-    const batch = db.batch();
-    batch.update(memberRef, { status: "MEMBER", joinedAt: admin.firestore.FieldValue.serverTimestamp() });
-    batch.update(userRef, { congregationStatus: "MEMBER" });
-    batch.update(congregationRef, { memberCount: admin.firestore.FieldValue.increment(1) });
-    try {
-        await batch.commit();
-        return { success: true, message: "Membro aprovado com sucesso." };
-    }
-    catch (error) {
-        console.error("Erro ao aprovar membro:", error);
-        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao aprovar o membro.");
-    }
+    .https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        var _a, _b;
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
+        }
+        const adminUid = req.body.data.adminUid;
+        const { congregationId, targetUserId } = req.body.data;
+        if (!adminUid) {
+            res.status(401).json({ error: 'unauthenticated', message: "Você deve estar logado para realizar esta ação." });
+            return;
+        }
+        if (!congregationId || !targetUserId) {
+            res.status(400).json({ error: 'invalid-argument', message: " congregationId e targetUserId são obrigatórios." });
+            return;
+        }
+        const congregationRef = db.doc(`congregations/${congregationId}`);
+        const memberRef = db.doc(`congregations/${congregationId}/members/${targetUserId}`);
+        const userRef = db.doc(`users/${targetUserId}`);
+        const congregationDoc = await congregationRef.get();
+        if (!congregationDoc.exists) {
+            res.status(404).json({ error: 'not-found', message: "Congregação não encontrada." });
+            return;
+        }
+        // Verificar se o chamador é um admin da congregação
+        const isAdmin = ((_b = (_a = congregationDoc.data()) === null || _a === void 0 ? void 0 : _a.admins) === null || _b === void 0 ? void 0 : _b[adminUid]) === true;
+        if (!isAdmin) {
+            res.status(403).json({ error: 'permission-denied', message: "Você não tem permissão para aprovar membros." });
+            return;
+        }
+        const batch = db.batch();
+        batch.update(memberRef, { status: "MEMBER", joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+        batch.update(userRef, { congregationStatus: "MEMBER" });
+        batch.update(congregationRef, { memberCount: admin.firestore.FieldValue.increment(1) });
+        try {
+            await batch.commit();
+            res.status(200).json({ data: { success: true, message: "Membro aprovado com sucesso." } });
+        }
+        catch (error) {
+            console.error("Erro ao aprovar membro:", error);
+            res.status(500).json({ error: 'internal', message: "Ocorreu um erro ao aprovar o membro." });
+        }
+    });
 });
 /**
  * Função Chamável para Solicitar Entrada na Congregação
  */
 exports.requestToJoinCongregation = functions.region(region)
-    .https.onCall(async (data, context) => {
-    var _a, _b, _c, _d, _e;
-    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
-    const { inviteCode } = data;
-    if (!uid) {
-        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
-    }
-    if (!inviteCode) {
-        throw new functions.https.HttpsError("invalid-argument", "Código de convite é obrigatório.");
-    }
-    const userDocRef = db.doc(`users/${uid}`);
-    const userDoc = await userDocRef.get();
-    if (!userDoc.exists) {
-        throw new functions.https.HttpsError("not-found", "Usuário não encontrado.");
-    }
-    if ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.congregationId) {
-        throw new functions.https.HttpsError("failed-precondition", "Você já faz parte ou solicitou entrada em uma congregação.");
-    }
-    const congregationsRef = db.collection("congregations");
-    const q = congregationsRef.where("inviteCode", "==", inviteCode.toUpperCase());
-    const querySnapshot = await q.get();
-    if (querySnapshot.empty) {
-        throw new functions.https.HttpsError("not-found", "Código de convite inválido.");
-    }
-    const congregationDoc = querySnapshot.docs[0];
-    const congregationId = congregationDoc.id;
-    const memberRef = db.doc(`congregations/${congregationId}/members/${uid}`);
-    const batch = db.batch();
-    batch.set(memberRef, {
-        displayName: ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.displayName) || ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.email),
-        photoURL: ((_e = userDoc.data()) === null || _e === void 0 ? void 0 : _e.photoURL) || null,
-        status: 'PENDING',
-        requestedAt: admin.firestore.FieldValue.serverTimestamp()
+    .https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        var _a, _b, _c, _d;
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
+        }
+        const uid = req.body.data.uid;
+        const { inviteCode } = req.body.data;
+        if (!uid) {
+            res.status(401).json({ error: 'unauthenticated', message: 'Você precisa estar logado.' });
+            return;
+        }
+        if (!inviteCode) {
+            res.status(400).json({ error: 'invalid-argument', message: 'Código de convite é obrigatório.' });
+            return;
+        }
+        const userDocRef = db.doc(`users/${uid}`);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            res.status(404).json({ error: 'not-found', message: 'Usuário não encontrado.' });
+            return;
+        }
+        if ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.congregationId) {
+            res.status(412).json({ error: 'failed-precondition', message: 'Você já faz parte ou solicitou entrada em uma congregação.' });
+            return;
+        }
+        const congregationsRef = db.collection("congregations");
+        const q = congregationsRef.where("inviteCode", "==", inviteCode.toUpperCase());
+        const querySnapshot = await q.get();
+        if (querySnapshot.empty) {
+            res.status(404).json({ error: 'not-found', message: 'Código de convite inválido.' });
+            return;
+        }
+        const congregationDoc = querySnapshot.docs[0];
+        const congregationId = congregationDoc.id;
+        const memberRef = db.doc(`congregations/${congregationId}/members/${uid}`);
+        const batch = db.batch();
+        batch.set(memberRef, {
+            displayName: ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.displayName) || ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.email),
+            photoURL: ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.photoURL) || null,
+            status: 'PENDING',
+            requestedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        batch.update(userDocRef, {
+            congregationId: congregationId,
+            congregationStatus: 'PENDING'
+        });
+        try {
+            await batch.commit();
+            res.status(200).json({ data: { success: true, message: "Solicitação enviada com sucesso.", congregationName: congregationDoc.data().name } });
+        }
+        catch (error) {
+            console.error("Erro ao solicitar entrada:", error);
+            res.status(500).json({ error: 'internal', message: 'Ocorreu um erro ao processar sua solicitação.' });
+        }
     });
-    batch.update(userDocRef, {
-        congregationId: congregationId,
-        congregationStatus: 'PENDING'
-    });
-    try {
-        await batch.commit();
-        return { success: true, message: "Solicitação enviada com sucesso.", congregationName: congregationDoc.data().name };
-    }
-    catch (error) {
-        console.error("Erro ao solicitar entrada:", error);
-        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao processar sua solicitação.");
-    }
 });
 /**
  * Função Chamável para Criar uma Congregação
  */
 exports.createCongregation = functions.region(region)
-    .https.onCall(async (data, context) => {
-    var _a, _b, _c, _d, _e;
-    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
-    const { name, city, pastorName, isPublic, baseVerse } = data;
-    if (!uid) {
-        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar logado.");
-    }
-    if (!name || !city || !pastorName) {
-        throw new functions.https.HttpsError("invalid-argument", "Todos os campos são obrigatórios.");
-    }
-    const userDocRef = db.doc(`users/${uid}`);
-    const userDoc = await userDocRef.get();
-    if (!userDoc.exists) {
-        throw new functions.https.HttpsError("not-found", "Usuário não encontrado.");
-    }
-    if ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.congregationId) {
-        throw new functions.https.HttpsError("failed-precondition", "Você já está em uma congregação.");
-    }
-    const congregationRef = db.collection("congregations").doc();
-    const memberRef = db.doc(`congregations/${congregationRef.id}/members/${uid}`);
-    const batch = db.batch();
-    batch.set(congregationRef, {
-        name,
-        city,
-        pastorName,
-        isPublic: isPublic || false,
-        baseVerse: baseVerse || null,
-        admins: { [uid]: true },
-        memberCount: 1,
-        inviteCode: generateInviteCode(),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdBy: uid,
+    .https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        var _a, _b, _c, _d;
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
+        }
+        const uid = req.body.data.uid;
+        const { name, city, pastorName, isPublic, baseVerse } = req.body.data;
+        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        if (!uid) {
+            res.status(401).json({ error: 'unauthenticated', message: 'Você precisa estar logado.' });
+            return;
+        }
+        if (!name || !city || !pastorName) {
+            res.status(400).json({ error: 'invalid-argument', message: 'Todos os campos são obrigatórios.' });
+            return;
+        }
+        const userDocRef = db.doc(`users/${uid}`);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            res.status(404).json({ error: 'not-found', message: 'Usuário não encontrado.' });
+            return;
+        }
+        if ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.congregationId) {
+            res.status(412).json({ error: 'failed-precondition', message: 'Você já está em uma congregação.' });
+            return;
+        }
+        const congregationRef = db.collection("congregations").doc();
+        const memberRef = db.doc(`congregations/${congregationRef.id}/members/${uid}`);
+        const batch = db.batch();
+        batch.set(congregationRef, {
+            name,
+            city,
+            pastorName,
+            isPublic: isPublic || false,
+            baseVerse: baseVerse || null,
+            admins: { [uid]: true },
+            memberCount: 1,
+            inviteCode: inviteCode,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: uid,
+        });
+        batch.set(memberRef, {
+            displayName: ((_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.displayName) || ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.email),
+            photoURL: ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.photoURL) || null,
+            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'ADMIN',
+        });
+        batch.update(userDocRef, {
+            congregationId: congregationRef.id,
+            congregationStatus: 'ADMIN'
+        });
+        try {
+            await batch.commit();
+            res.status(200).json({ data: { success: true, message: "Congregação criada com sucesso.", congregationId: congregationRef.id } });
+        }
+        catch (error) {
+            console.error("Erro ao criar congregação:", error);
+            res.status(500).json({ error: 'internal', message: 'Ocorreu um erro ao criar a congregação.' });
+        }
     });
-    batch.set(memberRef, {
-        displayName: ((_c = userDoc.data()) === null || _c === void 0 ? void 0 : _c.displayName) || ((_d = userDoc.data()) === null || _d === void 0 ? void 0 : _d.email),
-        photoURL: ((_e = userDoc.data()) === null || _e === void 0 ? void 0 : _e.photoURL) || null,
-        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'ADMIN',
-    });
-    batch.update(userDocRef, {
-        congregationId: congregationRef.id,
-        congregationStatus: 'ADMIN'
-    });
-    try {
-        await batch.commit();
-        return { success: true, message: "Congregação criada com sucesso.", congregationId: congregationRef.id };
-    }
-    catch (error) {
-        console.error("Erro ao criar congregação:", error);
-        throw new functions.https.HttpsError("internal", "Ocorreu um erro ao criar a congregação.");
-    }
 });
 //# sourceMappingURL=index.js.map
-
-    

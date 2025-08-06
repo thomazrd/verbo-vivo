@@ -6,7 +6,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import * as cors from "cors";
+import cors from "cors";
 
 admin.initializeApp();
 
@@ -15,7 +15,7 @@ const messaging = admin.messaging();
 
 // Configuração do CORS
 const corsHandler = cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Permite requisições de localhost para desenvolvimento local
         if (!origin || /localhost:\d+$/.test(origin) || origin.endsWith('cloudworkstations.dev') || origin.endsWith('firebaseapp.com') || origin.endsWith('web.app')) {
             callback(null, true);

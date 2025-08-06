@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Inter as FontSans, JetBrains_Mono as FontMono } from "next/font/google";
+import { Montserrat, Noto_Serif as FontSerif } from "next/font/google";
 import "./globals.css";
 import "@/i18n"; // Import to initialize i18next
 import { cn } from "@/lib/utils";
@@ -9,14 +9,14 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";
 import I18nInitializer from "@/components/layout/I18nInitializer";
 
-const fontSans = FontSans({
+const fontSans = Montserrat({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-const fontMono = FontMono({
+const fontSerif = FontSerif({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-serif",
 });
 
 export default function RootLayout({
@@ -38,7 +38,7 @@ export default function RootLayout({
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable,
-          fontMono.variable
+          fontSerif.variable
         )}
       >
         <I18nInitializer />

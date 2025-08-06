@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Study } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, Heart, Lightbulb, Hand, MessageCircle, CircleNotch as Loader2 } from '@phosphor-icons/react';
+import { ThumbsUp, Heart, Lightbulb, Hand, MessageCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove, runTransaction } from 'firebase/firestore';
@@ -107,7 +107,7 @@ export function ReactionButtons({ study, user }: ReactionButtonsProps) {
             {isSubmitting === reaction.id ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Icon className="h-4 w-4" weight={userHasReacted ? 'fill' : 'regular'}/>
+              <Icon className={cn("h-4 w-4", userHasReacted && "fill-current")} />
             )}
             <span>{reaction.label}</span>
             {count > 0 && <span className="font-bold">{count}</span>}

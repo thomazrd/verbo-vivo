@@ -6,23 +6,14 @@ import { usePathname } from "next/navigation";
 import {
   BookHeart,
   MessageSquare,
-  BookOpen,
-  NotebookText,
-  HeartHandshake,
   Users,
-  BookUser,
-  BookMarked,
-  Share2,
+  NotebookText,
   ChevronLeft,
   ChevronRight,
   Home,
-  Smile,
-  Newspaper,
   Shield,
-  LockKeyhole,
   GraduationCap,
   Settings,
-  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,22 +32,16 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/battle-plans", label: 'Treinamento', icon: GraduationCap },
-    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
-    { href: "/armor", label: 'Minha Armadura', icon: Shield },
-    { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
-    { href: "/confession", label: 'Confessionário', icon: LockKeyhole },
-    { href: "/faith-confession", label: 'Confissão de Fé', icon: HeartHandshake },
-    { href: "/plans", label: t('nav_plans'), icon: BookOpen },
-    { href: "/bible", label: t('nav_bible'), icon: BookMarked },
-    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/prayer-circles", label: "Círculos de Oração", icon: HeartHandshake },
-    { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
+    { href: "/studies", label: "Estudar", icon: GraduationCap },
     { href: "/community", label: t('nav_community'), icon: Users },
-    { href: "/blog", label: "Artigos", icon: Newspaper },
-    { href: "/characters", label: t('nav_characters'), icon: BookUser },
-    { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
+    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
+    { href: "/armor", label: 'Minha Armadura', icon: Shield },
+    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
   ];
+
+  const secondaryNavItems = [
+    { href: "/settings", label: t('nav_settings'), icon: Settings },
+  ]
 
   return (
     <nav
@@ -77,6 +62,40 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           <TooltipProvider delayDuration={0}>
             <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4">
               {navItems.map((item) => (
+                <li key={item.href}>
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary md:h-8 md:w-8",
+                            pathname.startsWith(item.href) && "bg-muted text-primary"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span className="sr-only">{item.label}</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{item.label}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                        pathname.startsWith(item.href) && "bg-muted text-primary"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+             <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4 mt-auto border-t">
+              {secondaryNavItems.map((item) => (
                 <li key={item.href}>
                   {isCollapsed ? (
                     <Tooltip>

@@ -10,6 +10,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
+import { BottomNavBar } from '@/components/layout/BottomNavBar';
 
 function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ function AppLayout({ children }: { children: ReactNode }) {
         className={cn(
           "flex flex-col h-screen",
           "transition-[margin-left] duration-300 ease-in-out",
+          "md:pb-0 pb-16", // Padding at the bottom for mobile nav bar
           isCollapsed
             ? "md:ms-[68px]"
             : "md:ms-[220px] lg:ml-[280px]"
@@ -70,6 +72,7 @@ function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <BottomNavBar />
     </div>
   );
 }

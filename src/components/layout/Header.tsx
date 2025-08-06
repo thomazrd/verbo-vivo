@@ -56,21 +56,11 @@ export function Header() {
 
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/battle-plans", label: 'Treinamento', icon: GraduationCap },
-    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
-    { href: "/armor", label: 'Minha Armadura', icon: Shield },
-    { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
-    { href: "/confession", label: 'Confessionário', icon: LockKeyhole },
-    { href: "/faith-confession", label: 'Confissão de Fé', icon: HeartHandshake },
-    { href: "/plans", label: t('nav_plans'), icon: BookOpen },
-    { href: "/bible", label: t('nav_bible'), icon: BookMarked },
-    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/prayer-circles", label: "Círculos de Oração", icon: HeartHandshake },
-    { href: "/prayer-sanctuary", label: "Santuário", icon: HeartHandshake },
+    { href: "/studies", label: "Estudar", icon: GraduationCap },
     { href: "/community", label: t('nav_community'), icon: Users },
-    { href: "/blog", label: "Artigos", icon: Newspaper },
-    { href: "/characters", label: t('nav_characters'), icon: BookUser },
-    { href: "/ponte-da-esperanca", label: t('nav_hope_bridge'), icon: Share2 },
+    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
+    { href: "/armor", label: 'Minha Armadura', icon: Shield },
+    { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
   ];
 
   const handleSignOut = async () => {
@@ -80,44 +70,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">{t('toggle_nav_menu')}</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col">
-          <nav className="grid gap-2 text-lg font-medium">
-            <Link
-              href="/home"
-              className="flex items-center gap-2 text-lg font-semibold mb-4"
-            >
-              <BookHeart className="h-6 w-6 text-primary" />
-              <span className="">Verbo Vivo</span>
-            </Link>
-            {navItems.map((item) => (
-              <SheetClose asChild key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                    pathname.startsWith(item.href) && "bg-muted text-primary"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              </SheetClose>
-            ))}
-          </nav>
-        </SheetContent>
-      </Sheet>
-
       <div className="flex-1 items-center justify-center hidden md:flex">
          <WisdomPearl />
       </div>

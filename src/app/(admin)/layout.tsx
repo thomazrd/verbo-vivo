@@ -5,7 +5,7 @@ import { type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { CircleNotch as Loader2 } from '@phosphor-icons/react';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { userProfile, loading } = useAuth();

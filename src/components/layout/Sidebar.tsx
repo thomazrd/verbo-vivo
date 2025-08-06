@@ -11,17 +11,19 @@ import {
   HeartHandshake,
   Users,
   BookUser,
-  BookBookmark as BookMarked,
-  ShareNetwork as Share2,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  House as Home,
+  BookMarked,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  Home,
   Smile,
   Newspaper,
   Shield,
   LockKeyhole,
   GraduationCap,
-} from "@phosphor-icons/react";
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";

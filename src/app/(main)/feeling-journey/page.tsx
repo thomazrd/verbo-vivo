@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import type { FeelingJourneyStep, ProcessFeelingReportOutput, BibleVerse } from '@/lib/types';
-import { Emotion, Smile, Frown, Annoyed, Angry, Meh, Hand, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 

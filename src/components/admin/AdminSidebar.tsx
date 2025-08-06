@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookHeart,
-  Gauge as LayoutDashboard,
-  Books as BookCopy,
+  LayoutDashboard,
+  BookCopy,
   Lightbulb,
-  SignOut,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-} from "@phosphor-icons/react";
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "../ui/button";
@@ -94,7 +94,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
              <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" className="w-full justify-center" size={isCollapsed ? 'icon' : 'default'} onClick={handleSignOut}>
-                    <SignOut className="h-5 w-5" />
+                    <LogOut className="h-5 w-5" />
                     {!isCollapsed && <span className="ms-2">Sair</span>}
                   </Button>
                 </TooltipTrigger>

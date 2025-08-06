@@ -36,16 +36,19 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCongregation = exports.requestToJoinCongregation = exports.approveCongregationMemberRequest = exports.onCongregationApproval = exports.onNewPost = exports.onNewComment = exports.onNewPostLike = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const cors = __importStar(require("cors"));
+const cors_1 = __importDefault(require("cors"));
 admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 // Configuração do CORS
-const corsHandler = cors({
+const corsHandler = (0, cors_1.default)({
     origin: (origin, callback) => {
         // Permite requisições de localhost para desenvolvimento local
         if (!origin || /localhost:\d+$/.test(origin) || origin.endsWith('cloudworkstations.dev') || origin.endsWith('firebaseapp.com') || origin.endsWith('web.app')) {

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch, deleteDoc, getDocs, where } from 'firebase/firestore';
-import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent, VideoContent, BibleVerseContent } from '@/lib/types';
+import type { Congregation, Post, Comment, TextContent, ImageContent, BackgroundTextContent, VideoContent, BibleVerseContent, CongregationMember } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -282,7 +282,7 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     );
 }
 
-export function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
+export function PostCard({ post, congregationId, onLike, membersMap }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void, membersMap: Map<string, CongregationMember> }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
@@ -383,7 +383,10 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
   if (!user) return null;
 
   const hasLiked = post.likes?.includes(user.uid);
-  const authorInitial = post.authorName ? post.authorName[0].toUpperCase() : '?';
+  const authorData = membersMap.get(post.authorId);
+  const authorPhotoURL = authorData?.photoURL || post.authorPhotoURL;
+  const authorName = authorData?.displayName || post.authorName;
+  const authorInitial = authorName ? authorName[0].toUpperCase() : '?';
   const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
 
   const renderContent = () => {
@@ -512,11 +515,11 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       <div className="p-4">
           <div className="flex gap-3 sm:gap-4">
             <Avatar className="h-10 w-10 border">
-              {post.authorPhotoURL && <AvatarImage src={post.authorPhotoURL} alt={post.authorName} />}
+              {authorPhotoURL && <AvatarImage src={authorPhotoURL} alt={authorName} />}
               <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
-                <p className="font-semibold text-sm truncate">{post.authorName}</p>
+                <p className="font-semibold text-sm truncate">{authorName}</p>
                  {timeAgo && 
                   <p className="text-xs text-muted-foreground" title={post.createdAt?.toDate().toLocaleString('pt-BR')}>
                       {timeAgo}

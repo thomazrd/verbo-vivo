@@ -94,6 +94,7 @@ export default function CommunityPage() {
         const functions = getFunctions();
         const createCongregation = httpsCallable(functions, 'createCongregation');
         await createCongregation({
+            uid: user.uid,
             name: newCongregationName,
             city: newCongregationCity,
             pastorName: newCongregationPastor,
@@ -120,7 +121,7 @@ export default function CommunityPage() {
       try {
         const functions = getFunctions();
         const requestToJoin = httpsCallable(functions, 'requestToJoinCongregation');
-        const result = await requestToJoin({ inviteCode: inviteCode.trim().toUpperCase() });
+        const result = await requestToJoin({ uid: user.uid, inviteCode: inviteCode.trim().toUpperCase() });
         const data = result.data as { success: boolean, message: string, congregationName?: string };
 
         if(data.success) {

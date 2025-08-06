@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, writeBatch, deleteDoc, getDocs, where } from 'firebase/firestore';
-import type { Congregation, Post, Comment, CongregationMember } from '@/lib/types';
+import type { Congregation, Post, Comment } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -73,7 +73,6 @@ export default function CongregationFeedPage() {
   
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [membersMap, setMembersMap] = useState<Map<string, CongregationMember>>(new Map());
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,16 +102,7 @@ export default function CongregationFeedPage() {
     
     if (isMember) {
       const congregationRef = doc(db, 'congregations', congregationId);
-      const membersRef = collection(db, 'congregations', congregationId, 'members');
       
-      const unsubscribeMembers = onSnapshot(membersRef, (snapshot) => {
-        const newMembersMap = new Map<string, CongregationMember>();
-        snapshot.forEach(doc => {
-            newMembersMap.set(doc.id, { id: doc.id, ...doc.data() } as CongregationMember);
-        });
-        setMembersMap(newMembersMap);
-      });
-
       const unsubscribeCongregation = onSnapshot(congregationRef, async (congDoc) => {
         if (congDoc.exists()) {
             setCongregation({ id: congDoc.id, ...congDoc.data() } as Congregation);
@@ -150,7 +140,6 @@ export default function CongregationFeedPage() {
 
       return () => {
         unsubscribeCongregation();
-        unsubscribeMembers();
       };
     } else {
         setLoading(false);
@@ -256,7 +245,7 @@ export default function CongregationFeedPage() {
                 ) : (
                     <div className="space-y-4 py-4">
                         {posts.map(post => (
-                            <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} membersMap={membersMap} />
+                            <PostCard key={post.id} post={post} congregationId={congregationId} onLike={handleLike} />
                         ))}
                     </div>
                 )}

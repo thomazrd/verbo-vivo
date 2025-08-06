@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
@@ -282,9 +283,11 @@ function CommentWithReplies({ comment, allComments, congregationId, postId, post
     );
 }
 
-export function PostCard({ post, congregationId, onLike, membersMap }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void, membersMap: Map<string, CongregationMember> }) {
+export function PostCard({ post, congregationId, onLike }: { post: Post, congregationId: string, onLike: (postId: string, hasLiked: boolean) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  const [authorData, setAuthorData] = useState<CongregationMember | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -292,6 +295,27 @@ export function PostCard({ post, congregationId, onLike, membersMap }: { post: P
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [timeAgo, setTimeAgo] = useState('');
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
+  useEffect(() => {
+    // Listen for real-time updates on the author's member document
+    const memberRef = doc(db, 'congregations', congregationId, 'members', post.authorId);
+    const unsubscribe = onSnapshot(memberRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setAuthorData({ id: docSnap.id, ...docSnap.data() } as CongregationMember);
+        } else {
+            // Fallback to the data stored in the post if member doc is not found
+            setAuthorData({
+                id: post.authorId,
+                displayName: post.authorName,
+                photoURL: post.authorPhotoURL,
+                status: 'MEMBER' // Assume member status as a fallback
+            });
+        }
+    });
+
+    return () => unsubscribe();
+  }, [congregationId, post.authorId, post.authorName, post.authorPhotoURL]);
+
 
   const topLevelComments = useMemo(() => comments.filter(c => !c.parentCommentId), [comments]);
 
@@ -383,9 +407,9 @@ export function PostCard({ post, congregationId, onLike, membersMap }: { post: P
   if (!user) return null;
 
   const hasLiked = post.likes?.includes(user.uid);
-  const authorData = membersMap.get(post.authorId);
-  const authorPhotoURL = authorData?.photoURL || post.authorPhotoURL;
+  // Prioritize real-time data from authorData, with fallback to post data
   const authorName = authorData?.displayName || post.authorName;
+  const authorPhotoURL = authorData?.photoURL || post.authorPhotoURL;
   const authorInitial = authorName ? authorName[0].toUpperCase() : '?';
   const currentUserInitial = user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
 
@@ -494,7 +518,7 @@ export function PostCard({ post, congregationId, onLike, membersMap }: { post: P
                 reference={verseContent.reference}
                 text={verseContent.text}
                 version={verseContent.version}
-                authorName={post.authorName}
+                authorName={authorName}
             />
           </div>
         );
@@ -515,7 +539,7 @@ export function PostCard({ post, congregationId, onLike, membersMap }: { post: P
       <div className="p-4">
           <div className="flex gap-3 sm:gap-4">
             <Avatar className="h-10 w-10 border">
-              {authorPhotoURL && <AvatarImage src={authorPhotoURL} alt={authorName} />}
+              {authorPhotoURL && <AvatarImage src={authorPhotoURL} alt={authorName || ''} />}
               <AvatarFallback className="bg-muted">{authorInitial}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">

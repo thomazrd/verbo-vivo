@@ -11,35 +11,36 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Wait until the authentication check and profile fetch is complete.
+    // Não faça nada até que o estado de autenticação e o perfil estejam totalmente carregados.
     if (authLoading) {
       return;
     }
 
-    // If the check is done and there's no user, redirect to login.
-    // This is the primary entry point for unauthenticated users.
+    // Se, após o carregamento, não houver usuário, envie para o login.
     if (!user) {
       router.replace("/login");
       return;
     }
     
-    // If there is a user, we also need to wait for their profile to decide on onboarding.
-    // The useAuth hook ensures userProfile is loaded when authLoading is false.
+    // Se, após o carregamento, houver um usuário, mas ainda nenhum perfil (caso de criação de conta),
+    // o hook useAuth irá carregar o perfil. Se o perfil for carregado e existir:
     if (userProfile) {
        if (userProfile.onboardingCompleted) {
          router.replace("/home");
        } else {
          router.replace("/onboarding");
        }
-    } else {
-        // This case can happen for a brand new user whose document hasn't been created yet.
-        // Directing to onboarding is a safe default, as it will create the user document.
-        router.replace("/onboarding");
+    }
+    // Se authLoading for falso, e user existir, mas userProfile for null, 
+    // significa que o documento do Firestore pode não existir.
+    // O onboarding é o lugar para criar/confirmar esse documento.
+    else if (!authLoading && user && !userProfile) {
+      router.replace('/onboarding');
     }
     
   }, [user, userProfile, authLoading, router]);
 
-  // Render a loading state while the logic in useEffect determines the correct route.
+  // Renderiza um estado de carregamento enquanto a lógica acima decide para onde redirecionar.
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center bg-background gap-4">
         <div className="flex items-center gap-3 text-primary">

@@ -42,7 +42,7 @@ export function VerseCard({ reference, text, version, authorName }: VerseCardPro
                 <h4 className="font-semibold text-sm text-primary">{reference}</h4>
                 {version && <span className="text-xs font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">{version}</span>}
             </div>
-            <blockquote className="border-l-2 border-primary/50 pl-3 italic text-muted-foreground text-sm leading-relaxed">
+            <blockquote className="border-l-2 border-primary/50 pl-3 italic text-card-foreground/90 text-sm leading-relaxed">
                 “{text}”
             </blockquote>
             <div className="flex items-center justify-end gap-2 pt-2 border-t">

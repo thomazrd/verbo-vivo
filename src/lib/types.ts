@@ -94,13 +94,15 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   armorOnboardingCompleted?: boolean;
   prayerCircleOnboardingCompleted?: boolean;
-  role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
+  role?: 'USER' | 'ADMIN';
   preferredLanguage?: string | null;
-  preferredModel?: string | null; // e.g., "gemini-1.5-flash"
+  preferredModel?: string | null;
   preferredBibleVersion?: BibleVersion | null;
   favoriteArmorIds?: string[];
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
+  goals?: string[]; // IDs dos objetivos
+  topics?: string[]; // IDs dos tópicos
 }
 
 export interface Congregation {

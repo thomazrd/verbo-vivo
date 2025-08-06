@@ -66,6 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               favoriteArmorIds: data.favoriteArmorIds || [],
               congregationId: data.congregationId || null,
               congregationStatus: data.congregationStatus || 'NONE',
+              goals: data.goals || [],
+              topics: data.topics || [],
             };
             setUserProfile(profile);
         } else {

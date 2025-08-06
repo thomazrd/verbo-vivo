@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -13,7 +12,6 @@ export function BottomNavBar() {
 
   const navItems = [
     { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/studies", label: "Estudar", icon: GraduationCap },
     { href: "/community", label: t('nav_community'), icon: Users },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
     { href: "/armor", label: "Armadura", icon: Shield },
@@ -21,7 +19,7 @@ export function BottomNavBar() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t z-40">
-      <nav className="grid h-full grid-cols-5 items-center">
+      <nav className="grid h-full grid-cols-4 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -19,7 +20,6 @@ import {
   Newspaper,
   Shield,
   LockKeyhole,
-  HandHeart,
   GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { href: "/armor", label: 'Minha Armadura', icon: Shield },
     { href: "/feeling-journey", label: t('nav_journey'), icon: Smile },
     { href: "/confession", label: 'Confessionário', icon: LockKeyhole },
-    { href: "/faith-confession", label: 'Confissão de Fé', icon: HandHeart },
+    { href: "/faith-confession", label: 'Confissão de Fé', icon: HeartHandshake },
     { href: "/plans", label: t('nav_plans'), icon: BookOpen },
     { href: "/bible", label: t('nav_bible'), icon: BookMarked },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },

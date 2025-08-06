@@ -13,30 +13,30 @@ import { Loader2 } from 'lucide-react';
 import { BottomNavBar } from '@/components/layout/BottomNavBar';
 
 function AppLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { isFocusMode } = useFocusMode();
-  
-  // Initialize notification hooks for the logged-in user.
-  // This hook is safe to call here as it handles its own user state logic.
+
   useNotifications();
 
-  // Primary guard for the main application layout.
-  // It waits for the auth state to be resolved before rendering anything.
-  if (loading) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+        router.replace('/onboarding');
+      }
+    }
+  }, [user, userProfile, loading, pathname, router]);
 
-  // If loading is complete and there is still no user, we return null.
-  // The redirection logic is handled by the root page.tsx, which will redirect to /login.
-  // This prevents the protected layout from ever rendering for an unauthenticated user.
-  if (!user) {
-    return null;
+  if (loading || !user || (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding')) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
   
   const toggleSidebar = () => {

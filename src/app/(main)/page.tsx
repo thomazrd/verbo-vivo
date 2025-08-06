@@ -6,38 +6,28 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2, BookHeart } from "lucide-react";
 
-export default function Home() {
+export default function RootRedirectPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Não faça nada até que o estado de autenticação e o perfil estejam totalmente carregados.
     if (authLoading) {
-      return;
+      return; // Aguarde o carregamento terminar no layout.
     }
 
-    // Se, após o carregamento, não houver usuário, envie para o login.
     if (!user) {
       router.replace("/login");
-      return;
+    } else if (userProfile) {
+      if (userProfile.onboardingCompleted) {
+        // A lógica principal de redirecionamento está agora no layout.
+        // Este é um fallback caso o usuário acesse a rota raiz diretamente.
+        router.replace("/home");
+      } else {
+        router.replace("/onboarding");
+      }
     }
-    
-    // Se, após o carregamento, houver um usuário, mas ainda nenhum perfil (caso de criação de conta),
-    // o hook useAuth irá carregar o perfil. Se o perfil for carregado e existir:
-    if (userProfile) {
-       if (userProfile.onboardingCompleted) {
-         router.replace("/home");
-       } else {
-         router.replace("/onboarding");
-       }
-    }
-    // Se authLoading for falso, e user existir, mas userProfile for null, 
-    // significa que o documento do Firestore pode não existir.
-    // O onboarding é o lugar para criar/confirmar esse documento.
-    else if (!authLoading && user && !userProfile) {
-      router.replace('/onboarding');
-    }
-    
+    // Se userProfile ainda não carregou, o layout cuidará do redirecionamento
+    // para o onboarding ou exibirá o loader.
   }, [user, userProfile, authLoading, router]);
 
   // Renderiza um estado de carregamento enquanto a lógica acima decide para onde redirecionar.

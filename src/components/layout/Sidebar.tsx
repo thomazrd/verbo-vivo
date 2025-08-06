@@ -59,7 +59,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ];
 
   return (
-    <div
+    <nav
+      aria-label="Navegação Principal"
       className={cn(
         "hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:flex-col border-e bg-background transition-[width] duration-300 ease-in-out",
         isCollapsed ? "md:w-[68px]" : "md:w-[220px] lg:w-[280px]"
@@ -74,39 +75,40 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         </div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <TooltipProvider delayDuration={0}>
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4">
-              {navItems.map((item) =>
-                isCollapsed ? (
-                  <Tooltip key={item.href}>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary md:h-8 md:w-8",
-                          pathname.startsWith(item.href) && "bg-muted text-primary"
-                        )}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="sr-only">{item.label}</span>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                      pathname.startsWith(item.href) && "bg-muted text-primary"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                )
-              )}
-            </nav>
+            <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4">
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary md:h-8 md:w-8",
+                            pathname.startsWith(item.href) && "bg-muted text-primary"
+                          )}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span className="sr-only">{item.label}</span>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{item.label}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                        pathname.startsWith(item.href) && "bg-muted text-primary"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
           </TooltipProvider>
         </div>
         <div className="mt-auto p-4 space-y-2 border-t">
@@ -115,12 +117,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 {t('version_label')}: {appVersion}
             </div>
            )}
-           <Button variant="outline" size="icon" className="w-full h-9" onClick={onToggle}>
+           <Button variant="outline" size="icon" className="w-full h-9" onClick={onToggle} aria-label={isCollapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}>
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            <span className="sr-only">{t('toggle_sidebar_button')}</span>
           </Button>
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

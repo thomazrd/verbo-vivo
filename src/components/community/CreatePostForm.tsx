@@ -248,7 +248,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
       <div className={cn("p-4 bg-card sm:rounded-lg border-b sm:border", className)} onClick={handleExpand}>
         <div className="flex items-center gap-4">
             <Avatar className="h-10 w-10 border">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''}/>
+                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'Avatar do usuário'}/>
                 <AvatarFallback>{user.displayName?.[0] || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 text-muted-foreground cursor-text">
@@ -267,7 +267,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
         <Dialog open={isVerseSelectorOpen} onOpenChange={setIsVerseSelectorOpen} modal={true}>
           <div className="flex items-start gap-4 p-4">
               <Avatar className="h-10 w-10 border">
-                  <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
+                  <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'Avatar do usuário'} />
                   <AvatarFallback>{user.displayName?.[0].toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -335,6 +335,7 @@ export function CreatePostForm({ user, congregationId, className }: CreatePostFo
                       key={bg.id}
                       className={cn("h-6 w-6 rounded-full", bg.class, backgroundStyle === bg.id && "ring-2 ring-offset-2 ring-primary")}
                       onClick={() => handleSelectBg(bg.id)}
+                      aria-label={`Selecionar fundo ${bg.id}`}
                    />
                ))}
           </div>

@@ -24,18 +24,21 @@ const onboardingSteps = [
     description: "Sua nova jornada de discipulado digital começa agora. Estamos felizes por ter você conosco.",
     imageSrc: "https://dynamic.tiggomark.com.br/images/welcome.jpg",
     imageHint: "welcome celebration",
+    altText: "Confetes e serpentinas coloridas celebrando as boas-vindas.",
   },
   {
     title: "Converse com a IA",
     description: "Faça perguntas, explore tópicos e receba respostas e conselhos baseados inteiramente nas Escrituras.",
     imageSrc: "https://dynamic.tiggomark.com.br/images/chat-onboarding.jpg",
     imageHint: "chat application",
+    altText: "Interface de um aplicativo de chat em um smartphone.",
   },
   {
     title: "Crie Planos de Estudo",
     description: "Transforme qualquer conversa em um plano de estudo de 7 dias para aprofundar seu conhecimento e fortalecer sua fé.",
     imageSrc: "https://dynamic.tiggomark.com.br/images/plan-onboarding.jpg",
     imageHint: "study plan",
+    altText: "Página de um planejador com tarefas de estudo e caixas de seleção.",
   },
 ];
 
@@ -72,7 +75,7 @@ export function OnboardingClient() {
               <Card className="overflow-hidden bg-card">
                 <Image
                   src={step.imageSrc}
-                  alt={step.title}
+                  alt={step.altText}
                   width={600}
                   height={350}
                   unoptimized={true}

@@ -61,12 +61,12 @@ function AppLayout({ children }: { children: ReactNode }) {
           "flex flex-col h-screen",
           "transition-[margin-left] duration-300 ease-in-out",
           isCollapsed
-            ? "md:ml-[68px]"
-            : "md:ml-[220px] lg:ml-[280px]"
+            ? "md:ms-[68px]"
+            : "md:ms-[220px] lg:ml-[280px]"
         )}
       >
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" id="main-content">
           {children}
         </main>
       </div>

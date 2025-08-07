@@ -4,6 +4,7 @@ interface VerseData {
   text: string;
   version: string;
   authorName?: string | null;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
@@ -46,8 +47,11 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   const context = canvas.getContext('2d');
   if (!context) return;
 
-  const width = 1200;
-  const height = 630; // 1.91:1 aspect ratio for social media
+  const orientation = verseData.orientation || 'horizontal';
+  const isHorizontal = orientation === 'horizontal';
+
+  const width = isHorizontal ? 1200 : 1080;
+  const height = isHorizontal ? 630 : 1920;
   canvas.width = width;
   canvas.height = height;
 
@@ -63,29 +67,32 @@ export const downloadVerseImage = (verseData: VerseData): void => {
   const maxWidth = width - 160;
   
   // 1. Renderizar o texto do versículo primeiro para obter sua altura e posição
-  context.font = 'italic 50px Georgia, serif';
+  const verseFontSize = isHorizontal ? 50 : 72;
+  const verseLineHeight = isHorizontal ? 62 : 88;
+  context.font = `italic ${verseFontSize}px Georgia, serif`;
   context.fillStyle = '#312e81'; // Cor do texto do versículo (indigo-950/90)
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  const lastLineY = wrapText(context, `“${verseData.text}”`, width / 2, height / 2 + 20, maxWidth, 62);
+  const lastLineY = wrapText(context, `“${verseData.text}”`, width / 2, height / 2 + 40, maxWidth, verseLineHeight);
 
   // 2. Renderizar a referência e o ícone ACIMA do texto do versículo
-  const referenceY = (height / 2 + 20) - ((lastLineY - (height / 2 + 20)) / 2) - 100; // Posição calculada
+  const referenceFontSize = isHorizontal ? 32 : 48;
+  const referenceY = (height / 2 + 40) - ((lastLineY - (height / 2 + 40)) / 2) - (isHorizontal ? 100 : 150); // Posição calculada
   
   // Medir o texto da referência para centralizar o conjunto (ícone + texto)
-  context.font = 'bold 32px "PT Sans", sans-serif';
+  context.font = `bold ${referenceFontSize}px "PT Sans", sans-serif`;
   context.fillStyle = '#5a67d8'; // Cor da referência (indigo-600)
   const referenceText = `${verseData.reference} (${verseData.version})`;
   const referenceMetrics = context.measureText(referenceText);
-  const iconWidth = 28;
-  const iconGap = 12;
+  const iconWidth = isHorizontal ? 28 : 42;
+  const iconGap = isHorizontal ? 12 : 18;
   const totalHeaderWidth = iconWidth + iconGap + referenceMetrics.width;
   const headerStartX = (width - totalHeaderWidth) / 2;
 
   // Desenhar o Ícone
   context.save();
-  context.translate(headerStartX, referenceY - 14); // Ajuste vertical
-  context.scale(1.2, 1.2); // Aumenta o tamanho do ícone
+  context.translate(headerStartX, referenceY - (isHorizontal ? 14 : 21)); // Ajuste vertical
+  context.scale(isHorizontal ? 1.2 : 1.8, isHorizontal ? 1.2 : 1.8); // Aumenta o tamanho do ícone
   context.fillStyle = '#5a67d8'; // Cor do ícone
   context.fill(bookOpenIconPath);
   context.restore();
@@ -96,15 +103,15 @@ export const downloadVerseImage = (verseData: VerseData): void => {
 
 
   // Marca d'água 'Verbo Vivo' sutil no rodapé
-  const authorText = verseData.authorName ? `Compartilhado por ${verseData.authorName} via Verbo Vivo` : 'Compartilhado via Verbo Vivo';
-  context.font = 'bold 20px "PT Sans", sans-serif';
+  const authorText = "Compartilhado via Verbo Vivo";
+  context.font = `bold ${isHorizontal ? 20 : 28}px "PT Sans", sans-serif`;
   context.fillStyle = 'rgba(0, 0, 0, 0.25)'; // Cor sutil
   context.textAlign = 'center';
-  context.fillText(authorText, width / 2, height - 30);
+  context.fillText(authorText, width / 2, height - (isHorizontal ? 30 : 60));
 
 
   const link = document.createElement('a');
-  link.download = `${verseData.reference.replace(/[:\s]/g, '_')}.png`;
+  link.download = `${verseData.reference.replace(/[:\s]/g, '_')}_${orientation}.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
 };

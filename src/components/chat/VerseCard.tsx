@@ -2,10 +2,17 @@
 "use client";
 
 import { useState } from 'react';
-import { BookOpen, Download, Copy, Check } from "lucide-react";
+import { BookOpen, Download, Copy, Check, AspectRatio, Image as ImageIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { downloadVerseImage } from "@/lib/download-verse-image";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+
 
 interface VerseCardProps {
   reference: string;
@@ -26,12 +33,13 @@ export function VerseCard({ reference, text, version, authorName }: VerseCardPro
         setTimeout(() => setHasCopied(false), 2000);
     };
 
-    const handleDownload = () => {
+    const handleDownload = (orientation: 'horizontal' | 'vertical') => {
         downloadVerseImage({
             reference,
             text,
             version: version || 'NVI',
-            authorName: authorName || 'Verbo Vivo',
+            authorName: "Verbo Vivo", // Standardized as requested
+            orientation: orientation,
         });
     };
 
@@ -49,9 +57,23 @@ export function VerseCard({ reference, text, version, authorName }: VerseCardPro
                 <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleCopy}>
                     {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleDownload}>
-                    <Download className="h-4 w-4" />
-                </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 px-2">
+                            <Download className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                         <DropdownMenuItem onClick={() => handleDownload('horizontal')}>
+                            <AspectRatio className="mr-2 h-4 w-4" />
+                            <span>Horizontal (Post)</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload('vertical')}>
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            <span>Vertical (Story)</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { BookOpen, Download, Copy, Check, Newspaper, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Download, Copy, Check, Newspaper, Smartphone } from "lucide-react";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { downloadVerseImage } from "@/lib/download-verse-image";
@@ -69,7 +69,7 @@ export function VerseCard({ reference, text, version, authorName }: VerseCardPro
                             <span>Horizontal (Post)</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownload('vertical')}>
-                            <ImageIcon className="mr-2 h-4 w-4" />
+                            <Smartphone className="mr-2 h-4 w-4" />
                             <span>Vertical (Story)</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

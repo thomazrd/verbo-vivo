@@ -4,7 +4,7 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HeartHandshake, Sparkles } from 'lucide-react';
+import { HeartHandshake, Sparkles, CheckCircle } from 'lucide-react';
 import type { BibleVerse } from '@/lib/types';
 import { VerseCard } from '../chat/VerseCard';
 
@@ -14,9 +14,19 @@ interface PrayerResponseCardProps {
     prayerTopic: string;
     onReset: () => void;
     onCreatePlan: () => void;
+    isMission?: boolean;
+    onCompleteMission?: () => void;
 }
 
-export function PrayerResponseCard({ responseText, citedVerses, prayerTopic, onReset, onCreatePlan }: PrayerResponseCardProps) {
+export function PrayerResponseCard({ 
+    responseText, 
+    citedVerses, 
+    prayerTopic, 
+    onReset, 
+    onCreatePlan,
+    isMission = false,
+    onCompleteMission
+}: PrayerResponseCardProps) {
   const { t } = useTranslation();
   
   return (
@@ -43,11 +53,20 @@ export function PrayerResponseCard({ responseText, citedVerses, prayerTopic, onR
         )}
 
         <div className="flex justify-center items-center gap-4 pt-4">
-            <Button variant="outline" onClick={onReset}>{t('pray_again_button')}</Button>
-            <Button onClick={onCreatePlan}>
-                <Sparkles className="mr-2 h-4 w-4"/>
-                Criar Plano de Estudo
-            </Button>
+            {isMission && onCompleteMission ? (
+              <Button size="lg" onClick={onCompleteMission}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Concluir Missão
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={onReset}>{t('pray_again_button')}</Button>
+                <Button onClick={onCreatePlan}>
+                    <Sparkles className="mr-2 h-4 w-4"/>
+                    Criar Plano de Estudo
+                </Button>
+              </>
+            )}
         </div>
       </CardContent>
     </Card>

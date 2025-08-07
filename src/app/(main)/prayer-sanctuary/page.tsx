@@ -245,9 +245,7 @@ function PrayerSanctuaryContent() {
           });
           setLatestResponse(result);
           setSanctuaryState('response');
-          if (isMission && missionUserPlanId) {
-              setMissionToComplete(missionUserPlanId);
-          }
+          // Mission completion is now handled by user action
       } catch (err) {
           console.error("Error processing prayer:", err);
           toast({
@@ -280,6 +278,12 @@ function PrayerSanctuaryContent() {
     setTypedPrayer("");
     cleanupAudio();
     setSanctuaryState('idle');
+  }
+
+  const handleCompleteMission = () => {
+      if (missionUserPlanId) {
+          setMissionToComplete(missionUserPlanId);
+      }
   }
 
   const handleModalClose = () => {
@@ -353,16 +357,18 @@ function PrayerSanctuaryContent() {
                 </div>
             )
         case 'response':
-            if (latestResponse && !missionToComplete) {
+            if (latestResponse) {
                 return <PrayerResponseCard 
                     responseText={latestResponse.responseText} 
                     citedVerses={latestResponse.citedVerses}
                     prayerTopic={processingText}
                     onReset={handleReset} 
                     onCreatePlan={() => setIsPlanModalOpen(true)}
+                    isMission={isMission}
+                    onCompleteMission={handleCompleteMission}
                 />
             }
-            return null; // Should not happen, or modal will take over
+            return null;
         case 'idle':
         default:
             return (

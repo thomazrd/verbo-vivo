@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { BookOpen, Download, Copy, Check, AspectRatio, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Download, Copy, Check, Newspaper, Image as ImageIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { downloadVerseImage } from "@/lib/download-verse-image";
@@ -65,7 +65,7 @@ export function VerseCard({ reference, text, version, authorName }: VerseCardPro
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                          <DropdownMenuItem onClick={() => handleDownload('horizontal')}>
-                            <AspectRatio className="mr-2 h-4 w-4" />
+                            <Newspaper className="mr-2 h-4 w-4" />
                             <span>Horizontal (Post)</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownload('vertical')}>

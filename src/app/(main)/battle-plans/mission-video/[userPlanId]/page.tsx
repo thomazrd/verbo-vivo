@@ -25,6 +25,14 @@ function getYoutubeVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+function formatTime(seconds: number): string {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const floorSeconds = Math.floor(seconds);
+    const min = Math.floor(floorSeconds / 60);
+    const sec = floorSeconds % 60;
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
 function VideoMissionPageContent() {
   const { user } = useAuth();
   const router = useRouter();
@@ -40,6 +48,7 @@ function VideoMissionPageContent() {
   const [missionCompleted, setMissionCompleted] = useState(false);
 
   const [canComplete, setCanComplete] = useState(false);
+  const [timeToEnable, setTimeToEnable] = useState(0);
   const playerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -75,6 +84,7 @@ function VideoMissionPageContent() {
 
   const onPlayerStateChange = (event: any) => {
     if (event.data === window.YT.PlayerState.ENDED) {
+        setCanComplete(true);
         setMissionCompleted(true);
     }
   };
@@ -103,11 +113,18 @@ function VideoMissionPageContent() {
     }
     
     const progressInterval = setInterval(() => {
-        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && typeof playerRef.current.getDuration === 'function') {
             const currentTime = playerRef.current.getCurrentTime();
             const duration = playerRef.current.getDuration();
-            if (duration > 0 && (currentTime / duration) >= 0.8) {
-                setCanComplete(true);
+            
+            if (duration > 0) {
+                const targetTime = duration * 0.8;
+                if (currentTime >= targetTime) {
+                    setCanComplete(true);
+                    setTimeToEnable(0);
+                } else {
+                    setTimeToEnable(targetTime - currentTime);
+                }
             }
         }
     }, 1000);
@@ -178,11 +195,11 @@ function VideoMissionPageContent() {
                     disabled={!canComplete}
                     className={cn(
                         "transition-all",
-                        !canComplete && "opacity-50"
+                        !canComplete && "opacity-80"
                     )}
                 >
                     <CheckCircle className="mr-2 h-5 w-5" />
-                    Concluir Missão
+                    {canComplete ? 'Concluir Missão' : `Aguarde (${formatTime(timeToEnable)})`}
                 </Button>
             </div>
         </div>

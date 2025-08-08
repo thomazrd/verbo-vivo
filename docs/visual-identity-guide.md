@@ -10,29 +10,28 @@ O design do Verbo Vivo deve ser **limpo, sereno e focado**. O objetivo é remove
 
 A paleta foi escolhida para ser moderna e espiritualmente ressonante, evitando clichês visuais religiosos.
 
-- **Cor Primária (Confiança e Sabedoria):** Um azul sereno e acessível.
-  - **HEX:** `#75A9FF`
-  - **HSL:** `218, 100%, 73%`
+- **Cor Primária (Confiança e Sabedoria):** Um azul profundo e confiável.
+  - **HEX:** `#1F61E2`
+  - **HSL:** `221.2 83.2% 43.3%`
   - **Uso:** Botões principais, links, ícones ativos, e elementos de destaque primário.
 
-- **Cor de Fundo (Calma e Leveza):** Um tom de azul muito claro e dessaturado.
-  - **HEX:** `#E8F0FE`
-  - **HSL:** `219, 93%, 95%`
-  - **Uso:** Cor de fundo principal da aplicação, áreas de conteúdo e cartões.
-
-- **Cor de Destaque (Ação e Modernidade):** Um roxo suave e convidativo.
-  - **HEX:** `#A375FF`
-  - **HSL:** `258, 100%, 73%`
+- **Cor de Destaque (Ação e Modernidade):** Um roxo vibrante e convidativo.
+  - **HEX:** `#9353FF`
+  - **HSL:** `258 95% 68%`
   - **Uso:** Ações secundárias importantes, destaques especiais, e elementos que necessitam de um toque vibrante sem quebrar a harmonia.
 
-- **Texto Principal:** Um cinza escuro e suave, em vez de preto puro, para reduzir o cansaço visual.
-  - **HEX:** `#312E38`
-  - **HSL:** `264, 10%, 20%`
+- **Fundo Padrão (Light Mode):** Branco puro para máxima clareza.
+  - **HEX:** `#FFFFFF`
+  - **HSL:** `0 0% 100%`
+
+- **Texto Principal (Light Mode):** Um cinza-azulado escuro, em vez de preto puro, para reduzir o cansaço visual.
+  - **HEX:** `#0A101C`
+  - **HSL:** `224 71.4% 4.1%`
 
 ## Tipografia
 
-- **Títulos e Corpo de Texto:** `PT Sans`. Uma fonte sans-serif humanista, que é amigável e extremamente legível em telas.
-- **Trechos de Código/Versículos (se destacado):** `Source Code Pro`. Uma fonte monoespaçada para diferenciar claramente o texto comum do texto bíblico ou técnico.
+- **Títulos e Corpo de Texto:** `Montserrat`. Uma fonte sans-serif moderna, versátil e com excelente legibilidade em telas.
+- **Trechos de Código/Versículos (se destacado):** `Noto Serif`. Uma fonte serifada para diferenciar claramente o texto comum do texto bíblico, conferindo um ar mais clássico e solene.
 
 ## Iconografia
 
@@ -47,9 +46,9 @@ A paleta foi escolhida para ser moderna e espiritualmente ressonante, evitando c
 Para manter a consistência visual, todas as ilustrações e gráficos criados para o Verbo Vivo devem seguir estas diretrizes:
 
 1.  **Use a Paleta de Cores Definida:**
-    *   O **azul primário (`#75A9FF`)** e o **roxo de destaque (`#A375FF`)** devem ser as cores dominantes.
-    *   Use o **fundo azul claro (`#E8F0FE`)** ou branco como base.
-    *   O **texto (`#312E38`)** pode ser usado para contornos ou detalhes finos.
+    *   O **azul primário (`#1F61E2`)** e o **roxo de destaque (`#9353FF`)** devem ser as cores dominantes.
+    *   Use o **fundo branco (`#FFFFFF`)** ou cores muito claras da paleta como base.
+    *   O **texto (`#0A101C`)** pode ser usado para contornos ou detalhes finos.
 
 2.  **Estilo Minimalista e de Linhas:**
     *   Prefira o estilo de "line art" (arte de linha). Evite preenchimentos sólidos pesados. Se usar preenchimento, que seja com uma das cores da paleta de forma suave.
@@ -65,4 +64,4 @@ Para manter a consistência visual, todas as ilustrações e gráficos criados p
 
 ### Exemplo de Pedido para um Designer:
 
-> "Preciso de uma ilustração para a funcionalidade 'Jornada de Sentimentos'. O conceito é guiar o usuário de um sentimento de 'confusão' (nuvens, linhas emaranhadas) para um de 'paz' (sol, linhas suaves, um caminho claro). Por favor, use a nossa paleta de cores: o azul primário (`#75A9FF`) e o roxo (`#A375FF`) como cores principais, com o fundo `#E8F0FE`. O estilo deve ser minimalista, usando principalmente linhas finas, semelhante aos exemplos que temos no aplicativo."
+> "Preciso de uma ilustração para a funcionalidade 'Jornada de Sentimentos'. O conceito é guiar o usuário de um sentimento de 'confusão' (nuvens, linhas emaranhadas) para um de 'paz' (sol, linhas suaves, um caminho claro). Por favor, use a nossa paleta de cores: o azul primário (`#1F61E2`) e o roxo (`#9353FF`) como cores principais, com o fundo branco. O estilo deve ser minimalista, usando principalmente linhas finas, semelhante aos exemplos que temos no aplicativo."

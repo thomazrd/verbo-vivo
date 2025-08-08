@@ -1,11 +1,13 @@
+
 {
   "name": "Verbo Vivo",
-  "short_name": "Verbo Vivo",
-  "description": "Seu Assistente de Discipulado Digital",
+  "short_name": "VerboVivo",
+  "description": "Seu assistente de discipulado digital para fortalecer sua jornada de fé.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#E8F0FE",
-  "theme_color": "#75A9FF",
+  "background_color": "#ffffff",
+  "theme_color": "#1F61E2",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";
 import I18nInitializer from "@/components/layout/I18nInitializer";
+import { useEffect } from "react";
 
 const fontSans = Montserrat({
   subsets: ["latin"],
@@ -36,15 +37,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  // This component no longer has the responsibility of generating dynamic meta tags.
-  // The `generateMetadata` function has been moved to the specific pages that need it,
-  // such as the study detail page.
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('SW registered: ', registration);
+        }).catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+      });
+    }
+  }, []);
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#75A9FF" />
+        <meta name="theme-color" content="#1F61E2" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png"></link>
       </head>
       <body

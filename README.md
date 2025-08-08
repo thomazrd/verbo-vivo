@@ -1,6 +1,6 @@
 # Verbo Vivo - Seu Assistente de Discipulado Digital
-
 Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jornada de fé e estudo bíblico. Combinando ferramentas de leitura, meditação, comunidade e inteligência artificial, o Verbo Vivo oferece uma experiência personalizada e enriquecedora para o seu crescimento espiritual.
+
 
 ## ✨ Manual de Funcionalidades
 

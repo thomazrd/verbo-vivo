@@ -1,0 +1,21 @@
+{
+  "name": "Verbo Vivo",
+  "short_name": "Verbo Vivo",
+  "description": "Seu Assistente de Discipulado Digital",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E8F0FE",
+  "theme_color": "#75A9FF",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

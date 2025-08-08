@@ -43,7 +43,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Dynamic meta tags will be injected by Next.js here */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#75A9FF" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png"></link>
       </head>
       <body
         className={cn(

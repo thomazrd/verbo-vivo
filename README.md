@@ -8,8 +8,8 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 📖 Leitura da Bíblia
 **O que é?** Uma Bíblia digital completa com múltiplas versões.
+ ![Texto Alternativo da Imagem](https://i.ibb.co/rRc7Mgqw/biblia-desktop.png)
 
-> <COLOCAR AQUI IMAGEM DA TELA DE LEITURA DA BÍBLIA>
 
 **Como usar:**
 1.  **Navegue:** No menu principal, vá em "Bíblia".

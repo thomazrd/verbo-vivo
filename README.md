@@ -8,6 +8,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 📖 Leitura da Bíblia
 **O que é?** Uma Bíblia digital completa com múltiplas versões.
+
+> <COLOCAR AQUI IMAGEM DA TELA DE LEITURA DA BÍBLIA>
+
 **Como usar:**
 1.  **Navegue:** No menu principal, vá em "Bíblia".
 2.  **Selecione a Versão:** Use o seletor no topo para escolher sua tradução preferida (NVI, ACF, etc.).
@@ -19,6 +22,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 💬 Chat com IA
 **O que é?** Um assistente de IA treinado para responder suas perguntas com base nas Escrituras.
+
+> <COLOCAR AQUI IMAGEM DA TELA DO CHAT COM IA>
+
 **Como usar:**
 1.  **Acesse o Chat:** Selecione "Chat com IA" no menu.
 2.  **Faça sua Pergunta:** Digite qualquer dúvida que você tenha, seja sobre um versículo, um tema ou um personagem.
@@ -29,10 +35,13 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 🛡️ Minha Armadura
 **O que é?** Sua coleção pessoal de versículos ("armas") para batalhas espirituais específicas (ansiedade, medo, etc.).
+
+> <COLOCAR AQUI IMAGEM DA TELA MINHA ARMADURA>
+
 **Como usar:**
 1.  **Acesse o Arsenal:** Vá para "Minha Armadura" no menu.
 2.  **Forje uma Armadura:** Clique no botão `+` para criar uma nova armadura. Dê um nome (ex: "Armadura contra a Ansiedade").
-3.  **Adicione Armas:** Dentro da armadura, clique em "Adicionar Arma". Você pode usar a IA para sugerir versículos sobre um tema ou adicionar manualmente.
+3.  **Adicione Armas:** Dentro da armadura, clique em "Adicionar Arma". Você pode usar a IA para sugerir versículos sobre um tema ou adicionar manually.
 4.  **Entre em Batalha:** Com sua armadura pronta, clique em "Modo Batalha" para uma experiência imersiva, visualizando um versículo de cada vez em tela cheia para meditação e memorização.
 5.  **Compartilhe:** Você pode optar por compartilhar suas armaduras com a comunidade, permitindo que outros irmãos as adicionem ao seu próprio arsenal.
 
@@ -40,6 +49,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 🎯 Centro de Treinamento (Planos de Batalha)
 **O que é?** Um roteiro de treinamento espiritual de vários dias, com missões diárias que podem incluir leitura bíblica, oração, reflexão e mais.
+
+> <COLOCAR AQUI IMAGEM DA TELA DE PLANOS DE BATALHA>
+
 **Como um líder pode criar:**
 1.  **Inicie a Criação:** Em "Treinamento", clique em "Criar Plano" e depois em "Criar com Inteligência Artificial".
 2.  **Descreva a Batalha:** No campo "Descrição do Problema", seja específico sobre o desafio que sua comunidade enfrenta (ex: "Lutando com dúvidas sobre a fé", "Medo do futuro financeiro").
@@ -51,6 +63,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 🤝 Comunidade (Congregação)
 **O que é?** Um feed social privado para membros de uma mesma igreja local.
+
+> <COLOCAR AQUI IMAGEM DA TELA DA COMUNIDADE>
+
 **Como usar:**
 1.  **Entre ou Crie:** Na seção "Comunidade", você pode entrar em uma congregação existente com um código de convite ou criar a sua própria.
 2.  **Compartilhe:** Crie publicações com texto, imagens, vídeos do YouTube ou até mesmo um versículo específico.
@@ -61,6 +76,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 🙏 Santuário de Oração
 **O que é?** Um espaço privado para você orar em voz alta e receber uma reflexão devocional baseada em sua oração.
+
+> <COLOCAR AQUI IMAGEM DA TELA DO SANTUÁRIO DE ORAÇÃO>
+
 **Como usar:**
 1.  **Entre no Santuário:** Acesse a funcionalidade no menu.
 2.  **Comece a Orar:** Clique no botão de microfone e fale com Deus livremente.
@@ -70,6 +88,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### ✝️ Confessionário
 **O que é?** Um espaço seguro para a prática espiritual da confissão, com garantia de privacidade.
+
+> <COLOCAR AQUI IMAGEM DA TELA DO CONFESSIONÁRIO>
+
 **Como usar:**
 1.  **Acesso Intencional:** Para entrar, pressione e segure o ícone de cadeado.
 2.  **Confesse:** Use o microfone ou digite para confessar seus pecados. O conteúdo **não é salvo em nenhum lugar**.
@@ -79,6 +100,9 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 😔 Jornada de Sentimentos
 **O que é?** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras.
+
+> <COLOCAR AQUI IMAGEM DA TELA DA JORNADA DE SENTIMENTOS>
+
 **Como usar:**
 1.  **Selecione o Sentimento:** Escolha como você está se sentindo (ex: Ansiedade, Tristeza, Raiva).
 2.  **Descreva o Motivo:** Fale ou escreva sobre o porquê de se sentir assim.
@@ -89,9 +113,13 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### Outras Ferramentas
 
 *   **Ponte da Esperança:** Gere uma mensagem de esperança e conforto, baseada em versículos, para compartilhar com amigos que estão passando por dificuldades.
+> <COLOCAR AQUI IMAGEM DA TELA DA PONTE DA ESPERANÇA>
 *   **Diário Espiritual:** Registre suas reflexões, orações e aprendizados em um espaço pessoal e seguro.
+> <COLOCAR AQUI IMAGEM DA TELA DO DIÁRIO ESPIRITUAL>
 *   **Artigos e Reflexões:** Um blog onde administradores da comunidade podem publicar estudos mais longos e aprofundados.
+> <COLOCAR AQUI IMAGEM DA TELA DE ARTIGOS>
 *   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de figuras da Bíblia, com resumos, versículos-chave e planos de estudo.
+> <COLOCAR AQUI IMAGEM DA TELA DE PERSONAGENS BÍBLICOS>
 
 ## 🛠️ Tecnologias Utilizadas
 

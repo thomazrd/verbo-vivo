@@ -6,10 +6,22 @@ Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jo
 
 Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer sua jornada.
 
+### 😔 Jornada de Sentimentos
+**O que é?** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras.
+
+![Texto Alternativo da Imagem](https://i.ibb.co/9HhQDNsh/jornada-sentimentos.png)
+
+**Como usar:**
+1.  **Selecione o Sentimento:** Escolha como você está se sentindo (ex: Ansiedade, Tristeza, Raiva).
+2.  **Descreva o Motivo:** Fale ou escreva sobre o porquê de se sentir assim.
+3.  **Receba o Farol:** A IA, agindo como um conselheiro pastoral, fornecerá uma reflexão empática e versículos bíblicos relevantes para trazer conforto e a perspectiva de Deus para sua situação. O foco é sempre apontar para a esperança nas Escrituras, não dar conselhos práticos.
+
+---
+
 ### 📖 Leitura da Bíblia
 **O que é?** Uma Bíblia digital completa com múltiplas versões.
+ ![Texto Alternativo da Imagem](https://i.ibb.co/rRc7Mgqw/biblia-desktop.png)
 
-> <COLOCAR AQUI IMAGEM DA TELA DE LEITURA DA BÍBLIA>
 
 **Como usar:**
 1.  **Navegue:** No menu principal, vá em "Bíblia".
@@ -23,7 +35,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 💬 Chat com IA
 **O que é?** Um assistente de IA treinado para responder suas perguntas com base nas Escrituras.
 
-> <COLOCAR AQUI IMAGEM DA TELA DO CHAT COM IA>
+![Texto Alternativo da Imagem](https://i.ibb.co/GvThcKMV/chat-biblia.png)
 
 **Como usar:**
 1.  **Acesse o Chat:** Selecione "Chat com IA" no menu.
@@ -36,7 +48,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🛡️ Minha Armadura
 **O que é?** Sua coleção pessoal de versículos ("armas") para batalhas espirituais específicas (ansiedade, medo, etc.).
 
-> <COLOCAR AQUI IMAGEM DA TELA MINHA ARMADURA>
+![Texto Alternativo da Imagem](https://i.ibb.co/xSd0ZjGG/minha-armadura.png)
 
 **Como usar:**
 1.  **Acesse o Arsenal:** Vá para "Minha Armadura" no menu.
@@ -50,7 +62,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🎯 Centro de Treinamento (Planos de Batalha)
 **O que é?** Um roteiro de treinamento espiritual de vários dias, com missões diárias que podem incluir leitura bíblica, oração, reflexão e mais.
 
-> <COLOCAR AQUI IMAGEM DA TELA DE PLANOS DE BATALHA>
+![Texto Alternativo da Imagem](https://i.ibb.co/Fkp3t37N/treinamento.png)
 
 **Como um líder pode criar:**
 1.  **Inicie a Criação:** Em "Treinamento", clique em "Criar Plano" e depois em "Criar com Inteligência Artificial".
@@ -64,7 +76,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🤝 Comunidade (Congregação)
 **O que é?** Um feed social privado para membros de uma mesma igreja local.
 
-> <COLOCAR AQUI IMAGEM DA TELA DA COMUNIDADE>
+![Texto Alternativo da Imagem](https://i.ibb.co/xSd0ZjGG/minha-armadura.png)
 
 **Como usar:**
 1.  **Entre ou Crie:** Na seção "Comunidade", você pode entrar em uma congregação existente com um código de convite ou criar a sua própria.
@@ -77,7 +89,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🙏 Santuário de Oração
 **O que é?** Um espaço privado para você orar em voz alta e receber uma reflexão devocional baseada em sua oração.
 
-> <COLOCAR AQUI IMAGEM DA TELA DO SANTUÁRIO DE ORAÇÃO>
+![Texto Alternativo da Imagem](https://i.ibb.co/tpQWd8Pv/santuario-oracao.png)
 
 **Como usar:**
 1.  **Entre no Santuário:** Acesse a funcionalidade no menu.
@@ -89,7 +101,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### ✝️ Confessionário
 **O que é?** Um espaço seguro para a prática espiritual da confissão, com garantia de privacidade.
 
-> <COLOCAR AQUI IMAGEM DA TELA DO CONFESSIONÁRIO>
+![Texto Alternativo da Imagem](https://i.ibb.co/svyRMdy3/confessionario.png)
 
 **Como usar:**
 1.  **Acesso Intencional:** Para entrar, pressione e segure o ícone de cadeado.
@@ -98,17 +110,6 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ---
 
-### 😔 Jornada de Sentimentos
-**O que é?** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras.
-
-> <COLOCAR AQUI IMAGEM DA TELA DA JORNADA DE SENTIMENTOS>
-
-**Como usar:**
-1.  **Selecione o Sentimento:** Escolha como você está se sentindo (ex: Ansiedade, Tristeza, Raiva).
-2.  **Descreva o Motivo:** Fale ou escreva sobre o porquê de se sentir assim.
-3.  **Receba o Farol:** A IA, agindo como um conselheiro pastoral, fornecerá uma reflexão empática e versículos bíblicos relevantes para trazer conforto e a perspectiva de Deus para sua situação. O foco é sempre apontar para a esperança nas Escrituras, não dar conselhos práticos.
-
----
 
 ### Outras Ferramentas
 

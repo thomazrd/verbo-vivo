@@ -126,10 +126,11 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => setIsFeelingModalOpen(true)}
-            className="bg-accent text-accent-foreground hover:bg-accent/90 md:h-9 md:px-4 md:py-2"
+            className="h-9"
           >
               <HeartHandshake className="h-5 w-5 md:mr-2" />
               <span className="hidden md:inline">Como estou me sentindo?</span>

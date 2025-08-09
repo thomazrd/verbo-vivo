@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import type { BattlePlan, Mission, UserBattlePlan } from "@/lib/types";
 import { MissionTypeDetails } from "@/lib/mission-details";
 
-import { Loader2, ShieldCheck, Pencil, CheckCircle, History, Check } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil, CheckCircle, GraduationCap, CalendarDays, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -140,7 +140,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
 
   return (
     <div className="container mx-auto max-w-3xl pb-12">
-      <div className="relative w-full h-64 sm:h-80 rounded-b-lg overflow-hidden shadow-lg">
+      <div className="relative w-full h-64 sm:h-80 rounded-lg overflow-hidden shadow-lg">
         <Image
           src={plan.coverImageUrl}
           alt={plan.title}
@@ -150,6 +150,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
           data-ai-hint="training plan cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        
         {isCreator && (
             <Button asChild className="absolute top-4 right-4 z-10">
                 <Link href={`/battle-plans/edit/${plan.id}`}>
@@ -158,15 +159,25 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
                 </Link>
             </Button>
         )}
-      </div>
-      <div className="px-4 -mt-16 relative z-10">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
-          {plan.title}
-        </h1>
-        <p className="mt-2 text-white/90">Um treinamento de {plan.durationDays} dias.</p>
-        <p className="text-sm text-white/80">Criado por: {plan.creatorName}</p>
 
-        <p className="mt-8 text-lg text-foreground/80 leading-relaxed">{plan.description}</p>
+        <div className="absolute bottom-0 left-0 p-6 w-full z-10">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
+            {plan.title}
+            </h1>
+             <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/90 text-sm">
+                <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Um treinamento de {plan.durationDays} dias.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Criado por: {plan.creatorName}</span>
+                </div>
+            </div>
+        </div>
+      </div>
+      <div className="px-4 mt-8">
+        <p className="text-lg text-foreground/80 leading-relaxed">{plan.description}</p>
         
         {hasStartedPlan ? (
              <Button size="lg" className="w-full mt-8" onClick={() => router.push(`/battle-plans/mission/${plan.id}`)}>

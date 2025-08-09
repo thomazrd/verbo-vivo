@@ -42,10 +42,11 @@ const loadYouTubeAPI = () => {
 };
 
 export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomYoutubePlayerProps) {
-  const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substring(7)}`;
+
 
   const [isApiReady, setIsApiReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -74,8 +75,8 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
   }, []);
 
   useEffect(() => {
-    if (isApiReady && playerContainerRef.current) {
-        playerRef.current = new window.YT.Player(playerContainerRef.current, {
+    if (isApiReady) {
+        playerRef.current = new window.YT.Player(playerId, {
             height: '100%',
             width: '100%',
             videoId: videoId,
@@ -93,7 +94,7 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
             },
         });
     }
-  }, [isApiReady, videoId]);
+  }, [isApiReady, videoId, playerId]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -164,7 +165,7 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
         onMouseMove={resetControlsTimeout} 
         onMouseLeave={() => { if (isPlaying) setShowControls(false) }}
     >
-      <div id={`youtube-player-${videoId}`} ref={playerContainerRef} className="w-full h-full"></div>
+      <div id={playerId} className="w-full h-full"></div>
       
       <AnimatePresence>
         {!isPlaying && !isApiReady && (

@@ -1,18 +1,22 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { processFeelingReport } from '@/ai/flows/feeling-journey-flow';
 import type { ProcessFeelingReportOutput } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
+import { useSpeechToText } from '@/hooks/use-speech-to-text';
+import Link from 'next/link';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Wand } from 'lucide-react';
+import { Loader2, Sparkles, Wand, Mic, Square, Link as LinkIcon } from 'lucide-react';
 import { VerseCard } from '@/components/chat/VerseCard';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface FeelingModalProps {
   isOpen: boolean;
@@ -30,8 +34,22 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
   const [inputText, setInputText] = useState('');
   const [response, setResponse] = useState<ProcessFeelingReportOutput | null>(null);
 
+  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({
+    onTranscriptChange: (newTranscript) => {
+        setInputText(newTranscript);
+    }
+  });
+
+  useEffect(() => {
+    if (error) {
+        toast({ variant: 'destructive', title: 'Erro de Microfone', description: error });
+    }
+  }, [error, toast]);
+
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
+      if (isListening) stopListening();
       onClose();
       // Reset state after a short delay to allow for fade-out animation
       setTimeout(() => {
@@ -51,6 +69,9 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
       toast({ variant: 'destructive', title: 'Acesso Negado', description: 'Você precisa estar logado para usar este recurso.' });
       return;
     }
+    if (isListening) {
+        stopListening();
+    }
 
     setState('loading');
     try {
@@ -69,6 +90,15 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
       setState('input');
     }
   };
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      setInputText('');
+      startListening();
+    }
+  }
 
   const renderContent = () => {
     switch(state) {
@@ -93,12 +123,23 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
       case 'input':
       default:
         return (
-          <Textarea
-            placeholder="Descreva o que você sente..."
-            className="min-h-[150px] resize-none"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-          />
+          <div className="relative">
+            <Textarea
+                placeholder={isListening ? "Ouvindo..." : "Descreva o que você sente..."}
+                className="min-h-[150px] resize-none pr-12"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+            />
+            <Button
+                size="icon"
+                variant="ghost"
+                className={cn("absolute top-2 right-2", isListening && "text-destructive")}
+                onClick={handleMicClick}
+                aria-label={isListening ? 'Parar gravação' : 'Iniciar gravação'}
+            >
+                {isListening ? <Square className="h-5 w-5"/> : <Mic className="h-5 w-5" />}
+            </Button>
+          </div>
         );
     }
   };
@@ -120,14 +161,25 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
           {renderContent()}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           {state !== 'response' ? (
-            <Button onClick={handleSubmit} disabled={state === 'loading' || !inputText.trim()}>
-              {state === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand className="mr-2 h-4 w-4" />}
-              Receber Palavra
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={state === 'loading' || !inputText.trim()}>
+                {state === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand className="mr-2 h-4 w-4" />}
+                Receber Palavra
+              </Button>
+            </>
           ) : (
-            <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
+            <>
+                <Button variant="ghost" asChild>
+                    <Link href="/feeling-journey" onClick={() => handleOpenChange(false)}>
+                         <LinkIcon className="mr-2 h-4 w-4" />
+                         Iniciar Jornada Completa
+                    </Link>
+                </Button>
+                <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>

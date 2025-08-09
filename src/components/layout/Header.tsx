@@ -19,6 +19,7 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  HeartHandshake,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -125,9 +126,13 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="outline" size="sm" onClick={() => setIsFeelingModalOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Como estou me sentindo?
+          <Button 
+            size="sm" 
+            onClick={() => setIsFeelingModalOpen(true)}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 md:h-9 md:px-4 md:py-2"
+          >
+              <HeartHandshake className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Como estou me sentindo?</span>
           </Button>
           {user && (
             <div className="flex items-center gap-2">

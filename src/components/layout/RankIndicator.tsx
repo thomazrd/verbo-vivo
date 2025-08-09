@@ -1,3 +1,4 @@
+
 "use client";
 
 import { LucideIcon } from 'lucide-react';
@@ -35,7 +36,7 @@ export function RankIndicator({ rankName, Icon, iconColor, isCollapsed }: RankIn
     <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all bg-accent/10 border-t border-b border-accent/20 mx-2 my-2">
       <Icon className={cn("h-8 w-8", iconColor)} />
       <div className='flex flex-col'>
-        <span className="text-sm text-foreground/80">Sua Patente</span>
+        <span className="text-xs text-foreground/80">Nível</span>
         <span className="text-base font-bold text-foreground">{rankName}</span>
       </div>
     </div>

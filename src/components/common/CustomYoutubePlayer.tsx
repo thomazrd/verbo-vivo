@@ -29,15 +29,18 @@ function formatTime(seconds: number): string {
 }
 
 const loadYouTubeAPI = () => {
-    if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        if (firstScriptTag && firstScriptTag.parentNode) {
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        } else {
-            document.head.appendChild(tag);
-        }
+    if (window.YT && window.YT.Player) {
+      return;
+    }
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      } else {
+        document.head.appendChild(tag);
+      }
     }
 };
 
@@ -46,8 +49,6 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substring(7)}`;
-
 
   const [isApiReady, setIsApiReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -56,87 +57,98 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
   const [volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   useEffect(() => {
     loadYouTubeAPI();
+    window.onYouTubeIframeAPIReady = () => setIsApiReady(true);
     
     if (window.YT && window.YT.Player) {
         setIsApiReady(true);
-    } else {
-        window.onYouTubeIframeAPIReady = () => setIsApiReady(true);
     }
-
+    
     return () => {
-        if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-        if(controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-            playerRef.current.destroy();
-        }
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        playerRef.current.destroy();
+      }
     };
   }, []);
 
   useEffect(() => {
     if (isApiReady && playerContainerRef.current) {
-        playerRef.current = new window.YT.Player(playerContainerRef.current, {
-            height: '100%',
-            width: '100%',
-            videoId: videoId,
-            playerVars: {
-                autoplay: 0,
-                controls: 0,
-                rel: 0,
-                showinfo: 0,
-                modestbranding: 1,
-                iv_load_policy: 3,
-            },
-            events: {
-                'onReady': onPlayerReady,
-                'onStateChange': onPlayerStateChange,
-            },
-        });
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+      playerRef.current = new window.YT.Player(playerContainerRef.current, {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0, controls: 0, rel: 0, showinfo: 0, modestbranding: 1, iv_load_policy: 3,
+        },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange,
+        },
+      });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isApiReady, videoId]);
+
+  useEffect(() => {
+    // Sincroniza o estado de play/pause do React com o player do YouTube
+    if (!isPlayerReady || !playerRef.current?.playVideo || !playerRef.current?.pauseVideo) return;
+
+    if (isPlaying) {
+      playerRef.current.playVideo();
+    } else {
+      playerRef.current.pauseVideo();
+    }
+  }, [isPlaying, isPlayerReady]);
 
   useEffect(() => {
     if (isPlaying) {
       progressIntervalRef.current = setInterval(() => {
-        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        if (playerRef.current?.getCurrentTime) {
           const currentTime = playerRef.current.getCurrentTime();
           const videoDuration = playerRef.current.getDuration();
           if (videoDuration > 0) {
             setDuration(videoDuration);
             setProgress(currentTime);
-            if (onProgress) onProgress(currentTime, videoDuration);
+            onProgress?.(currentTime, videoDuration);
           }
         }
       }, 500);
     } else {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     }
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
   }, [isPlaying, onProgress]);
-
+  
   useEffect(() => {
-    if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
+    if (playerRef.current?.setVolume) {
       playerRef.current.setVolume((isMuted ? 0 : volume) * 100);
     }
   }, [volume, isMuted]);
 
   const onPlayerReady = (event: any) => {
     setDuration(event.target.getDuration());
+    setIsPlayerReady(true);
   };
 
   const onPlayerStateChange = (event: any) => {
+    setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
     if (event.data === window.YT.PlayerState.PLAYING) {
-        setIsPlaying(true);
         resetControlsTimeout();
     } else {
-        setIsPlaying(false);
         setShowControls(true);
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     }
     if (event.data === window.YT.PlayerState.ENDED) {
-        if (onVideoEnd) onVideoEnd();
+        onVideoEnd?.();
     }
   };
 
@@ -149,13 +161,11 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
   };
 
   const handlePlayPause = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) playerRef.current.pauseVideo();
-    else playerRef.current.playVideo();
+    setIsPlaying(prev => !prev);
   };
 
   const handleSeek = (value: number[]) => {
-    if (playerRef.current) {
+    if (playerRef.current?.seekTo) {
       playerRef.current.seekTo(value[0], true);
       setProgress(value[0]);
     }
@@ -170,12 +180,12 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
       <div ref={playerContainerRef} className="w-full h-full"></div>
       
       <AnimatePresence>
-        {!isPlaying && !isApiReady && (
+        {!isPlayerReady && (
              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                 <Loader2 className="h-10 w-10 text-white animate-spin"/>
             </div>
         )}
-        {showControls && isApiReady && (
+        {showControls && isPlayerReady && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -183,7 +193,7 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
             transition={{ duration: 0.3 }}
             className="absolute inset-0 bg-black/30 flex flex-col justify-between p-2 sm:p-4"
           >
-            <div></div> {/* Spacer */}
+            <div></div>
             <div className="flex justify-center items-center">
               <Button variant="ghost" className="h-16 w-16 text-white" onClick={handlePlayPause}>
                 {isPlaying ? <Pause className="h-10 w-10" /> : <Play className="h-10 w-10" />}

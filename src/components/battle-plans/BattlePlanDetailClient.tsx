@@ -1,15 +1,16 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import type { BattlePlan, Mission, UserBattlePlan } from "@/lib/types";
+import { MissionTypeDetails } from "@/lib/mission-details";
 
-import { Loader2, ShieldCheck, Pencil, CheckCircle, History } from "lucide-react";
+import { Loader2, ShieldCheck, Pencil, CheckCircle, History, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -83,8 +84,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
     if (!user || !plan) return;
     setIsStarting(true);
     
-    const userPlanData: UserBattlePlan = {
-      id: plan.id,
+    const userPlanData: Omit<UserBattlePlan, 'id'> = {
       userId: user.uid,
       planId: plan.id,
       planTitle: plan.title,
@@ -115,6 +115,14 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
   const hasStartedPlan = userPlan !== null && userPlan !== undefined;
   const isCreator = user?.uid === plan?.creatorId;
 
+  const groupedMissions = useMemo(() => {
+    if (!plan) return {};
+    return plan.missions.reduce((acc, mission) => {
+        (acc[mission.day] = acc[mission.day] || []).push(mission);
+        return acc;
+    }, {} as Record<number, Mission[]>);
+  }, [plan]);
+
   if (isLoading) {
     return <PlanSkeleton />;
   }
@@ -122,9 +130,12 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
   if (!plan) {
     return null; // or a 'not found' component
   }
-
-  const completedMissions = plan.missions.filter(m => userPlan?.completedMissionIds.includes(m.id));
-  const pendingMissions = plan.missions.filter(m => !userPlan?.completedMissionIds.includes(m.id));
+  
+  const areAllMissionsForDayCompleted = (day: number) => {
+    const missionsForDay = groupedMissions[day] || [];
+    if (missionsForDay.length === 0) return false;
+    return missionsForDay.every(m => userPlan?.completedMissionIds.includes(m.id));
+  };
 
 
   return (
@@ -149,7 +160,7 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
         )}
       </div>
       <div className="px-4 -mt-16 relative z-10">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
           {plan.title}
         </h1>
         <p className="mt-2 text-white/90">Um treinamento de {plan.durationDays} dias.</p>
@@ -186,62 +197,50 @@ export function BattlePlanDetailClient({ planId }: { planId: string }) {
             </AlertDialog>
         )}
 
-        <h3 className="text-xl font-bold mt-12 mb-4">Próximas Missões</h3>
+        <h3 className="text-xl font-bold mt-12 mb-4">Mural de Missões</h3>
         <Accordion type="single" collapsible className="w-full space-y-2">
-            {pendingMissions
-              .sort((a,b) => a.day - b.day)
-              .map((mission: Mission) => {
-                return (
-                  <AccordionItem value={`item-${mission.day}`} key={mission.id} className="border rounded-lg px-4 bg-muted/30">
-                    <AccordionTrigger>
+           {Object.keys(groupedMissions).map(day => {
+              const dayNumber = parseInt(day, 10);
+              const missionsForDay = groupedMissions[dayNumber];
+              const allCompleted = areAllMissionsForDayCompleted(dayNumber);
+              return (
+                <AccordionItem value={`day-${dayNumber}`} key={dayNumber} className="border rounded-lg px-4 bg-muted/30 data-[state=open]:border-primary/50">
+                   <AccordionTrigger>
                        <div className="flex items-center gap-4 w-full">
-                          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">
-                              {mission.day}
+                          <div className={cn("flex items-center justify-center h-8 w-8 rounded-full font-bold text-sm shrink-0", allCompleted ? "bg-green-500/20 text-green-700" : "bg-primary/10 text-primary")}>
+                              {allCompleted ? <CheckCircle className="h-5 w-5"/> : dayNumber}
                           </div>
-                          <span className="font-semibold text-left">{mission.title}</span>
+                          <span className={cn("font-semibold text-left", allCompleted && "line-through text-muted-foreground")}>Dia {dayNumber}</span>
                        </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                        <div className="border-t -mx-4 px-4 pt-4 pb-2">
-                           <p className="text-muted-foreground">{mission.leaderNote || "Nenhuma nota adicional do líder."}</p>
+                        <div className="border-t -mx-4 px-4 pt-4 pb-2 space-y-3">
+                            {missionsForDay.map(mission => {
+                                const MissionIcon = MissionTypeDetails[mission.type]?.icon;
+                                const isCompleted = userPlan?.completedMissionIds.includes(mission.id);
+                                return (
+                                    <div key={mission.id} className="p-3 border rounded-md bg-background">
+                                        <div className="flex justify-between items-start">
+                                            <p className={cn("font-semibold text-sm", isCompleted && "line-through text-muted-foreground")}>{mission.title}</p>
+                                            {isCompleted && <Check className="h-4 w-4 text-green-500 shrink-0 ml-2" />}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                                            {MissionIcon && <MissionIcon className="h-3 w-3"/>}
+                                            <span>{MissionTypeDetails[mission.type].label}</span>
+                                        </div>
+                                        {mission.leaderNote && (
+                                            <p className="text-xs text-muted-foreground italic mt-2 border-t pt-2">Nota: {mission.leaderNote}</p>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     </AccordionContent>
-                  </AccordionItem>
-                )
-              })}
-          </Accordion>
-
-         {completedMissions.length > 0 && (
-            <>
-                <h3 className="text-xl font-bold mt-12 mb-4 flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5"/>Missões Concluídas</h3>
-                 <Accordion type="single" collapsible className="w-full space-y-2">
-                    {completedMissions
-                    .sort((a,b) => a.day - b.day)
-                    .map((mission: Mission) => {
-                        return (
-                        <AccordionItem value={`item-${mission.day}`} key={mission.id} className="border rounded-lg px-4 bg-green-500/5 border-green-500/30">
-                            <AccordionTrigger>
-                            <div className="flex items-center gap-4 w-full">
-                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/20 text-green-700 font-bold text-sm shrink-0">
-                                    <CheckCircle className="h-5 w-5"/>
-                                </div>
-                                <span className="font-semibold text-left line-through text-muted-foreground">{mission.title}</span>
-                            </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="border-t -mx-4 px-4 pt-4 pb-2">
-                                <p className="text-muted-foreground">{mission.leaderNote || "Nenhuma nota adicional do líder."}</p>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                        )
-                    })}
-                </Accordion>
-            </>
-         )}
-
+                </AccordionItem>
+              )
+           })}
+        </Accordion>
       </div>
     </div>
   );
 }
-

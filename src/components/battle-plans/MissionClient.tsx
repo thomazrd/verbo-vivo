@@ -11,7 +11,7 @@ import { differenceInDays, startOfDay } from "date-fns";
 import { Loader2, Check, Shield, Handshake, Heart, BrainCircuit, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
@@ -132,11 +132,11 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             
             <Card className="mt-8">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                        {MissionIcon && <MissionIcon className="h-6 w-6 text-muted-foreground" />}
-                        {mission.title}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground font-normal">{MissionTypeDetails[mission.type].label}</p>
+                    <CardTitle>{mission.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 pt-1">
+                       {MissionIcon && <MissionIcon className="h-4 w-4" />}
+                       <span>{MissionTypeDetails[mission.type].label}</span>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {mission.type === 'BIBLE_READING' && (

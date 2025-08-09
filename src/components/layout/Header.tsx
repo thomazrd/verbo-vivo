@@ -47,7 +47,7 @@ import { FeelingModal } from "../feeling-journey/FeelingModal";
 
 function UserIcon() {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     )
 }
 
@@ -144,7 +144,7 @@ export function Header() {
                     <div 
                         className="h-9 w-9 rounded-full p-0.5" 
                         style={{
-                            backgroundImage: 'conic-gradient(from 180deg at 50% 50%, #10b981, #f59e0b, hsl(var(--accent)), hsl(var(--primary)), #10b981)',
+                            backgroundImage: 'conic-gradient(from 180deg at 50% 50%, transparent 0deg 5deg, hsl(var(--primary)) 5deg 175deg, transparent 175deg 185deg, hsl(var(--accent)) 185deg 355deg, transparent 355deg 360deg)',
                         }}
                     >
                         <Avatar className="h-full w-full">

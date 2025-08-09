@@ -141,7 +141,12 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                    <div className="h-9 w-9 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-primary to-green-500">
+                    <div 
+                        className="h-9 w-9 rounded-full p-0.5" 
+                        style={{
+                            backgroundImage: 'conic-gradient(from 180deg at 50% 50%, #10b981, #f59e0b, hsl(var(--accent)), hsl(var(--primary)), #10b981)',
+                        }}
+                    >
                         <Avatar className="h-full w-full">
                             <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || 'Avatar do usuário'} />
                             <AvatarFallback className="bg-background hover:bg-background text-primary font-semibold">

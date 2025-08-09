@@ -140,13 +140,15 @@ export function Header() {
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || 'Avatar do usuário'} />
-                      <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                        {userProfile?.displayName?.[0]?.toUpperCase() || <UserIcon />}
-                      </AvatarFallback>
-                    </Avatar>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+                    <div className="h-9 w-9 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-primary to-green-500">
+                        <Avatar className="h-full w-full">
+                            <AvatarImage src={userProfile?.photoURL || ''} alt={userProfile?.displayName || 'Avatar do usuário'} />
+                            <AvatarFallback className="bg-background hover:bg-background text-primary font-semibold">
+                                {userProfile?.displayName?.[0]?.toUpperCase() || <UserIcon />}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>

@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
+import { MissionTypeDetails } from "@/lib/mission-details";
 
 
 export function MissionClient({ userPlanId }: { userPlanId: string }) {
@@ -122,6 +123,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     };
     
     const missionPath = buildMissionPath();
+    const MissionIcon = MissionTypeDetails[mission.type]?.icon;
 
     return (
         <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -130,7 +132,11 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             
             <Card className="mt-8">
                 <CardHeader>
-                    <CardTitle>{mission.title}</CardTitle>
+                    <CardTitle className="flex items-center gap-3">
+                        {MissionIcon && <MissionIcon className="h-6 w-6 text-muted-foreground" />}
+                        {mission.title}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal">{MissionTypeDetails[mission.type].label}</p>
                 </CardHeader>
                 <CardContent>
                     {mission.type === 'BIBLE_READING' && (

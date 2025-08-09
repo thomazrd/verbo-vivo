@@ -112,8 +112,8 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
         );
       case 'response':
         return response && (
-          <ScrollArea className="max-h-[60vh] pr-6">
-            <div className="space-y-4">
+          <ScrollArea className="max-h-[60vh] pr-4 -mr-4">
+            <div className="space-y-4 pr-2">
               <p className="whitespace-pre-wrap leading-relaxed">{response.responseText}</p>
               {response.citedVerses.map((verse, index) => (
                 <VerseCard key={index} reference={verse.reference} text={verse.text} version={verse.bibleVersion} />
@@ -149,7 +149,7 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
       switch(state) {
           case 'response':
               return (
-                <>
+                  <div className="flex flex-col gap-4">
                     <Alert>
                         <MessageCircle className="h-4 w-4" />
                         <AlertTitle>Quer aprofundar a reflexão?</AlertTitle>
@@ -162,18 +162,18 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
                           </Button>
                         </AlertDescription>
                     </Alert>
-                    <Button onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">Fechar</Button>
-                </>
+                    <Button onClick={() => handleOpenChange(false)} className="w-full sm:w-auto sm:self-end">Fechar</Button>
+                </div>
               )
           default:
               return (
-                <>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                     <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
                     <Button onClick={handleSubmit} disabled={state === 'loading' || !inputText.trim()}>
                         {state === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand className="mr-2 h-4 w-4" />}
                         Receber Palavra
                     </Button>
-                </>
+                </div>
               )
       }
   }
@@ -195,7 +195,7 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
           {renderContent()}
         </div>
 
-        <DialogFooter className="gap-2 flex-col sm:flex-row">
+        <DialogFooter>
             {renderFooter()}
         </DialogFooter>
       </DialogContent>

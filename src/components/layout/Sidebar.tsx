@@ -14,6 +14,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "../ui/button";
 import { useTranslation } from "react-i18next";
 import { mainNavItems, secondaryNavItems } from "./navigation-items";
+import { RankIndicator } from "./RankIndicator";
+import { getRank } from "@/lib/ranks";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -23,7 +26,12 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { userProfile } = useAuth();
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+
+  // Placeholder for points - replace with actual user data when available
+  const userPoints = 150; 
+  const userRank = getRank(userPoints);
 
   return (
     <nav
@@ -40,6 +48,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             {!isCollapsed && <span className="">Verbo Vivo</span>}
           </Link>
         </div>
+
+        <RankIndicator 
+            rankName={userRank.name}
+            Icon={userRank.icon}
+            iconColor={userRank.color}
+            isCollapsed={isCollapsed}
+        />
+
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <TooltipProvider delayDuration={0}>
             <ul className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1 py-4">

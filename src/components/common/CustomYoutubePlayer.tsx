@@ -43,6 +43,7 @@ const loadYouTubeAPI = () => {
 
 export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomYoutubePlayerProps) {
   const playerRef = useRef<any>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substring(7)}`;
@@ -75,8 +76,8 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
   }, []);
 
   useEffect(() => {
-    if (isApiReady) {
-        playerRef.current = new window.YT.Player(playerId, {
+    if (isApiReady && playerContainerRef.current) {
+        playerRef.current = new window.YT.Player(playerContainerRef.current, {
             height: '100%',
             width: '100%',
             videoId: videoId,
@@ -94,7 +95,8 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
             },
         });
     }
-  }, [isApiReady, videoId, playerId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isApiReady, videoId]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -165,7 +167,7 @@ export function CustomYoutubePlayer({ videoId, onVideoEnd, onProgress }: CustomY
         onMouseMove={resetControlsTimeout} 
         onMouseLeave={() => { if (isPlaying) setShowControls(false) }}
     >
-      <div id={playerId} className="w-full h-full"></div>
+      <div ref={playerContainerRef} className="w-full h-full"></div>
       
       <AnimatePresence>
         {!isPlaying && !isApiReady && (

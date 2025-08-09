@@ -1,20 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import type { JournalEntry } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Tag } from "lucide-react";
 import { JournalEditor } from "@/components/journal/JournalEditor";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSearchParams } from "next/navigation";
 import { MissionCompletionModal } from "@/components/battle-plans/MissionCompletionModal";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function JournalPage() {
   const { user } = useAuth();
@@ -24,6 +26,7 @@ export default function JournalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
   const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
@@ -63,6 +66,20 @@ export default function JournalPage() {
 
     return () => unsubscribe();
   }, [user]);
+
+  const allTags = useMemo(() => {
+    const tagsSet = new Set<string>();
+    entries.forEach(entry => {
+        entry.tags?.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  }, [entries]);
+
+  const filteredEntries = useMemo(() => {
+    if (!selectedTag) return entries;
+    return entries.filter(entry => entry.tags?.includes(selectedTag));
+  }, [entries, selectedTag]);
+
 
   const handleNewEntry = (planId: string | null = null) => {
     setSelectedEntry(null);
@@ -119,6 +136,34 @@ export default function JournalPage() {
             Nova Entrada
           </Button>
         </div>
+        
+        {allTags.length > 0 && (
+            <div className="my-6">
+                <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                    <Tag className="h-4 w-4" />
+                    <span>Filtrar por tags:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <Button 
+                        variant={selectedTag === null ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTag(null)}
+                    >
+                        Todos
+                    </Button>
+                    {allTags.map(tag => (
+                        <Button 
+                            key={tag}
+                            variant={selectedTag === tag ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedTag(tag)}
+                        >
+                            {tag}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        )}
 
         <div className="mt-8 space-y-4">
           {isLoading ? (
@@ -127,13 +172,17 @@ export default function JournalPage() {
               <Skeleton className="h-28 w-full" />
               <Skeleton className="h-28 w-full" />
             </>
-          ) : entries.length === 0 ? (
+          ) : filteredEntries.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-muted-foreground/30 rounded-lg">
-              <p className="text-muted-foreground">Nenhuma entrada no diário ainda.</p>
-              <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+              <p className="text-muted-foreground">Nenhuma entrada encontrada.</p>
+              {selectedTag ? (
+                <p className="text-sm text-muted-foreground">Tente remover o filtro de tag.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+              )}
             </div>
           ) : (
-            entries.map((entry) => (
+            filteredEntries.map((entry) => (
               <Card key={entry.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleEditEntry(entry)}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -151,6 +200,13 @@ export default function JournalPage() {
                 <CardContent>
                   <p className="line-clamp-2 text-muted-foreground">{entry.content}</p>
                 </CardContent>
+                 {entry.tags && entry.tags.length > 0 && (
+                    <CardFooter className="flex flex-wrap gap-2 pt-4">
+                        {entry.tags.map(tag => (
+                            <Badge key={tag} variant="secondary">{tag}</Badge>
+                        ))}
+                    </CardFooter>
+                 )}
               </Card>
             ))
           )}

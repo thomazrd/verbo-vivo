@@ -13,10 +13,11 @@ import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Wand, Mic, Square, Link as LinkIcon } from 'lucide-react';
+import { Loader2, Sparkles, Wand, Mic, Square, Link as LinkIcon, AlertTriangle, MessageCircle } from 'lucide-react';
 import { VerseCard } from '@/components/chat/VerseCard';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface FeelingModalProps {
   isOpen: boolean;
@@ -111,8 +112,8 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
         );
       case 'response':
         return response && (
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-4 pr-6">
+          <ScrollArea className="max-h-[60vh] pr-6">
+            <div className="space-y-4">
               <p className="whitespace-pre-wrap leading-relaxed">{response.responseText}</p>
               {response.citedVerses.map((verse, index) => (
                 <VerseCard key={index} reference={verse.reference} text={verse.text} version={verse.bibleVersion} />
@@ -144,6 +145,39 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
     }
   };
 
+  const renderFooter = () => {
+      switch(state) {
+          case 'response':
+              return (
+                <>
+                    <Alert>
+                        <MessageCircle className="h-4 w-4" />
+                        <AlertTitle>Quer aprofundar a reflexão?</AlertTitle>
+                        <AlertDescription>
+                          Utilize a Jornada de Sentimentos para uma experiência guiada e mais completa, salvando seu progresso.
+                          <Button variant="link" asChild className="p-0 h-auto ml-1 font-semibold">
+                            <Link href="/feeling-journey" onClick={() => handleOpenChange(false)}>
+                                Iniciar Jornada Completa
+                            </Link>
+                          </Button>
+                        </AlertDescription>
+                    </Alert>
+                    <Button onClick={() => handleOpenChange(false)} className="w-full sm:w-auto">Fechar</Button>
+                </>
+              )
+          default:
+              return (
+                <>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
+                    <Button onClick={handleSubmit} disabled={state === 'loading' || !inputText.trim()}>
+                        {state === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand className="mr-2 h-4 w-4" />}
+                        Receber Palavra
+                    </Button>
+                </>
+              )
+      }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
@@ -161,26 +195,8 @@ export function FeelingModal({ isOpen, onClose }: FeelingModalProps) {
           {renderContent()}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          {state !== 'response' ? (
-            <>
-              <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleSubmit} disabled={state === 'loading' || !inputText.trim()}>
-                {state === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand className="mr-2 h-4 w-4" />}
-                Receber Palavra
-              </Button>
-            </>
-          ) : (
-            <>
-                <Button variant="ghost" asChild>
-                    <Link href="/feeling-journey" onClick={() => handleOpenChange(false)}>
-                         <LinkIcon className="mr-2 h-4 w-4" />
-                         Iniciar Jornada Completa
-                    </Link>
-                </Button>
-                <Button onClick={() => handleOpenChange(false)}>Fechar</Button>
-            </>
-          )}
+        <DialogFooter className="gap-2 flex-col sm:flex-row">
+            {renderFooter()}
         </DialogFooter>
       </DialogContent>
     </Dialog>

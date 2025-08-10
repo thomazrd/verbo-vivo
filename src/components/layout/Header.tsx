@@ -45,14 +45,9 @@ import { WisdomPearl } from "./WisdomPearl";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "../ui/scroll-area";
 import { secondaryNavItems, mainNavItems } from "./navigation-items";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FeelingModal } from "../feeling-journey/FeelingModal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import axios from 'axios';
-import type { BibleVersion } from "@/lib/types";
-import { doc, updateDoc } from "firebase/firestore";
-import { useToast } from "@/hooks/use-toast";
-import { Label } from "../ui/label";
+import { BibleVersionSelector } from "./BibleVersionSelector";
 
 
 function UserIcon() {
@@ -60,109 +55,6 @@ function UserIcon() {
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     )
 }
-
-function BibleVersionSelector({ mobile = false }: { mobile?: boolean }) {
-  const { user, userProfile } = useAuth();
-  const { i18n } = useTranslation();
-  const { toast } = useToast();
-
-  const [bibleVersions, setBibleVersions] = useState<BibleVersion[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const lang = i18n.language.split('-')[0];
-  const preferredVersion = userProfile?.preferredBibleVersion;
-
-  useEffect(() => {
-    const fetchVersions = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get(`/api/bible/versions?lang=${lang}`);
-        setBibleVersions(response.data);
-      } catch (error) {
-        console.error("Failed to fetch bible versions", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchVersions();
-  }, [lang]);
-
-  const handlePreferenceChange = async (versionId: string) => {
-    if (!user) return;
-
-    const selectedVersion = bibleVersions.find(v => v.id === versionId);
-    if (!selectedVersion) return;
-
-    try {
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { preferredBibleVersion: selectedVersion });
-        toast({
-            title: "Versão da Bíblia atualizada",
-            description: `Sua preferência foi salva como ${selectedVersion.name}.`,
-        });
-    } catch (error) {
-        console.error(`Error changing preferredBibleVersion:`, error);
-        toast({
-            variant: "destructive",
-            title: 'Erro',
-            description: 'Não foi possível salvar sua preferência.',
-        });
-    }
-  };
-
-  if (mobile) {
-    return (
-        <div className="space-y-2 px-3">
-            <Label>Versão da Bíblia</Label>
-            <Select
-                value={preferredVersion?.id}
-                onValueChange={handlePreferenceChange}
-                disabled={isLoading || bibleVersions.length === 0}
-            >
-                <SelectTrigger>
-                    <SelectValue placeholder="Escolha uma versão" />
-                </SelectTrigger>
-                <SelectContent>
-                    {isLoading ? (
-                        <div className="p-2">Carregando...</div>
-                    ) : (
-                        bibleVersions.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                                {v.name}
-                            </SelectItem>
-                        ))
-                    )}
-                </SelectContent>
-            </Select>
-        </div>
-    )
-  }
-
-  return (
-        <Select
-            value={preferredVersion?.id}
-            onValueChange={handlePreferenceChange}
-            disabled={isLoading || bibleVersions.length === 0}
-        >
-            <SelectTrigger className="w-auto h-9 gap-2 border-none bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-0">
-                <BookMarked className="h-4 w-4" />
-                <SelectValue placeholder="Versão" />
-            </SelectTrigger>
-            <SelectContent>
-                {isLoading ? (
-                    <div className="p-2">Carregando...</div>
-                ) : (
-                    bibleVersions.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                            {v.name}
-                        </SelectItem>
-                    ))
-                )}
-            </SelectContent>
-        </Select>
-  );
-}
-
 
 export function Header() {
   const pathname = usePathname();
@@ -248,12 +140,11 @@ export function Header() {
           </div>
           <Button
             size="sm"
-            variant="secondary"
             onClick={() => setIsFeelingModalOpen(true)}
-            className="h-9"
+            className="h-9 bg-secondary text-secondary-foreground hover:bg-secondary/80"
           >
               <HeartHandshake className="h-5 w-5 md:mr-2" />
-              <span className="hidden md:inline">Como estou me sentindo?</span>
+              <span className="hidden md:inline">Como estou?</span>
           </Button>
           {user && (
             <div className="flex items-center gap-2">
@@ -264,7 +155,7 @@ export function Header() {
                     <div 
                         className="h-9 w-9 rounded-full p-0.5" 
                         style={{
-                            backgroundImage: 'conic-gradient(from 180deg at 50% 50%, hsl(var(--primary)) 0deg 178deg, transparent 178deg 182deg, hsl(var(--accent)) 182deg 360deg)',
+                            backgroundImage: 'conic-gradient(from 0deg, hsl(var(--primary)) 0deg 178deg, transparent 178deg 182deg, hsl(var(--accent)) 182deg 360deg)',
                         }}
                     >
                         <Avatar className="h-full w-full">

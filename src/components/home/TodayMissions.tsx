@@ -110,7 +110,8 @@ export function TodayMissions() {
                 <div className="flex items-center gap-3">
                     <div>
                         <p className={`font-semibold ${isCompleted ? 'text-muted-foreground line-through' : ''}`}>{mission.title}</p>
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">{planTitle}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                             {MissionIcon && <MissionIcon className="h-4 w-4" />}
                             <span>{MissionTypeDetails[mission.type].label}</span>
                         </div>

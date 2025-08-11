@@ -11,22 +11,25 @@ import { ArrowLeft, Calendar, CheckCircle, LineChart, Target, Trophy } from 'luc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { eachDayOfInterval, format, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
+import { eachDayOfInterval, format, startOfMonth, endOfMonth, isSameDay, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { cn } from '@/lib/utils';
 
 const feelingColors: Record<MissionFeeling, string> = {
   GRATEFUL: '#34D399', // green-400
   CHALLENGED: '#FBBF24', // amber-400
   PEACEFUL: '#60A5FA', // blue-400
-  STRENGTHENED: '#A78BFA', // violet-400
+  STRENGTHENED: '#A78BFA', // violet-400,
+  SKIPPED: '#9CA3AF', // gray-400
 };
 
 const feelingLabels: Record<MissionFeeling, string> = {
     GRATEFUL: 'Grato',
     CHALLENGED: 'Desafiado',
     PEACEFUL: 'Em Paz',
-    STRENGTHENED: 'Fortalecido'
+    STRENGTHENED: 'Fortalecido',
+    SKIPPED: 'Pulei'
 };
 
 
@@ -117,10 +120,19 @@ export function MissionReportClient() {
 
   const activityDates = logs.map(log => log.completedAt.toDate());
   const currentMonth = new Date();
+  const firstDayOfMonth = startOfMonth(currentMonth);
+  const lastDayOfMonth = endOfMonth(currentMonth);
+  
+  // Get all days in the current month
   const monthDays = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
+    start: firstDayOfMonth,
+    end: lastDayOfMonth,
   });
+
+  // Calculate empty days to pad the beginning of the month
+  const startingDayOfWeek = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday...
+  const emptyDays = Array.from({ length: startingDayOfWeek });
+
 
   const totalMissions = logs.length;
   
@@ -186,17 +198,22 @@ export function MissionReportClient() {
         <Card>
             <CardHeader><CardTitle>Calendário de Atividade ({format(currentMonth, 'MMMM', { locale: ptBR })})</CardTitle></CardHeader>
             <CardContent>
-                <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => <div key={d}>{d}</div>)}
+                <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground font-semibold">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <div key={i}>{d}</div>)}
                 </div>
                  <div className="grid grid-cols-7 gap-1 mt-2">
+                    {emptyDays.map((_, index) => (
+                        <div key={`empty-${index}`} />
+                    ))}
                     {monthDays.map((day) => {
                         const dayHasActivity = activityDates.some(ad => isSameDay(ad, day));
                         return (
                             <div
                                 key={day.toString()}
-                                className={`w-full aspect-square rounded flex items-center justify-center text-xs ${dayHasActivity ? 'bg-primary/80 text-primary-foreground' : 'bg-muted/50'}`}
-                                style={{ gridColumnStart: day.getDay() + 1 }}
+                                className={cn("w-full aspect-square rounded flex items-center justify-center text-xs", 
+                                    dayHasActivity ? 'bg-primary/80 text-primary-foreground' : 'bg-muted/50'
+                                )}
+                                title={dayHasActivity ? 'Missão concluída!' : ''}
                             >
                                 {format(day, 'd')}
                             </div>
@@ -228,3 +245,4 @@ export function MissionReportClient() {
     </div>
   );
 }
+

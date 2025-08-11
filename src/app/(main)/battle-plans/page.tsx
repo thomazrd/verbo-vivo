@@ -10,7 +10,7 @@ import type { BattlePlan, UserBattlePlan } from '@/lib/types';
 import { BattlePlanList } from '@/components/battle-plans/BattlePlanList';
 
 import { Button } from '@/components/ui/button';
-import { Plus, GraduationCap } from 'lucide-react';
+import { Plus, NotebookPen } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function BattlePlansPage() {
@@ -91,19 +91,27 @@ export default function BattlePlansPage() {
 
   return (
     <div className="container mx-auto max-w-7xl py-8 px-4 h-full flex flex-col">
-       <div className="flex items-center justify-between mb-8">
+       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Centro de Treinamento</h1>
           <p className="mt-1 text-muted-foreground">
             Sua armaria para as batalhas da fé.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/battle-plans/create">
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Plano
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+            <Button variant="outline" asChild>
+                <Link href="/battle-plans/report">
+                    <NotebookPen className="mr-2 h-4 w-4" />
+                    Diário de Batalha
+                </Link>
+            </Button>
+            <Button asChild>
+                <Link href="/battle-plans/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar Plano
+                </Link>
+            </Button>
+        </div>
       </div>
 
        <Tabs defaultValue="my-plans">

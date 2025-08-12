@@ -42,6 +42,7 @@ export interface JournalEntry {
   title?: string;
   content: string;
   category: 'Pedido' | 'Agradecimento' | 'Reflexão';
+  tags?: string[];
 }
 
 export interface Verse {

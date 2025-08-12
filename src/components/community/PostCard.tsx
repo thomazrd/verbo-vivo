@@ -27,8 +27,8 @@ import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { BookOpen } from 'lucide-react';
-import { downloadVerseImage } from '@/lib/download-verse-image';
 import { VerseCard } from '../chat/VerseCard';
+import { CustomYoutubePlayer } from '../common/CustomYoutubePlayer';
 
 
 function CommentWithReplies({ comment, allComments, congregationId, postId, postAuthorId, onCommentSubmit }: { 
@@ -294,7 +294,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [timeAgo, setTimeAgo] = useState('');
-  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
   useEffect(() => {
     // Listen for real-time updates on the author's member document
@@ -444,28 +443,6 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
       case 'VIDEO':
         const videoContent = post.content as VideoContent;
         const hasVideoText = videoContent.text && videoContent.text.trim().length > 0;
-
-        if (isPlayingVideo) {
-            return (
-                <>
-                    {hasVideoText && (
-                        <div className="px-4 pt-3 pb-2">
-                            <PostText text={videoContent.text} />
-                        </div>
-                    )}
-                    <div className="aspect-video w-full">
-                        <iframe
-                            className="w-full h-full"
-                            src={`https://www.youtube.com/embed/${videoContent.videoId}?autoplay=1&rel=0`}
-                            title="YouTube video player"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
-                    </div>
-                </>
-            )
-        }
         return (
             <>
                 {hasVideoText && (
@@ -473,22 +450,7 @@ export function PostCard({ post, congregationId, onLike }: { post: Post, congreg
                         <PostText text={videoContent.text} />
                     </div>
                 )}
-                <div 
-                    className="relative w-full bg-black cursor-pointer group"
-                    onClick={() => setIsPlayingVideo(true)}
-                >
-                    <Image
-                        src={videoContent.thumbnailUrl || ''}
-                        alt="Video thumbnail"
-                        width={480}
-                        height={270}
-                        className="w-full h-auto object-contain"
-                        unoptimized={true}
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
-                        <PlayCircle className="h-16 w-16 text-white/80" />
-                    </div>
-                </div>
+                <CustomYoutubePlayer videoId={videoContent.videoId} />
             </>
         );
       case 'BACKGROUND_TEXT':

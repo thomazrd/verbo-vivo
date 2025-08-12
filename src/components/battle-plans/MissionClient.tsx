@@ -11,10 +11,11 @@ import { differenceInDays, startOfDay } from "date-fns";
 import { Loader2, Check, Shield, Handshake, Heart, BrainCircuit, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
+import { MissionTypeDetails } from "@/lib/mission-details";
 
 
 export function MissionClient({ userPlanId }: { userPlanId: string }) {
@@ -122,6 +123,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
     };
     
     const missionPath = buildMissionPath();
+    const MissionIcon = MissionTypeDetails[mission.type]?.icon;
 
     return (
         <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -131,6 +133,10 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             <Card className="mt-8">
                 <CardHeader>
                     <CardTitle>{mission.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 pt-1">
+                       {MissionIcon && <MissionIcon className="h-4 w-4" />}
+                       <span>{MissionTypeDetails[mission.type].label}</span>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {mission.type === 'BIBLE_READING' && (

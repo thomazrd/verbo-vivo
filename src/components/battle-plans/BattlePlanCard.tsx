@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { GraduationCap, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
+import { GraduationCap, MoreVertical, Pencil, Trash2, Loader2, CalendarDays, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -52,7 +52,9 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
           title: plan.planTitle, 
           coverImageUrl: plan.planCoverImageUrl,
           creatorName: (plan as any).creatorName,
-          creatorId: plan.planCreatorId
+          creatorId: plan.planCreatorId,
+          durationDays: (plan as any).durationDays, // Pass through duration
+          missions: [] // Mission count not available on UserBattlePlan
         } 
       : plan as BattlePlan;
 
@@ -85,6 +87,8 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
         setIsDeleting(false);
     }
   }
+
+  const missionCount = (plan as BattlePlan).missions?.length;
 
   return (
     <Link href={linkHref} className="group block h-full">
@@ -148,6 +152,18 @@ export function BattlePlanCard({ plan }: BattlePlanCardProps) {
                 Criado por: {basePlan.creatorName || 'Verbo Vivo'}
                 </p>
             </div>
+            {!userPlan && (
+                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-4 w-4" />
+                        <span>{(plan as BattlePlan).durationDays} dias</span>
+                    </div>
+                     <div className="flex items-center gap-1.5">
+                        <ListTodo className="h-4 w-4" />
+                        <span>{missionCount} missões</span>
+                    </div>
+                </div>
+            )}
         </CardHeader>
         {userPlan && (
           <CardFooter className="pt-0 pb-4 px-4">

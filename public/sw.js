@@ -1,81 +1,80 @@
 
+// Service Worker
+
 const CACHE_NAME = 'verbo-vivo-cache-v1';
+
+// Lista de arquivos a serem cacheados na instalação.
+// Inclui a 'casca' da aplicação (app shell).
 const urlsToCache = [
   '/',
-  '/offline.html',
   '/manifest.json',
+  '/favicon.ico',
+  // Adicione aqui outros assets estáticos que são essenciais,
+  // como a logo principal ou fontes, se não forem carregados via CSS.
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+  // Realiza a instalação: abre o cache e adiciona os arquivos do app shell.
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then((cache) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // IMPORTANT: Clone the request. A request is a stream and
-        // can only be consumed once. Since we are consuming this
-        // once by cache and once by the browser for fetch, we need
-        // to clone the response.
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
-      })
-      .catch(() => {
-        // If the fetch fails and the request is for a page navigation,
-        // return the offline page.
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-      })
-  );
-});
-
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
+  // Limpa caches antigos para garantir que a nova versão do SW seja usada.
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
             return caches.delete(cacheName);
           }
         })
       );
     })
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  // Ignora requisições que não são GET (ex: POST para APIs)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Estratégia: Network Falling to Cache
+  // Tenta buscar da rede primeiro. Se falhar (offline), recorre ao cache.
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Se a requisição à rede foi bem-sucedida, clona a resposta.
+        // A resposta original vai para o navegador, a cópia vai para o cache.
+        // Isso mantém o cache atualizado.
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            // Não cacheia requisições do Chrome extension, pois causam erro.
+            if (event.request.url.startsWith('chrome-extension://')) {
+              return;
+            }
+            cache.put(event.request, responseToCache);
+          });
+        return networkResponse;
+      })
+      .catch(() => {
+        // Se a requisição à rede falhou (offline), tenta encontrar no cache.
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            // Retorna a resposta do cache se encontrada.
+            // Se nem na rede nem no cache, o navegador exibirá a página de erro padrão.
+            return cachedResponse || Response.error();
+          });
+      })
   );
 });

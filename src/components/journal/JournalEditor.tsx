@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -36,6 +37,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -64,6 +66,7 @@ const formSchema = z.object({
   category: z.enum(['Pedido', 'Agradecimento', 'Reflexão'], {
     required_error: "Por favor, selecione uma categoria."
   }),
+  tags: z.string().optional(),
 });
 
 export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }: JournalEditorProps) {
@@ -78,6 +81,7 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
       title: '',
       content: '',
       category: 'Reflexão',
+      tags: '',
     },
   });
 
@@ -88,12 +92,14 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
           title: entry.title || '',
           content: entry.content,
           category: entry.category,
+          tags: entry.tags?.join(', ') || '',
         });
       } else {
         form.reset({
           title: '',
           content: '',
           category: 'Reflexão',
+          tags: '',
         });
       }
     }
@@ -103,19 +109,28 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
     if (!user) return;
     setIsSaving(true);
     
+    const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+
+    const dataToSave = {
+      title: values.title,
+      content: values.content,
+      category: values.category,
+      tags: tagsArray,
+    };
+
     try {
       if (entry) {
         // Update existing entry
         const entryRef = doc(db, 'journals', entry.id);
         await updateDoc(entryRef, {
-          ...values,
+          ...dataToSave,
           updatedAt: serverTimestamp(),
         });
         toast({ title: "Entrada atualizada com sucesso!" });
       } else {
         // Create new entry
         await addDoc(collection(db, 'journals'), {
-          ...values,
+          ...dataToSave,
           userId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -198,6 +213,22 @@ export function JournalEditor({ isOpen, onOpenChange, entry, missionUserPlanId }
                       <SelectItem value="Reflexão">Reflexão</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags (Opcional)</FormLabel>
+                   <FormControl>
+                    <Input placeholder="Fé, provação, gratidão..." {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Separe as tags por vírgula.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

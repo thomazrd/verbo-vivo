@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Smile, LockKeyhole, HeartHandshake, NotebookText, HandHeart, Wand2, RefreshCw, CalendarDays, ListTodo, Youtube } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2, Check, BookOpen, Wand2, RefreshCw, CalendarDays, ListTodo, Youtube } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import type { Mission, MissionType, UserBattlePlan, BattlePlan, BibleBook, GenerateBattlePlanOutput } from "@/lib/types";
 import Image from "next/image";
@@ -28,6 +28,7 @@ import { generateBattlePlan } from "@/ai/flows/battle-plan-generation-flow";
 import { bibleBooksByAbbrev } from "@/lib/bible-books-by-abbrev";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Slider } from "../ui/slider";
+import { MissionTypeDetails } from "@/lib/mission-details";
 
 const missionSchema = z.object({
   id: z.string().default(() => uuidv4()),
@@ -52,16 +53,6 @@ const planSchema = z.object({
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
-
-const MissionTypeDetails: Record<MissionType, { icon: React.ElementType, label: string, path: string, completionQueryParam?: string, requiresVerse?: boolean, verseLabel?: string, versePlaceholder?: string }> = {
-    BIBLE_READING: { icon: BookOpen, label: "Leitura Bíblica", path: '/bible', requiresVerse: true, verseLabel: "Referência Bíblica" },
-    YOUTUBE_VIDEO: { icon: Youtube, label: "Vídeo do YouTube", path: '/battle-plans/mission-video', requiresVerse: true, verseLabel: "Link do Vídeo", versePlaceholder: "https://www.youtube.com/watch?v=..." },
-    PRAYER_SANCTUARY: { icon: HeartHandshake, label: "Santuário de Oração", path: '/prayer-sanctuary', completionQueryParam: 'mission' },
-    FEELING_JOURNEY: { icon: Smile, label: "Jornada de Sentimentos", path: '/feeling-journey', completionQueryParam: 'mission' },
-    CONFESSION: { icon: LockKeyhole, label: "Confessionário", path: '/confession', completionQueryParam: 'mission' },
-    JOURNAL_ENTRY: { icon: NotebookText, label: "Anotação no Diário", path: '/journal', completionQueryParam: 'mission' },
-    FAITH_CONFESSION: { icon: HandHeart, label: "Confissão de Fé", path: '/faith-confession', completionQueryParam: 'mission' },
-};
 
 function BibleVerseSelector({ fieldIndex, control, setValue }: { fieldIndex: number, control: any, setValue: any }) {
     const [books, setBooks] = useState<BibleBook[]>([]);
@@ -371,8 +362,8 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
 
   useEffect(() => {
     if (isEditing) {
-      setCreationMode('manual'); // Editing is always manual flow
-      setCurrentStep(1); // Start at Details step
+        setCreationMode('manual'); // Editing is always manual flow
+        setCurrentStep(1); // Start at Details step
     }
   }, [isEditing]);
 

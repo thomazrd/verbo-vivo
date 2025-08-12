@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import type { UserBattlePlan, BattlePlan, Mission } from "@/lib/types";
 import { differenceInDays, startOfDay } from "date-fns";
+import { MissionTypeDetails } from "@/lib/mission-details";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -102,12 +103,19 @@ export function TodayMissions() {
         {missions.map(({ userPlanId, mission, planTitle, isCompleted }) => {
           const missionPath = `/battle-plans/mission/${userPlanId}`;
           const missionKey = `${userPlanId}-${mission.id}`;
+          const MissionIcon = MissionTypeDetails[mission.type]?.icon;
 
           const MissionContent = (
              <div className="flex justify-between items-center">
-                <div>
-                    <p className={`font-semibold ${isCompleted ? 'text-muted-foreground line-through' : ''}`}>{mission.title}</p>
-                    <p className="text-sm text-muted-foreground">{planTitle}</p>
+                <div className="flex items-center gap-3">
+                    <div>
+                        <p className={`font-semibold ${isCompleted ? 'text-muted-foreground line-through' : ''}`}>{mission.title}</p>
+                        <p className="text-sm text-muted-foreground">{planTitle}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                            {MissionIcon && <MissionIcon className="h-4 w-4" />}
+                            <span>{MissionTypeDetails[mission.type].label}</span>
+                        </div>
+                    </div>
                 </div>
                 {isCompleted ? (
                     <Check className="h-5 w-5 text-green-500" />

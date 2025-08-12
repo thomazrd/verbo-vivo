@@ -606,7 +606,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     <Label className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/> Duração do Plano</Label>
                     <span className="font-bold text-primary">{durationDays} dias</span>
                 </div>
-                <Slider defaultValue={[7]} value={[durationDays]} min={3} max={30} step={1} onValueChange={(value) => setDurationDays(value[0])} />
+                <Slider defaultValue={[7]} value={[durationDays]} min={1} max={30} step={1} onValueChange={(value) => setDurationDays(value[0])} />
             </div>
 
              <div className="space-y-4">

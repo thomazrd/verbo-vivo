@@ -40,3 +40,4 @@ build/
 # Cypress
 /cypress/videos/
 /cypress/screenshots/
+.env

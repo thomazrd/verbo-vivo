@@ -130,7 +130,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 *   **UI Framework:** [Shadcn UI](https://ui.shadcn.com/) (construído sobre Tailwind CSS e Radix UI)
 *   **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
 
-## 🚀 Como Executar o Projeto Localmente
+## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos
 
@@ -138,32 +138,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 *   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
 *   [Firebase CLI](https://firebase.google.com/docs/cli)
 
-### Configuração das Variáveis de Ambiente
-
-1.  **Crie o arquivo `.env`:**
-    Na raiz do projeto, crie um arquivo chamado `.env`. Você pode copiar o arquivo `.env.example` como modelo:
-    ```bash
-    cp .env.example .env
-    ```
-
-2.  **Configure o Firebase:**
-    *   Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
-    *   Ative os serviços de **Authentication** (com o provedor Google), **Firestore** e **Storage**.
-    *   Nas configurações do seu projeto Firebase, adicione um aplicativo da Web.
-    *   Copie o objeto de configuração do Firebase (apiKey, authDomain, etc.).
-    *   Preencha as variáveis `NEXT_PUBLIC_FIREBASE_*` no seu arquivo `.env` com os valores correspondentes.
-
-3.  **Configure as APIs do Google e da Bíblia:**
-    *   **Genkit (Google AI):**
-        *   Certifique-se de ter um projeto no Google Cloud com a **API Gemini** habilitada.
-        *   Gere uma chave de API. [Instruções aqui](https://aistudio.google.com/app/apikey).
-        *   Adicione a chave à variável `GOOGLE_API_KEY` no seu arquivo `.env`.
-    *   **API da Bíblia (AbibliaDigital):**
-        *   Crie uma conta gratuita em [abibliadigital.com.br/api](https://www.abibliadigital.com.br/api).
-        *   Acesse seu perfil para obter o token de acesso.
-        *   Adicione o token à variável `ABIBLIA_API_TOKEN` no seu arquivo `.env`.
-
-### Instalação e Execução
+### Configuração do Ambiente Local
 
 1.  **Clone o repositório:**
     ```bash
@@ -171,7 +146,20 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
     cd <NOME_DO_DIRETORIO>
     ```
 
-2.  **Instale as dependências (raiz e functions):**
+2.  **Crie o arquivo `.env`:**
+    Na raiz do projeto, crie um arquivo chamado `.env` a partir do modelo.
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Preencha o `.env`:**
+    *   **Firebase:** Crie um projeto no [Firebase Console](https://console.firebase.google.com/). Ative **Authentication**, **Firestore** e **Storage**. Nas configurações do projeto, adicione um aplicativo da Web e copie as credenciais para as variáveis `NEXT_PUBLIC_FIREBASE_*` no seu arquivo `.env`.
+    *   **Google AI (Genkit):** Habilite a **API Gemini** no seu projeto Google Cloud. Gere uma chave de API e adicione-a à variável `GOOGLE_API_KEY`.
+    *   **API da Bíblia:** Crie uma conta gratuita em [abibliadigital.com.br/api](https://www.abibliadigital.com.br/api) e adicione seu token à variável `ABIBLIA_API_TOKEN`.
+
+### Instalação e Execução
+
+1.  **Instale as dependências (raiz e functions):**
     ```bash
     npm install
     cd functions
@@ -179,24 +167,45 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
     cd ..
     ```
 
-3.  **Execute o servidor de desenvolvimento do Next.js:**
-    ```bash
-    npm run dev
-    ```
-    A aplicação Next.js estará disponível em `http://localhost:3000`.
+2.  **Execute os servidores de desenvolvimento:**
+    *   **Next.js (Aplicação Principal):**
+        ```bash
+        npm run dev
+        ```
+        Acesse em `http://localhost:3000`.
+    *   **Genkit (Funções de IA):**
+        ```bash
+        npm run genkit:watch
+        ```
+    *   **Firebase (Cloud Functions & Emulators):**
+        ```bash
+        firebase emulators:start --only functions
+        ```
 
-4.  **Execute o servidor de desenvolvimento do Genkit (para as funcionalidades de IA):**
-    Em um novo terminal, na raiz do projeto:
-    ```bash
-    npm run genkit:watch
-    ```
-    O servidor Genkit (ferramentas de IA) estará disponível em `http://localhost:4000` (ou outra porta, verifique o output do terminal).
-    
-5. **Execute o emulador de Cloud Functions:**
-   Para testar as funções de notificações e gerenciamento de comunidade localmente, execute em um novo terminal:
-   ```bash
-   firebase emulators:start --only functions
-   ```
+---
+
+### 🔐 Configuração para Deploy (GitHub Actions)
+
+Para que o deploy automático funcione, você precisa configurar os "Secrets" no seu repositório do GitHub. Isso garante que suas chaves de API não fiquem expostas.
+
+1.  **Navegue até as Configurações do Repositório:**
+    No seu repositório no GitHub, vá para `Settings > Secrets and variables > Actions`.
+
+2.  **Crie os "Repository secrets":**
+    Crie um segredo para cada uma das variáveis de ambiente listadas abaixo. O nome do segredo deve ser exatamente como mostrado, e o valor deve ser a chave correspondente do seu projeto.
+
+    *   `FIREBASE_TOKEN`: Token de CI do Firebase. Gere com o comando `firebase login:ci`.
+    *   `FIREBASE_API_KEY`: A `apiKey` do seu config do Firebase.
+    *   `FIREBASE_AUTH_DOMAIN`: O `authDomain` do seu config.
+    *   `FIREBASE_PROJECT_ID`: O `projectId`.
+    *   `FIREBASE_STORAGE_BUCKET`: O `storageBucket`.
+    *   `FIREBASE_MESSAGING_SENDER_ID`: O `messagingSenderId`.
+    *   `FIREBASE_APP_ID`: O `appId`.
+    *   `FIREBASE_MEASUREMENT_ID`: O `measurementId`.
+    *   `GOOGLE_API_KEY`: Sua chave da API do Google AI.
+    *   `ABIBLIA_API_TOKEN`: Seu token da API da AbibliaDigital.
+
+---
 
 ## 🔍 Debugando Erros de Produção
 

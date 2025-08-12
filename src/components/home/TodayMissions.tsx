@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { GraduationCap, ChevronRight, Check, NotebookText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TodayMissionItem {
   type: 'BATTLE_PLAN';

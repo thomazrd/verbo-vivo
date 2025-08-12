@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Button } from '../ui/button';
+import { useTranslation } from 'react-i18next';
 
 interface RankIndicatorProps {
   rankName: string;
@@ -15,6 +16,7 @@ interface RankIndicatorProps {
 }
 
 export function RankIndicator({ rankName, Icon, iconColor, isCollapsed }: RankIndicatorProps) {
+    const { t } = useTranslation();
 
     if (isCollapsed) {
         return (
@@ -39,7 +41,7 @@ export function RankIndicator({ rankName, Icon, iconColor, isCollapsed }: RankIn
     <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all bg-accent/10 mx-2 my-1">
       <Icon className={cn("h-6 w-6 shrink-0", iconColor)} />
       <div className='flex flex-col'>
-        <span className="text-xs text-foreground/80">Nível</span>
+        <span className="text-xs text-foreground/80">{t('level_label')}</span>
         <span className="text-base font-bold text-foreground leading-tight">{rankName}</span>
       </div>
     </div>

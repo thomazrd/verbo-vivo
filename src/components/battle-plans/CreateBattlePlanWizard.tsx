@@ -614,7 +614,7 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                     <Label className="flex items-center gap-2"><ListTodo className="h-4 w-4"/> Missões por Dia</Label>
                     <span className="font-bold text-primary">{missionsPerDay}</span>
                 </div>
-                <Slider defaultValue={[1]} value={[missionsPerDay]} min={1} max={3} step={1} onValueChange={(value) => setMissionsPerDay(value[0])} />
+                <Slider defaultValue={[1]} value={[missionsPerDay]} min={1} max={10} step={1} onValueChange={(value) => setMissionsPerDay(value[0])} />
             </div>
 
 

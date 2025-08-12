@@ -154,7 +154,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 3.  **Preencha o `.env`:**
     *   **Firebase:** Crie um projeto no [Firebase Console](https://console.firebase.google.com/). Ative **Authentication**, **Firestore** e **Storage**. Nas configurações do projeto, adicione um aplicativo da Web e copie as credenciais para as variáveis `NEXT_PUBLIC_FIREBASE_*` no seu arquivo `.env`.
-    *   **Google AI (Genkit):** Habilite a **API Gemini** no seu projeto Google Cloud. Gere uma chave de API e adicione-a à variável `GOOGLE_API_KEY`.
+    *   **Google AI (Genkit):** Habilite a **API Gemini** no seu projeto Google Cloud. Gere uma chave de API e adicione-a à variável `GEMINI_API_KEY`.
     *   **API da Bíblia:** Crie uma conta gratuita em [abibliadigital.com.br/api](https://www.abibliadigital.com.br/api) e adicione seu token à variável `ABIBLIA_API_TOKEN`.
 
 ### Instalação e Execução
@@ -195,14 +195,16 @@ Para que o deploy automático funcione, você precisa configurar os "Secrets" no
     Crie um segredo para cada uma das variáveis de ambiente listadas abaixo. O nome do segredo deve ser exatamente como mostrado, e o valor deve ser a chave correspondente do seu projeto.
 
     *   `FIREBASE_TOKEN`: Token de CI do Firebase. Gere com o comando `firebase login:ci`.
-    *   `FIREBASE_API_KEY`: A `apiKey` do seu config do Firebase.
-    *   `FIREBASE_AUTH_DOMAIN`: O `authDomain` do seu config.
-    *   `FIREBASE_PROJECT_ID`: O `projectId`.
-    *   `FIREBASE_STORAGE_BUCKET`: O `storageBucket`.
-    *   `FIREBASE_MESSAGING_SENDER_ID`: O `messagingSenderId`.
-    *   `FIREBASE_APP_ID`: O `appId`.
-    *   `FIREBASE_MEASUREMENT_ID`: O `measurementId`.
-    *   `GOOGLE_API_KEY`: Sua chave da API do Google AI.
+    *   `NEXT_PUBLIC_FIREBASE_API_KEY`: A `apiKey` do seu config do Firebase.
+    *   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: O `authDomain` do seu config.
+    *   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: O `projectId`.
+    *   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`: O `storageBucket`.
+    *   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: O `messagingSenderId`.
+    *   `NEXT_PUBLIC_FIREBASE_APP_ID`: O `appId`.
+    *   `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`: O `measurementId`.
+    *   `NEXT_PUBLIC_FIREBASE_VAPID_KEY`: Sua chave pública VAPID do Cloud Messaging.
+    *   `GOOGLE_API_KEY`: Sua chave da API do Google AI (para Genkit, usada no servidor).
+    *   `GEMINI_API_KEY`: A mesma chave da API do Google, mas para uso específico do Gemini no backend.
     *   `ABIBLIA_API_TOKEN`: Seu token da API da AbibliaDigital.
 
 ---

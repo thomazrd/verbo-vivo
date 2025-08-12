@@ -1,4 +1,3 @@
-
 import {
   BookMarked,
   GraduationCap,
@@ -30,6 +29,7 @@ export const mainNavItems = (t: TFunction) => [
 ];
 
 export const secondaryNavItems = (t: TFunction) => [
+    { href: "/bible", label: t('nav_bible_reader'), icon: BookMarked },
     { href: "/chat", label: t('nav_chat'), icon: MessageSquare },
     { href: "/journal", label: t('nav_journal'), icon: NotebookText },
     { href: "/prayer-sanctuary", label: t('nav_sanctuary'), icon: MicVocal },

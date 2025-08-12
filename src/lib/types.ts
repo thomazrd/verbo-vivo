@@ -43,6 +43,11 @@ export interface JournalEntry {
   content: string;
   category: 'Pedido' | 'Agradecimento' | 'Reflexão';
   tags?: string[];
+  reminderSchedule?: {
+    isEnabled: boolean;
+    days: string[]; // e.g., ['seg', 'qua', 'sex']
+    time: string; // e.g., "08:00"
+  } | null;
 }
 
 export interface Verse {
@@ -431,7 +436,7 @@ export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNE
 export type MissionStatus = 'PENDING' | 'COMPLETED';
 export type BattlePlanStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type UserBattlePlanStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
-export type MissionFeeling = 'GRATEFUL' | 'CHALLENGED' | 'PEACEFUL' | 'STRENGTHENED';
+export type MissionFeeling = 'GRATEFUL' | 'CHALLENGED' | 'PEACEFUL' | 'STRENGTHENED' | 'SKIPPED';
 
 export interface Mission {
   id: string;

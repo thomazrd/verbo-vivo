@@ -16,59 +16,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function BattlePlansPage() {
   const { user } = useAuth();
   
-  const [myPlans, setMyPlans] = useState<(UserBattlePlan | BattlePlan)[]>([]);
+  const [myPlans, setMyPlans] = useState<UserBattlePlan[]>([]);
   const [publicPlans, setPublicPlans] = useState<BattlePlan[]>([]);
   const [isLoadingMyPlans, setIsLoadingMyPlans] = useState(true);
   const [isLoadingPublicPlans, setIsLoadingPublicPlans] = useState(true);
 
-  // Fetch user's plans (both in-progress and created by them)
+  // Fetch user's enrolled plans
   useEffect(() => {
     if (!user) {
         setIsLoadingMyPlans(false);
         return;
     };
     
-    const fetchMyPlans = async () => {
-        setIsLoadingMyPlans(true);
-        
-        // Plans the user has started
-        const userBattlePlansQuery = query(collection(db, `users/${user.uid}/battlePlans`));
-        const userBattlePlansSnap = await getDocs(userBattlePlansQuery);
-        const startedPlans = userBattlePlansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserBattlePlan));
-
-        // Plans created by the user
-        const createdByMeQuery = query(collection(db, "battlePlans"), where("creatorId", "==", user.uid));
-        const createdByMeSnap = await getDocs(createdByMeQuery);
-        const createdPlans = createdByMeSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BattlePlan));
-        
-        // Combine and deduplicate. A user can have started a plan they created.
-        const combined = [...startedPlans];
-        createdPlans.forEach(createdPlan => {
-            // A plan is identified by its original ID. For user plans, it's `planId`.
-            if (!combined.some(p => (p as UserBattlePlan).planId === createdPlan.id)) {
-                combined.push(createdPlan);
-            }
+    setIsLoadingMyPlans(true);
+    const userBattlePlansQuery = query(collection(db, `users/${user.uid}/battlePlans`));
+    
+    const unsubscribe = onSnapshot(userBattlePlansQuery, (snapshot) => {
+        const startedPlans: UserBattlePlan[] = [];
+        snapshot.forEach(doc => {
+            startedPlans.push({ id: doc.id, ...doc.data() } as UserBattlePlan);
         });
 
         // Sort: In-progress plans first, then by creation/start date
-        combined.sort((a, b) => {
-            const aIsUserPlan = 'progressPercentage' in a;
-            const bIsUserPlan = 'progressPercentage' in b;
-            if (aIsUserPlan && !bIsUserPlan) return -1;
-            if (!aIsUserPlan && bIsUserPlan) return 1;
-            return 0; // Further sorting could be added if needed
+        startedPlans.sort((a, b) => {
+            const aInProgress = a.status === 'IN_PROGRESS';
+            const bInProgress = b.status === 'IN_PROGRESS';
+            if (aInProgress && !bInProgress) return -1;
+            if (!aInProgress && bInProgress) return 1;
+            return (b.startDate?.toMillis() || 0) - (a.startDate?.toMillis() || 0);
         });
 
-        setMyPlans(combined);
+        setMyPlans(startedPlans);
         setIsLoadingMyPlans(false);
-    }
+    }, (error) => {
+        console.error("Error fetching user's battle plans:", error);
+        setIsLoadingMyPlans(false);
+    });
 
-    fetchMyPlans();
-    
-    // We can use a listener here if we want real-time updates for myPlans,
-    // but a one-time fetch is often sufficient for this kind of view.
-    // For simplicity, I'll stick to the one-time fetch.
-
+    return () => unsubscribe();
   }, [user]);
 
   // Fetch public plans to explore

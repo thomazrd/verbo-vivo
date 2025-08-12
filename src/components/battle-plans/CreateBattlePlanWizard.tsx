@@ -508,13 +508,12 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
       }));
 
       const finalValues = { ...values, missions: sanitizedMissions };
-      console.log('Data to save:', JSON.stringify(finalValues, null, 2));
-
-
+      
       try {
+        const batch = writeBatch(db);
         if (isEditing && planId) {
             const planRef = doc(db, 'battlePlans', planId);
-            await updateDoc(planRef, {
+            batch.update(planRef, {
                 ...finalValues,
                 status,
                 updatedAt: serverTimestamp(),
@@ -531,15 +530,31 @@ export function CreateBattlePlanWizard({ planId }: { planId?: string }) {
                 updatedAt: serverTimestamp(),
             };
             
-            const batch = writeBatch(db);
             const planRef = doc(db, "battlePlans", planDocId);
             batch.set(planRef, planData);
             
-            await batch.commit();
+            // Automatically enroll the creator in the new plan
+            const userPlanRef = doc(db, `users/${user.uid}/battlePlans`, planDocId);
+            const userPlanData: Omit<UserBattlePlan, 'id'> = {
+                userId: user.uid,
+                planId: planDocId,
+                planTitle: finalValues.title,
+                planCoverImageUrl: finalValues.coverImageUrl,
+                planCreatorId: user.uid,
+                startDate: serverTimestamp() as any,
+                status: 'IN_PROGRESS',
+                progressPercentage: 0,
+                consentToShareProgress: true, // Creator auto-consents
+                completedMissionIds: [],
+            };
+            batch.set(userPlanRef, userPlanData);
         }
 
-          toast({ title: "Sucesso!", description: `Seu plano de batalha foi salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.`});
-          router.push('/battle-plans');
+        await batch.commit();
+
+        toast({ title: "Sucesso!", description: `Seu plano de batalha foi salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.`});
+        router.push('/battle-plans');
+
       } catch (error) {
           console.error("Error saving plan:", error);
           toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar seu plano.' });

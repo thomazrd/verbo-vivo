@@ -138,20 +138,30 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 *   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
 *   [Firebase CLI](https://firebase.google.com/docs/cli)
 
-### Configuração do Firebase
+### Configuração das Variáveis de Ambiente
 
-1.  Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
-2.  Ative os serviços de **Authentication** (com o provedor Google), **Firestore** e **Storage**.
-3.  Nas configurações do seu projeto Firebase, adicione um aplicativo da Web.
-4.  Copie as credenciais do Firebase (apiKey, authDomain, etc.).
-5.  Atualize o arquivo `src/lib/firebase.ts` com as credenciais do seu projeto.
-6.  Para as Cloud Functions, configure a autenticação do Firebase CLI no seu ambiente local executando `firebase login`.
+1.  **Crie o arquivo `.env`:**
+    Na raiz do projeto, crie um arquivo chamado `.env`. Você pode copiar o arquivo `.env.example` como modelo:
+    ```bash
+    cp .env.example .env
+    ```
 
-### Configuração do Genkit (Google AI)
+2.  **Configure o Firebase:**
+    *   Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
+    *   Ative os serviços de **Authentication** (com o provedor Google), **Firestore** e **Storage**.
+    *   Nas configurações do seu projeto Firebase, adicione um aplicativo da Web.
+    *   Copie o objeto de configuração do Firebase (apiKey, authDomain, etc.).
+    *   Preencha as variáveis `NEXT_PUBLIC_FIREBASE_*` no seu arquivo `.env` com os valores correspondentes.
 
-1.  Certifique-se de ter um projeto no Google Cloud com a API Gemini habilitada.
-2.  Configure a autenticação para o Genkit/Google AI conforme a documentação oficial. Isso pode envolver a configuração de variáveis de ambiente como `GOOGLE_API_KEY` ou o uso do `gcloud auth application-default login`.
-3.  As chaves e configurações da API do Google AI são gerenciadas pelo Genkit, que busca automaticamente as credenciais do ambiente.
+3.  **Configure as APIs do Google e da Bíblia:**
+    *   **Genkit (Google AI):**
+        *   Certifique-se de ter um projeto no Google Cloud com a **API Gemini** habilitada.
+        *   Gere uma chave de API. [Instruções aqui](https://aistudio.google.com/app/apikey).
+        *   Adicione a chave à variável `GOOGLE_API_KEY` no seu arquivo `.env`.
+    *   **API da Bíblia (AbibliaDigital):**
+        *   Crie uma conta gratuita em [abibliadigital.com.br/api](https://www.abibliadigital.com.br/api).
+        *   Acesse seu perfil para obter o token de acesso.
+        *   Adicione o token à variável `ABIBLIA_API_TOKEN` no seu arquivo `.env`.
 
 ### Instalação e Execução
 

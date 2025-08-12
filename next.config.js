@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   transpilePackages: ['@genkit-ai/googleai'],
   experimental: {
     // Essencial para garantir que dependências do lado do servidor não sejam incorretamente empacotadas.

@@ -104,6 +104,7 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             params.set('mission', 'true');
         }
         params.set('userPlanId', userPlanId);
+        params.set('missionId', mission.id); // Adicionado para contexto
 
         let path = mission.content.path;
 
@@ -115,8 +116,8 @@ export function MissionClient({ userPlanId }: { userPlanId: string }) {
             if (details.startVerse) params.set('startVerse', String(details.startVerse));
             if (details.endVerse) params.set('endVerse', String(details.endVerse));
         } else if (mission.type === 'YOUTUBE_VIDEO' && mission.content.verse) {
-             path = `/battle-plans/mission-video/${userPlanId}`; // Pass userPlanId in path
-             params.set('missionId', mission.id); // Also pass missionId as param
+             path = `/battle-plans/mission-video/${userPlanId}`; 
+             // missionId já está nos params
         }
         
         return `${path}?${params.toString()}`;

@@ -6,14 +6,14 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { Prayer } from '@/lib/types';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
+import type { Prayer, Mission, BattlePlan } from '@/lib/types';
 import { useSpeechToText } from '@/hooks/use-speech-to-text';
 import { processPrayer } from '@/ai/flows/prayer-reflection';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, Square, Loader2, History, Send } from 'lucide-react';
+import { Mic, Square, Loader2, History, Send, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -117,10 +118,12 @@ function PrayerSanctuaryContent() {
   const searchParams = useSearchParams();
   
   const isMission = searchParams.get('mission') === 'true';
-  const missionUserPlanId = searchParams.get('userPlanId');
+  const userPlanId = searchParams.get('userPlanId');
+  const missionId = searchParams.get('missionId');
 
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
+  const [missionContext, setMissionContext] = useState<Mission | null>(null);
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: any[]}| null>(null);
   const [processingText, setProcessingText] = useState("");
   const [isClient, setIsClient] = useState(false);
@@ -131,7 +134,27 @@ function PrayerSanctuaryContent() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Fetch mission context if params are present
+    const fetchMissionContext = async () => {
+      if (!user || !userPlanId || !missionId) return;
+      try {
+        const userPlanRef = doc(db, 'users', user.uid, 'battlePlans', userPlanId);
+        const userPlanSnap = await getDoc(userPlanRef);
+        if (userPlanSnap.exists()) {
+          const planDefRef = doc(db, 'battlePlans', userPlanSnap.data().planId);
+          const planDefSnap = await getDoc(planDefRef);
+          if (planDefSnap.exists()) {
+            const planDef = planDefSnap.data() as BattlePlan;
+            const mission = planDef.missions.find(m => m.id === missionId);
+            setMissionContext(mission || null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching mission context:", error);
+      }
+    };
+    fetchMissionContext();
+  }, [isMission, userPlanId, missionId, user]);
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -278,6 +301,7 @@ function PrayerSanctuaryContent() {
     setTypedPrayer("");
     cleanupAudio();
     setSanctuaryState('idle');
+    setMissionContext(null); // Clear mission context on reset
   }
 
   const handleCompleteMission = () => {
@@ -313,6 +337,14 @@ function PrayerSanctuaryContent() {
         case 'recording':
             return (
                 <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                     {missionContext && (
+                        <Card className="w-full bg-primary/5 border-primary/20">
+                            <CardHeader>
+                                <CardTitle className="text-primary text-base flex items-center gap-2"><MessageSquare /> Missão de Oração</CardTitle>
+                                <CardDescription className="text-primary/80">{missionContext.title}</CardDescription>
+                            </CardHeader>
+                        </Card>
+                     )}
                      <div className="w-full p-4 border bg-muted/50 rounded-lg min-h-[200px] flex flex-col">
                         {isListening && <div className="w-full h-24 mb-4"><AudioChart data={audioData} /></div>}
                         <Textarea

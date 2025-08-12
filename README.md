@@ -9,7 +9,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 😔 Jornada de Sentimentos
 **O que é?** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/9HhQDNsh/jornada-sentimentos.png)
+![Jornada de Sentimentos](screenshots/jornada-sentimentos.png)
 
 **Como usar:**
 1.  **Selecione o Sentimento:** Escolha como você está se sentindo (ex: Ansiedade, Tristeza, Raiva).
@@ -20,7 +20,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 
 ### 📖 Leitura da Bíblia
 **O que é?** Uma Bíblia digital completa com múltiplas versões.
- ![Texto Alternativo da Imagem](https://i.ibb.co/rRc7Mgqw/biblia-desktop.png)
+ ![Leitura da Bíblia](screenshots/biblia-desktop.png)
 
 
 **Como usar:**
@@ -35,7 +35,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 💬 Chat com IA
 **O que é?** Um assistente de IA treinado para responder suas perguntas com base nas Escrituras.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/GvThcKMV/chat-biblia.png)
+![Chat com IA](screenshots/chat-biblia.png)
 
 **Como usar:**
 1.  **Acesse o Chat:** Selecione "Chat com IA" no menu.
@@ -48,7 +48,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🛡️ Minha Armadura
 **O que é?** Sua coleção pessoal de versículos ("armas") para batalhas espirituais específicas (ansiedade, medo, etc.).
 
-![Texto Alternativo da Imagem](https://i.ibb.co/xSd0ZjGG/minha-armadura.png)
+![Minha Armadura](screenshots/minha-armadura.png)
 
 **Como usar:**
 1.  **Acesse o Arsenal:** Vá para "Minha Armadura" no menu.
@@ -62,7 +62,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🎯 Centro de Treinamento (Planos de Batalha)
 **O que é?** Um roteiro de treinamento espiritual de vários dias, com missões diárias que podem incluir leitura bíblica, oração, reflexão e mais.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/Fkp3t37N/treinamento.png)
+![Centro de Treinamento](screenshots/treinamento.png)
 
 **Como um líder pode criar:**
 1.  **Inicie a Criação:** Em "Treinamento", clique em "Criar Plano" e depois em "Criar com Inteligência Artificial".
@@ -76,7 +76,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🤝 Comunidade (Congregação)
 **O que é?** Um feed social privado para membros de uma mesma igreja local.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/xSd0ZjGG/minha-armadura.png)
+![Comunidade](screenshots/comunidade.png)
 
 **Como usar:**
 1.  **Entre ou Crie:** Na seção "Comunidade", você pode entrar em uma congregação existente com um código de convite ou criar a sua própria.
@@ -89,7 +89,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### 🙏 Santuário de Oração
 **O que é?** Um espaço privado para você orar em voz alta e receber uma reflexão devocional baseada em sua oração.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/tpQWd8Pv/santuario-oracao.png)
+![Santuário de Oração](screenshots/santuario-oracao.png)
 
 **Como usar:**
 1.  **Entre no Santuário:** Acesse a funcionalidade no menu.
@@ -101,7 +101,7 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### ✝️ Confessionário
 **O que é?** Um espaço seguro para a prática espiritual da confissão, com garantia de privacidade.
 
-![Texto Alternativo da Imagem](https://i.ibb.co/svyRMdy3/confessionario.png)
+![Confessionário](screenshots/confessionario.png)
 
 **Como usar:**
 1.  **Acesso Intencional:** Para entrar, pressione e segure o ícone de cadeado.
@@ -114,13 +114,13 @@ Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer su
 ### Outras Ferramentas
 
 *   **Ponte da Esperança:** Gere uma mensagem de esperança e conforto, baseada em versículos, para compartilhar com amigos que estão passando por dificuldades.
-> <COLOCAR AQUI IMAGEM DA TELA DA PONTE DA ESPERANÇA>
+![Ponte da Esperança](screenshots/ponte-esperanca.png)
 *   **Diário Espiritual:** Registre suas reflexões, orações e aprendizados em um espaço pessoal e seguro.
-> <COLOCAR AQUI IMAGEM DA TELA DO DIÁRIO ESPIRITUAL>
+![Diário Espiritual](screenshots/diario-espiritual.png)
 *   **Artigos e Reflexões:** Um blog onde administradores da comunidade podem publicar estudos mais longos e aprofundados.
-> <COLOCAR AQUI IMAGEM DA TELA DE ARTIGOS>
+![Artigos e Reflexões](screenshots/artigos.png)
 *   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de figuras da Bíblia, com resumos, versículos-chave e planos de estudo.
-> <COLOCAR AQUI IMAGEM DA TELA DE PERSONAGENS BÍBLICOS>
+![Perfis de Personagens Bíblicos](screenshots/personagens-biblicos.png)
 
 ## 🛠️ Tecnologias Utilizadas
 

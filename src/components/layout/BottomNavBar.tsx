@@ -1,25 +1,22 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, GraduationCap, Users, NotebookText, Shield } from "lucide-react";
+import { Home, GraduationCap, Users, NotebookText, Shield, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { mainNavItems } from "./navigation-items";
 
 export function BottomNavBar() {
   const pathname = usePathname();
   const { t } = useTranslation();
 
-  const navItems = [
-    { href: "/home", label: t('nav_home'), icon: Home },
-    { href: "/community", label: t('nav_community'), icon: Users },
-    { href: "/journal", label: t('nav_journal'), icon: NotebookText },
-    { href: "/armor", label: "Armadura", icon: Shield },
-  ];
+  const navItems = mainNavItems(t);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t z-40">
-      <nav className="grid h-full grid-cols-4 items-center">
+      <nav className="grid h-full grid-cols-5 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (

@@ -144,7 +144,7 @@ export function Header() {
             className="h-9 bg-secondary text-secondary-foreground hover:bg-secondary/80"
           >
               <HeartHandshake className="h-5 w-5 md:mr-2" />
-              <span className="hidden md:inline">Como estou?</span>
+              <span className="hidden md:inline">{t('how_am_i_button')}</span>
           </Button>
           {user && (
             <div className="flex items-center gap-2">

@@ -19,7 +19,7 @@ interface BibleVersionSelectorProps {
 
 export function BibleVersionSelector({ mobile = false }: BibleVersionSelectorProps) {
   const { user, userProfile } = useAuth();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { toast } = useToast();
 
   const [bibleVersions, setBibleVersions] = useState<BibleVersion[]>([]);
@@ -53,8 +53,8 @@ export function BibleVersionSelector({ mobile = false }: BibleVersionSelectorPro
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, { preferredBibleVersion: selectedVersion });
         toast({
-            title: "Versão da Bíblia atualizada",
-            description: `Sua preferência foi salva como ${selectedVersion.name}.`,
+            title: t('toast_bible_version_updated_title'),
+            description: t('toast_bible_version_updated_desc', { version: selectedVersion.name }),
         });
     } catch (error) {
         console.error(`Error changing preferredBibleVersion:`, error);
@@ -69,14 +69,14 @@ export function BibleVersionSelector({ mobile = false }: BibleVersionSelectorPro
   if (mobile) {
     return (
         <div className="space-y-2 px-3">
-            <Label>Versão da Bíblia</Label>
+            <Label>{t('bible_version_label')}</Label>
             <Select
                 value={preferredVersion?.id}
                 onValueChange={handlePreferenceChange}
                 disabled={isLoading || bibleVersions.length === 0}
             >
                 <SelectTrigger>
-                    <SelectValue placeholder="Escolha uma versão" />
+                    <SelectValue placeholder={t('select_bible_version_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                     {isLoading ? (
@@ -102,7 +102,7 @@ export function BibleVersionSelector({ mobile = false }: BibleVersionSelectorPro
         >
             <SelectTrigger className="w-auto h-9 gap-2 border-none bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-0">
                 <BookMarked className="h-4 w-4" />
-                <SelectValue placeholder="Versão" />
+                <SelectValue placeholder={t('version_placeholder')} />
             </SelectTrigger>
             <SelectContent>
                 {isLoading ? (

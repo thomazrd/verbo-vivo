@@ -109,6 +109,7 @@ export interface UserProfile {
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
   goals?: string[]; // IDs dos objetivos
   topics?: string[]; // IDs dos tópicos
+  aiCredits?: number;
 }
 
 export interface Congregation {

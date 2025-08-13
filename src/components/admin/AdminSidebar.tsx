@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +30,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
   const navItems = [
     { href: "/admin", label: "Painel", icon: LayoutDashboard },
     { href: "/admin/content", label: "Conteúdos", icon: FileText },
+    { href: "/admin/users", label: "Usuários", icon: Users },
     { href: "/admin/suggestions", label: "Sugestões", icon: Lightbulb },
   ];
   

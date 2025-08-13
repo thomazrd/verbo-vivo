@@ -323,6 +323,13 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+             <div className="flex items-center justify-between">
+                <Label htmlFor="credits-display" className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    Créditos de IA
+                </Label>
+                <span className="font-semibold text-primary">{userProfile?.aiCredits ?? 0}</span>
+            </div>
             <div className="flex items-center justify-between">
                 <Label htmlFor="language-select">{t('language_label')}</Label>
                 <div className="flex items-center gap-2">

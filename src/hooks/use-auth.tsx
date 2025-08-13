@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               congregationStatus: data.congregationStatus || 'NONE',
               goals: data.goals || [],
               topics: data.topics || [],
+              aiCredits: data.aiCredits || 0,
             };
             setUserProfile(profile);
         } else {

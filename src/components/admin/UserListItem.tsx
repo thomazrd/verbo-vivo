@@ -69,7 +69,7 @@ export function UserListItem({ user }: UserListItemProps) {
     : "Data de entrada desconhecida";
 
   return (
-    <>
+    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
       <div className="flex items-center p-3 gap-4 rounded-md border hover:bg-muted/50">
         <Avatar className="h-10 w-10">
           <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "Avatar"} />
@@ -90,52 +90,50 @@ export function UserListItem({ user }: UserListItemProps) {
           </div>
         </div>
         <DialogTrigger asChild>
-            <Button size="sm" onClick={() => setIsModalOpen(true)}>
+            <Button size="sm">
                 <Plus className="h-4 w-4 mr-2"/>
                 Créditos
             </Button>
         </DialogTrigger>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Adicionar Créditos de IA</DialogTitle>
-                <DialogDescription>
-                    Adicione créditos para o usuário: <span className="font-semibold">{user.displayName}</span>
-                </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-                    <FormField
-                    control={form.control}
-                    name="credits"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Quantidade de Créditos</FormLabel>
-                        <FormControl>
-                            <Input 
-                                type="number" 
-                                placeholder="100" 
-                                {...field} 
-                                onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={isSaving}>
-                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Adicionar
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-      </Dialog>
-    </>
+      <DialogContent>
+          <DialogHeader>
+              <DialogTitle>Adicionar Créditos de IA</DialogTitle>
+              <DialogDescription>
+                  Adicione créditos para o usuário: <span className="font-semibold">{user.displayName}</span>
+              </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                  <FormField
+                  control={form.control}
+                  name="credits"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Quantidade de Créditos</FormLabel>
+                      <FormControl>
+                          <Input 
+                              type="number" 
+                              placeholder="100" 
+                              {...field} 
+                              onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
+                          />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+                  <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                      <Button type="submit" disabled={isSaving}>
+                          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                          Adicionar
+                      </Button>
+                  </DialogFooter>
+              </form>
+          </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,16 +1,19 @@
 
 'use client';
 
-import { LucideIcon, Smile, Frown, Annoyed, Angry, Meh, Hand, BrainCircuit, Heart, Zap, Sparkles, Handshake, Search, CloudSun, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { LucideIcon, Smile, Frown, Annoyed, Angry, Meh, Hand, BrainCircuit, Heart, Zap, Sparkles, Handshake, Search, CloudSun, ShieldAlert, PencilLine, HandHeart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export interface EmotionOption {
   name: string;
   icon: LucideIcon;
   color: string;
-  type: 'positive' | 'negative';
+  type: 'positive' | 'negative' | 'custom';
 }
 
 export const feelingOptions: EmotionOption[] = [
@@ -37,8 +40,21 @@ interface EmotionSelectorProps {
 }
 
 export function EmotionSelector({ onSelectEmotion, title }: EmotionSelectorProps) {
-  
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherFeeling, setOtherFeeling] = useState('');
+    
   const allOptions = [...feelingOptions, ...positiveOptions];
+
+  const handleOtherSubmit = () => {
+    if (otherFeeling.trim()) {
+      onSelectEmotion({
+        name: otherFeeling.trim(),
+        icon: HandHeart, // Um ícone genérico para sentimentos customizados
+        color: 'text-primary',
+        type: 'custom',
+      });
+    }
+  }
     
   return (
     <motion.div
@@ -69,7 +85,41 @@ export function EmotionSelector({ onSelectEmotion, title }: EmotionSelectorProps
             </Card>
           </motion.div>
         ))}
+         <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: allOptions.length * 0.05 }}
+          >
+            <Card
+              className="h-full cursor-pointer group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/50 border-dashed"
+              onClick={() => setShowOtherInput(true)}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 gap-4 text-center">
+                <PencilLine className="h-12 w-12 transition-colors text-muted-foreground group-hover:text-primary" />
+                <span className="font-semibold text-muted-foreground group-hover:text-primary">Outro</span>
+              </CardContent>
+            </Card>
+          </motion.div>
       </div>
+
+       {showOtherInput && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 max-w-sm mx-auto space-y-3"
+        >
+          <Label htmlFor="other-feeling-input" className="font-semibold">Qual sentimento você quer registrar?</Label>
+          <div className="flex gap-2">
+            <Input 
+              id="other-feeling-input"
+              placeholder="Digite o sentimento..."
+              value={otherFeeling}
+              onChange={(e) => setOtherFeeling(e.target.value)}
+            />
+            <Button onClick={handleOtherSubmit} disabled={!otherFeeling.trim()}>Continuar</Button>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

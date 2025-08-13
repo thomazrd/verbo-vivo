@@ -487,6 +487,8 @@ export interface MissionLog {
   missionId: string;
   completedAt: Timestamp;
   feeling: MissionFeeling | 'SKIPPED';
+  planTitle: string;
+  missionTitle: string;
 }
 
 

@@ -196,27 +196,30 @@ export default function ChatPage() {
           parts: [{ text: msg.text }],
         }));
       
-      const executeChat = withCreditCheck(bibleChatResponse);
-      const aiResponse = await executeChat({
-        model: userProfile?.preferredModel,
-        language: userProfile?.preferredLanguage || i18n.language,
-        bible_version_name: userProfile?.preferredBibleVersion?.name,
-        user_question: text,
-        history: conversationHistory,
-        userId: user.uid,
-        messageId: docRef.id,
-      });
+      const executeChat = await withCreditCheck(bibleChatResponse);
+      
+      if (executeChat) {
+        const aiResponse = await executeChat({
+            model: userProfile?.preferredModel,
+            language: userProfile?.preferredLanguage || i18n.language,
+            bible_version_name: userProfile?.preferredBibleVersion?.name,
+            user_question: text,
+            history: conversationHistory,
+            userId: user.uid,
+            messageId: docRef.id,
+        });
 
-      if (aiResponse) {
-        const aiMessage: Omit<Message, 'id'> = {
-          text: aiResponse.response,
-          sender: "ai",
-          createdAt: Timestamp.now(),
-          citedVerses: aiResponse.verses,
-          hasPlanButton: true,
-          topic: text,
-        };
-        await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
+        if (aiResponse) {
+            const aiMessage: Omit<Message, 'id'> = {
+            text: aiResponse.response,
+            sender: "ai",
+            createdAt: Timestamp.now(),
+            citedVerses: aiResponse.verses,
+            hasPlanButton: true,
+            topic: text,
+            };
+            await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
+        }
       }
 
     } catch (error) {

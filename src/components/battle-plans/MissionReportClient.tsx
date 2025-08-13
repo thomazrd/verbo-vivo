@@ -11,7 +11,7 @@ import { ArrowLeft, Calendar, CheckCircle, LineChart, Target, Trophy, Flame, Lis
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { eachDayOfInterval, format, startOfMonth, endOfMonth, isSameDay, getDay, differenceInDays, subDays } from 'date-fns';
+import { eachDayOfInterval, format, startOfMonth, endOfMonth, isSameDay, getDay, differenceInDays, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { cn } from '@/lib/utils';

@@ -66,4 +66,21 @@
   html[lang="zh"] body {
     @apply font-sc;
   }
+
+  /* Estilos específicos para a leitura da Bíblia */
+  .prose-bible {
+    @apply font-serif;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.7;
+    text-align: justify;
+    color: hsl(var(--foreground) / 0.85);
+  }
+
+  .prose-bible sup {
+    @apply font-sans font-bold no-underline align-super;
+    font-size: 0.65em;
+    line-height: 0;
+    color: hsl(var(--primary));
+    margin-right: 0.4em;
+  }
 }

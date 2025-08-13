@@ -213,7 +213,7 @@ export function VerseDisplay({
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className={cn("p-4 sm:p-6 md:p-8", isFocusMode && "bg-[#fdfdf5]")}>
         <header className="mb-8">
             <div className="flex items-center justify-between gap-4">
                 {(!isDesktop || isFocusMode) && (
@@ -266,23 +266,23 @@ export function VerseDisplay({
         />
         
         <SelectionPopover containerRef={contentRef}>
-            <div ref={contentRef} className="text-lg leading-relaxed space-y-4 prose prose-lg max-w-none">
+            <div ref={contentRef} className="prose-bible max-w-none">
                 {chapterData.verses.map(verse => {
                   const isHighlighted = highlightStartVerse !== undefined && 
                                         verse.number >= highlightStartVerse &&
                                         (highlightEndVerse === undefined || verse.number <= highlightEndVerse);
                   
                   return (
-                    <p 
+                    <span 
                       key={verse.number} 
                       data-verse-number={verse.number}
                       className={cn(
-                        "text-card-foreground transition-colors duration-300 rounded-md -mx-2 px-2",
+                        "transition-colors duration-300 rounded-md -mx-2 px-2",
                         isHighlighted && "bg-blue-500/10"
                     )}>
-                      <sup className="font-bold text-primary mr-2 no-underline select-none">{verse.number}</sup>
+                      <sup>{verse.number}</sup>
                       <span>{verse.text}</span>
-                    </p>
+                    </span>
                   )
                 })}
             </div>

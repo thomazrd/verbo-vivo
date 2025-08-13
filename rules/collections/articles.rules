@@ -1,0 +1,7 @@
+match /articles/{articleId} {
+    // Anyone can read published articles.
+    allow read: if resource.data.status == 'published';
+
+    // Writing is restricted to admins (to be implemented via claims or backend logic)
+    allow write: if false;
+}

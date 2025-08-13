@@ -72,10 +72,25 @@ export const useNotifications = () => {
         }
       });
       notificationState.updateState({ notifications: newNotifications, unreadCount: newUnreadCount });
+    }, (error) => {
+        // Adiciona tratamento de erro para o listener
+        console.error("FirebaseError in notification snapshot listener:", error);
     });
     
     // --- Push Notifications Setup ---
     const setupPushNotifications = async () => {
+      // DEVELOPER NOTE: To enable push notifications, you need two things:
+      // 1. A VAPID key defined in your environment variables as NEXT_PUBLIC_FIREBASE_VAPID_KEY.
+      //    You can generate this in your Firebase Project Settings > Cloud Messaging > Web configuration.
+      // 2. The "Firebase Cloud Messaging API (V1)" must be enabled in your Google Cloud project.
+      //    If you see a "Missing or insufficient permissions" error, enable it here:
+      //    https://console.cloud.google.com/apis/library/fcm.googleapis.com
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey || vapidKey === "COLE_AQUI_SUA_CHAVE_VAPID") {
+        console.warn("Chave VAPID do Firebase não configurada. As notificações push estão desativadas.");
+        return;
+      }
+      
       // Check if Notification API is supported
       if (typeof window !== 'undefined' && 'Notification' in window) {
         const messaging = getMessaging(app);
@@ -89,26 +104,31 @@ export const useNotifications = () => {
           });
         });
         
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          try {
-            // VAPID key is set up in your Firebase project settings
-            const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-            if (currentToken) {
-              // Save the token to Firestore
-              const tokenRef = doc(db, 'userPushTokens', user.uid);
-              await setDoc(tokenRef, {
-                userId: user.uid,
-                token: currentToken,
-                platform: 'web',
-                createdAt: serverTimestamp(),
-              }, { merge: true });
-            } else {
-              console.log('No registration token available. Request permission to generate one.');
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const currentToken = await getToken(messaging, { vapidKey });
+                if (currentToken) {
+                  // Save the token to Firestore
+                  const tokenRef = doc(db, 'userPushTokens', currentToken);
+                  await setDoc(tokenRef, {
+                    userId: user.uid,
+                    token: currentToken,
+                    platform: 'web',
+                    createdAt: serverTimestamp(),
+                  }, { merge: true });
+                } else {
+                  console.log('No registration token available. Request permission to generate one.');
+                }
             }
-          } catch(err) {
-            console.error('An error occurred while retrieving token. ', err);
-          }
+        } catch(err: any) {
+             if (err.code === 'messaging/permission-blocked' || err.code === 'messaging/permission-default') {
+                console.log('Notification permission not granted.');
+            } else if (err.code === 'messaging/token-subscribe-failed' || err.code === 'messaging/requests-failed-with-code-403') {
+                 console.error('FCM token subscription failed. This is likely due to the Firebase Cloud Messaging API (V1) not being enabled. Please enable it in your Google Cloud Console: https://console.cloud.google.com/apis/library/fcm.googleapis.com');
+            } else {
+                console.error('An error occurred while retrieving token. ', err);
+            }
         }
       }
     }

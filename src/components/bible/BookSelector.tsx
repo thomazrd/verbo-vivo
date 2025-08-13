@@ -19,16 +19,16 @@ const normalizeString = (str: string) =>
 export default function BookSelector({ allBooks, onBookSelect }: BookSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
+  if (allBooks.length === 0) {
+     return <p className="text-destructive text-sm p-4 text-center">Não foi possível carregar os livros da Bíblia. Verifique a configuração da API.</p>;
+  }
+
   const filteredBooks = allBooks.filter(book => 
     normalizeString(book.name).includes(normalizeString(searchTerm))
   );
 
   const oldTestamentBooks = filteredBooks.filter(book => book.testament === 'VT');
   const newTestamentBooks = filteredBooks.filter(book => book.testament === 'NT');
-
-  if (allBooks.length === 0) {
-     return <p className="text-destructive text-sm p-4">Não foi possível carregar os livros.</p>;
-  }
 
   return (
     <div className="flex flex-col gap-4 h-full">

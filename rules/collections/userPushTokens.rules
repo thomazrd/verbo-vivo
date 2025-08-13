@@ -1,0 +1,7 @@
+match /userPushTokens/{tokenId} {
+  // A user can only create or delete their own push token document.
+  // The document ID is the token itself, so we check the userId field.
+  // Read and update are disallowed for security.
+  allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+  allow read, update: if false;
+}

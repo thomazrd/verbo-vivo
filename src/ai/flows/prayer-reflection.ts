@@ -8,8 +8,19 @@
  */
 
 import { ai, getModel } from '../genkit';
-import type { ProcessPrayerInput, ProcessPrayerOutput } from '@/lib/types';
-import { ProcessPrayerInputSchema, ProcessPrayerOutputSchema } from '@/lib/types';
+import { z } from 'zod';
+import type { ProcessPrayerInput } from '@/lib/types';
+import { ProcessPrayerInputSchema } from '@/lib/types';
+
+const ProcessPrayerOutputSchema = z.object({
+    responseText: z.string().describe('The devotional reflection based on the prayer.'),
+    citedVerses: z.array(z.object({
+      reference: z.string(),
+      text: z.string()
+    })).describe('An array of Bible verse references cited in the response.'),
+});
+export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
+
 
 export async function processPrayer(input: ProcessPrayerInput): Promise<ProcessPrayerOutput> {
   return processPrayerFlow(input);
@@ -64,14 +75,14 @@ const processPrayerFlow = ai.defineFlow(
       `,
       model: getModel(input.model),
       output: {
-        schema: z.string(),
+        schema: ProcessPrayerOutputSchema,
       },
       config: {
         temperature: 0.6,
       },
     });
 
-    const responseText = llmResponse.text;
+    const responseText = llmResponse.output!.responseText;
     
     // Simple verse extraction for citation.
     const citedVerses = bible_verses

@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import type { WisdomPearl as WisdomPearlType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { BookHeart } from 'lucide-react';
+import { parseVerseReference } from '@/lib/bible-verse-parser';
 
 // Static data to simulate API response, ensuring the component always has data to display.
 const predefinedPearls: WisdomPearlType[] = [
@@ -37,7 +38,10 @@ export function WisdomPearl() {
     return null;
   }
 
-  const bibleLink = `/bible?book=${pearl.bookAbbrev}&chapter=${pearl.chapter}`;
+  const parsedRef = parseVerseReference(pearl.reference);
+  const bibleLink = parsedRef 
+    ? `/bible?book=${parsedRef.bookAbbrev}&chapter=${parsedRef.chapter}&startVerse=${parsedRef.startVerse}`
+    : '/bible';
 
   return (
     <div className={cn(

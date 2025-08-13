@@ -1,0 +1,7 @@
+
+match /notifications/{notificationId} {
+  // Um usuário pode ler uma notificação se ele for o destinatário.
+  // A criação é feita apenas pelo backend (Cloud Functions).
+  allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+  allow write: if false;
+}

@@ -1,25 +1,44 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import type { JournalEntry } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Tag } from "lucide-react";
 import { JournalEditor } from "@/components/journal/JournalEditor";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSearchParams } from "next/navigation";
+import { MissionCompletionModal } from "@/components/battle-plans/MissionCompletionModal";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function JournalPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  
+  const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
+
+  useEffect(() => {
+    const missionParam = searchParams.get('mission');
+    const planIdParam = searchParams.get('userPlanId');
+    if (missionParam === 'true' && planIdParam) {
+      handleNewEntry(planIdParam);
+    }
+    // This effect should only run once when the page loads with query params.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -27,10 +46,10 @@ export default function JournalPage() {
       return;
     };
     setIsLoading(true);
-    // Query without server-side ordering to avoid needing a composite index
     const q = query(
       collection(db, "journals"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -38,15 +57,7 @@ export default function JournalPage() {
       snapshot.forEach((doc) => {
         userEntries.push({ id: doc.id, ...doc.data() } as JournalEntry);
       });
-      
-      // Sort entries on the client-side
-      const sortedEntries = userEntries.sort((a, b) => {
-        const dateA = a.createdAt?.toDate() || new Date(0);
-        const dateB = b.createdAt?.toDate() || new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      setEntries(sortedEntries);
+      setEntries(userEntries);
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching journal entries:", error);
@@ -56,15 +67,46 @@ export default function JournalPage() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleNewEntry = () => {
+  const allTags = useMemo(() => {
+    const tagsSet = new Set<string>();
+    entries.forEach(entry => {
+        entry.tags?.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  }, [entries]);
+
+  const filteredEntries = useMemo(() => {
+    if (!selectedTag) return entries;
+    return entries.filter(entry => entry.tags?.includes(selectedTag));
+  }, [entries, selectedTag]);
+
+
+  const handleNewEntry = (planId: string | null = null) => {
     setSelectedEntry(null);
+    setMissionToComplete(planId);
     setIsEditorOpen(true);
   };
 
   const handleEditEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
+    setMissionToComplete(null); // Can't complete a mission by editing an old entry
     setIsEditorOpen(true);
   };
+  
+  const handleEditorClose = (open: boolean, wasSaved = false) => {
+    setIsEditorOpen(open);
+    if (!open && wasSaved && missionToComplete) {
+      // The mission was completed, but the modal will now be shown by this component.
+      // We don't need to do anything else here as the modal is now controlled by this page.
+    } else if (!open) {
+      // If the sheet is just closed without saving, clear any pending mission.
+      setMissionToComplete(null);
+    }
+  };
+
+  const handleModalClose = () => {
+    setMissionToComplete(null);
+  }
 
   const getCategoryBadgeColor = (category: string) => {
     switch (category) {
@@ -89,11 +131,39 @@ export default function JournalPage() {
               Um espaço para suas orações, agradecimentos e reflexões.
             </p>
           </div>
-          <Button onClick={handleNewEntry}>
+          <Button onClick={() => handleNewEntry()}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova Entrada
           </Button>
         </div>
+        
+        {allTags.length > 0 && (
+            <div className="my-6">
+                <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                    <Tag className="h-4 w-4" />
+                    <span>Filtrar por tags:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <Button 
+                        variant={selectedTag === null ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTag(null)}
+                    >
+                        Todos
+                    </Button>
+                    {allTags.map(tag => (
+                        <Button 
+                            key={tag}
+                            variant={selectedTag === tag ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedTag(tag)}
+                        >
+                            {tag}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        )}
 
         <div className="mt-8 space-y-4">
           {isLoading ? (
@@ -102,13 +172,17 @@ export default function JournalPage() {
               <Skeleton className="h-28 w-full" />
               <Skeleton className="h-28 w-full" />
             </>
-          ) : entries.length === 0 ? (
+          ) : filteredEntries.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-muted-foreground/30 rounded-lg">
-              <p className="text-muted-foreground">Nenhuma entrada no diário ainda.</p>
-              <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+              <p className="text-muted-foreground">Nenhuma entrada encontrada.</p>
+              {selectedTag ? (
+                <p className="text-sm text-muted-foreground">Tente remover o filtro de tag.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Clique em "Nova Entrada" para começar.</p>
+              )}
             </div>
           ) : (
-            entries.map((entry) => (
+            filteredEntries.map((entry) => (
               <Card key={entry.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleEditEntry(entry)}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -126,6 +200,13 @@ export default function JournalPage() {
                 <CardContent>
                   <p className="line-clamp-2 text-muted-foreground">{entry.content}</p>
                 </CardContent>
+                 {entry.tags && entry.tags.length > 0 && (
+                    <CardFooter className="flex flex-wrap gap-2 pt-4">
+                        {entry.tags.map(tag => (
+                            <Badge key={tag} variant="secondary">{tag}</Badge>
+                        ))}
+                    </CardFooter>
+                 )}
               </Card>
             ))
           )}
@@ -133,9 +214,16 @@ export default function JournalPage() {
       </div>
       <JournalEditor
         isOpen={isEditorOpen}
-        onOpenChange={setIsEditorOpen}
+        onOpenChange={handleEditorClose}
         entry={selectedEntry}
+        missionUserPlanId={missionToComplete}
       />
+       {missionToComplete && !isEditorOpen && (
+        <MissionCompletionModal 
+            userPlanId={missionToComplete}
+            onClose={handleModalClose}
+        />
+      )}
     </>
   );
 }

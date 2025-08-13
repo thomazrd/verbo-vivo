@@ -1,0 +1,36 @@
+match /congregations/{congregationId} {
+  allow read: if isSignedIn();
+  allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
+  allow update, delete: if isCongregationAdmin(congregationId);
+
+  // Subcoleção de membros da congregação
+  match /members/{userId} {
+    allow read, list: if isCongregationMember(congregationId);
+    allow create: if isSignedIn() && isOwner(userId);
+    allow update: if isCongregationAdmin(congregationId);
+    allow delete: if isCongregationAdmin(congregationId) || isOwner(userId);
+  }
+
+  // Subcoleção de posts da congregação
+  match /posts/{postId} {
+    allow read: if isCongregationMember(congregationId);
+    allow create: if isCongregationMember(congregationId) && isOwner(request.resource.data.authorId);
+    allow update, delete: if isOwner(resource.data.authorId);
+
+    // Sub-subcoleção de comentários em um post
+    match /comments/{commentId} {
+      allow read: if isCongregationMember(congregationId);
+      // Permite que qualquer usuário autenticado crie um comentário, desde que seja em seu próprio nome.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.authorId;
+      // Apenas o dono do comentário pode editar/deletar.
+      allow update, delete: if isOwner(resource.data.authorId);
+    }
+
+    // Sub-subcoleção de likes em um post
+    match /likes/{userId} {
+      allow read: if isCongregationMember(congregationId);
+      // Um membro só pode criar ou deletar o seu próprio like.
+      allow create, delete: if isCongregationMember(congregationId) && isOwner(userId);
+    }
+  }
+}

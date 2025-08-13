@@ -11,7 +11,7 @@ import {
   getAdditionalUserInfo,
 } from "firebase/auth";
 import { auth, googleProvider, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,23 +114,25 @@ export function SignUpForm() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const additionalInfo = getAdditionalUserInfo(result);
+      const userDocRef = doc(db, "users", user.uid);
 
       if (additionalInfo?.isNewUser) {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (!userDocSnap.exists()) {
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email?.split("@")[0],
-            photoURL: user.photoURL || `https://placehold.co/100x100.png`,
-            createdAt: serverTimestamp(),
-            onboardingCompleted: false,
-            prayerCircleOnboardingCompleted: false,
-            congregationId: null,
-            congregationStatus: 'NONE',
-          });
-        }
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email?.split("@")[0],
+          photoURL: user.photoURL || `https://placehold.co/100x100.png`,
+          createdAt: serverTimestamp(),
+          onboardingCompleted: false,
+          prayerCircleOnboardingCompleted: false,
+          congregationId: null,
+          congregationStatus: 'NONE',
+        });
+      } else {
+         // Se é um usuário existente, apenas atualiza a foto de perfil
+        await updateDoc(userDocRef, {
+            photoURL: user.photoURL || null,
+        });
       }
       router.push("/");
     } catch (error: any) {

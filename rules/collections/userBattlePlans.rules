@@ -1,0 +1,9 @@
+
+// Regras para a subcoleção que armazena o progresso de um usuário em um plano.
+match /users/{userId}/battlePlans/{userPlanId} {
+  // Um usuário pode ler, criar, atualizar e apagar seu próprio progresso de plano.
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+
+  // TODO: Adicionar regra para que o criador do plano possa LER (mas não escrever)
+  // o progresso se o usuário consentir.
+}

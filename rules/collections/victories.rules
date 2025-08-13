@@ -1,0 +1,10 @@
+
+match /victories/{victoryId} {
+    // Qualquer um pode ler as vitórias.
+    allow read: if true;
+    // Apenas usuários autenticados podem interagir (dar "Amém").
+    allow update: if isSignedIn();
+    // A criação é restrita (feita pelo moderador do círculo no app).
+    allow create: if isSignedIn();
+    allow delete: if false;
+}

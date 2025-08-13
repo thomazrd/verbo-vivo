@@ -1,44 +1,128 @@
+<p align="center"><img src="screenshots/treinamento.png" alt="Centro de Treinamento" width="800"></p>
 
 # Verbo Vivo - Seu Assistente de Discipulado Digital
-
 Verbo Vivo é uma plataforma digital interativa projetada para aprofundar sua jornada de fé e estudo bíblico. Combinando ferramentas de leitura, meditação, comunidade e inteligência artificial, o Verbo Vivo oferece uma experiência personalizada e enriquecedora para o seu crescimento espiritual.
 
-## ✨ Funcionalidades
 
-*   **Leitura da Bíblia:** Acesse diversas versões da Bíblia, navegue por livros, capítulos e versículos de forma intuitiva.
-*   **Resumos e Explicações com IA:** Obtenha resumos e explicações de capítulos ou trechos bíblicos gerados por IA para uma compreensão rápida dos principais temas e contextos.
-*   **Chat com IA:** Converse com um assistente virtual para tirar dúvidas, explorar temas bíblicos e receber insights.
-*   **Planos de Estudo Personalizados:** Crie ou receba sugestões de planos de estudo bíblico adaptados aos seus interesses e ritmo.
-*   **Jornada de Sentimentos:** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras, oferecendo conforto e perspectiva bíblica.
-*   **Santuário de Oração:** Um espaço para orar em voz alta e receber uma reflexão devocional baseada em sua oração, gerada por IA.
+## ✨ Manual de Funcionalidades
+
+Este guia detalha como utilizar cada ferramenta do Verbo Vivo para fortalecer sua jornada.
+
+### 😔 Jornada de Sentimentos
+**O que é?** Uma ferramenta guiada por IA para ajudar a processar emoções à luz das Escrituras.
+
+![Jornada de Sentimentos](screenshots/jornada-sentimentos.png)
+
+**Como usar:**
+1.  **Selecione o Sentimento:** Escolha como você está se sentindo (ex: Ansiedade, Tristeza, Raiva).
+2.  **Descreva o Motivo:** Fale ou escreva sobre o porquê de se sentir assim.
+3.  **Receba o Farol:** A IA, agindo como um conselheiro pastoral, fornecerá uma reflexão empática e versículos bíblicos relevantes para trazer conforto e a perspectiva de Deus para sua situação. O foco é sempre apontar para a esperança nas Escrituras, não dar conselhos práticos.
+
+---
+
+### 📖 Leitura da Bíblia
+**O que é?** Uma Bíblia digital completa com múltiplas versões.
+ ![Leitura da Bíblia](screenshots/biblia-desktop.png)
+
+
+**Como usar:**
+1.  **Navegue:** No menu principal, vá em "Bíblia".
+2.  **Selecione a Versão:** Use o seletor no topo para escolher sua tradução preferida (NVI, ACF, etc.).
+3.  **Escolha o Livro e Capítulo:** Use o painel lateral para navegar entre os livros e capítulos.
+4.  **Leia e Interaja:** Com o texto selecionado, você pode usar a IA para explicar trechos ou usar o dicionário para entender palavras específicas.
+5.  **Modo Foco:** Clique no ícone de expandir para uma leitura imersiva sem distrações.
+
+---
+
+### 💬 Chat com IA
+**O que é?** Um assistente de IA treinado para responder suas perguntas com base nas Escrituras.
+
+![Chat com IA](screenshots/chat-biblia.png)
+
+**Como usar:**
+1.  **Acesse o Chat:** Selecione "Chat com IA" no menu.
+2.  **Faça sua Pergunta:** Digite qualquer dúvida que você tenha, seja sobre um versículo, um tema ou um personagem.
+3.  **Receba a Resposta:** A IA fornecerá uma resposta contextualizada, incluindo versículos de apoio.
+4.  **Crie um Plano de Estudo:** A partir da resposta da IA, você pode clicar no botão "Criar plano de estudo sobre isso" para gerar um guia de 7 dias sobre o tema da sua pergunta.
+
+---
+
+### 🛡️ Minha Armadura
+**O que é?** Sua coleção pessoal de versículos ("armas") para batalhas espirituais específicas (ansiedade, medo, etc.).
+
+![Minha Armadura](screenshots/minha-armadura.png)
+
+**Como usar:**
+1.  **Acesse o Arsenal:** Vá para "Minha Armadura" no menu.
+2.  **Forje uma Armadura:** Clique no botão `+` para criar uma nova armadura. Dê um nome (ex: "Armadura contra a Ansiedade").
+3.  **Adicione Armas:** Dentro da armadura, clique em "Adicionar Arma". Você pode usar a IA para sugerir versículos sobre um tema ou adicionar manually.
+4.  **Entre em Batalha:** Com sua armadura pronta, clique em "Modo Batalha" para uma experiência imersiva, visualizando um versículo de cada vez em tela cheia para meditação e memorização.
+5.  **Compartilhe:** Você pode optar por compartilhar suas armaduras com a comunidade, permitindo que outros irmãos as adicionem ao seu próprio arsenal.
+
+---
+
+### 🎯 Centro de Treinamento (Planos de Batalha)
+**O que é?** Um roteiro de treinamento espiritual de vários dias, com missões diárias que podem incluir leitura bíblica, oração, reflexão e mais.
+
+![Centro de Treinamento](screenshots/treinamento.png)
+
+**Como um líder pode criar:**
+1.  **Inicie a Criação:** Em "Treinamento", clique em "Criar Plano" e depois em "Criar com Inteligência Artificial".
+2.  **Descreva a Batalha:** No campo "Descrição do Problema", seja específico sobre o desafio que sua comunidade enfrenta (ex: "Lutando com dúvidas sobre a fé", "Medo do futuro financeiro").
+3.  **Ajuste a Estratégia:** Defina a duração em dias e o número de missões por dia.
+4.  **Gere e Revise:** Clique em "Gerar Plano". A IA sugerirá um título, descrição e uma lista completa de missões diárias. Você pode gerar novamente se não gostar.
+5.  **Adote e Refine:** Ao clicar em "Usar este Plano", você será levado a um editor final, onde poderá ajustar cada detalhe antes de "Salvar como Rascunho" ou "Publicar Plano" para sua comunidade.
+
+---
+
+### 🤝 Comunidade (Congregação)
+**O que é?** Um feed social privado para membros de uma mesma igreja local.
+
+![Comunidade](screenshots/comunidade.png)
+
+**Como usar:**
+1.  **Entre ou Crie:** Na seção "Comunidade", você pode entrar em uma congregação existente com um código de convite ou criar a sua própria.
+2.  **Compartilhe:** Crie publicações com texto, imagens, vídeos do YouTube ou até mesmo um versículo específico.
+3.  **Interaja:** Curta e comente nas publicações de outros membros, construindo um ambiente de apoio e comunhão.
+4.  **Gerencie (Admins):** Administradores podem aprovar novos membros e gerenciar as configurações da comunidade.
+
+---
+
+### 🙏 Santuário de Oração
+**O que é?** Um espaço privado para você orar em voz alta e receber uma reflexão devocional baseada em sua oração.
+
+![Santuário de Oração](screenshots/santuario-oracao.png)
+
+**Como usar:**
+1.  **Entre no Santuário:** Acesse a funcionalidade no menu.
+2.  **Comece a Orar:** Clique no botão de microfone e fale com Deus livremente.
+3.  **Receba a Reflexão:** Após terminar, a IA analisará o tema da sua oração (sem salvar o áudio) e apresentará uma reflexão com versículos de apoio para encorajá-lo.
+
+---
+
+### ✝️ Confessionário
+**O que é?** Um espaço seguro para a prática espiritual da confissão, com garantia de privacidade.
+
+![Confessionário](screenshots/confessionario.png)
+
+**Como usar:**
+1.  **Acesso Intencional:** Para entrar, pressione e segure o ícone de cadeado.
+2.  **Confesse:** Use o microfone ou digite para confessar seus pecados. O conteúdo **não é salvo em nenhum lugar**.
+3.  **Receba a Graça:** A IA gera uma resposta pastoral, não de penitência, mas de perdão, fundamentada em 2 a 3 versículos bíblicos que reforçam a certeza do perdão em Cristo.
+
+---
+
+
+### Outras Ferramentas
+
+*   **Ponte da Esperança:** Gere uma mensagem de esperança e conforto, baseada em versículos, para compartilhar com amigos que estão passando por dificuldades.
+![Ponte da Esperança](screenshots/ponte-esperanca.png)
 *   **Diário Espiritual:** Registre suas reflexões, orações e aprendizados em um espaço pessoal e seguro.
-*   **Comunidade (Congregação):** Crie ou junte-se a uma comunidade (congregação) para compartilhar postagens, fotos, vídeos, comentários e interagir com outros membros.
-*   **Artigos e Reflexões:** Um módulo de blog onde administradores da comunidade podem criar e publicar artigos, com um editor de texto completo (Markdown) e imagens de capa.
-*   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de personagens bíblicos, com resumos, versículos-chave e planos de estudo.
-*   **Ponte da Esperança:** Gere mensagens de esperança e conforto, baseadas em versículos, para compartilhar com amigos que estão passando por dificuldades.
-*   **Confessionário:** Um espaço privado e seguro para confessar pecados e receber uma palavra de perdão e graça, fundamentada nas escrituras.
-*   **Onboarding Personalizado:** Configure suas preferências e objetivos para uma experiência adaptada desde o início.
-*   **Configurações de Idioma e IA:** Personalize sua experiência escolhendo o idioma da interface e o modelo de IA (rápido ou avançado) de sua preferência.
-
-### Confessionário: Um Espaço Seguro para a Graça
-
-Esta funcionalidade foi desenhada para ser um ambiente privado e seguro, incentivando a prática espiritual da confissão.
-
-#### Como Funciona?
-
-1.  **Acesso Intencional:** Para entrar, o usuário precisa pressionar e segurar um ícone de cadeado. Esse ato simbólico garante que a entrada no confessionário seja um passo deliberado.
-2.  **Confissão por Voz ou Texto:** O usuário pode confessar seus pecados falando ao microfone ou digitando. A interface foi projetada para ser um ouvinte passivo e sem julgamentos.
-3.  **Privacidade Absoluta:** A confissão, seja em áudio ou texto, **não é salva em nenhum lugar**. Ela é processada em memória e descartada imediatamente após a interação, garantindo total privacidade e segurança.
-4.  **Resposta de Graça:** Após a submissão, a IA analisa a confissão e gera uma resposta pastoral. Em vez de penitências, a IA oferece uma reflexão compassiva, fundamentada em 2 a 3 versículos bíblicos relevantes que falam sobre o perdão, a misericórdia e o amor incondicional de Deus.
-5.  **Foco na Promessa:** O objetivo é reforçar a certeza do perdão que é oferecido em Cristo, transformando um ato de vulnerabilidade em um momento de encontro com a graça.
-
-#### O Valor Bíblico
-
-A prática da confissão é um pilar fundamental na vida cristã, baseada em promessas claras da Palavra de Deus.
-
-*   **Fundamento Principal (1 João 1:9):** *"Se confessarmos os nossos pecados, ele é fiel e justo para nos perdoar os pecados e nos purificar de toda injustiça."* O confessionário do Verbo Vivo é uma ferramenta para viver esta promessa. Ele não substitui a confissão a Deus ou a uma comunidade de irmãos, mas serve como um catalisador para que o crente se aproprie dessa verdade diariamente.
-*   **Alcançar Misericórdia (Provérbios 28:13):** *"O que encobre as suas transgressões nunca prosperará, mas o que as confessa e deixa, alcançará misericórdia."* A funcionalidade incentiva a não esconder o pecado, mas a trazê-lo à luz para receber a misericórdia de Deus.
-*   **Foco no Perdão, Não na Penitência:** Diferente de um confessionário tradicional, o foco aqui não é na penitência, mas na celebração da graça. A resposta da IA é sempre direcionada para a obra consumada de Cristo na cruz, que é a fonte de todo perdão.
+![Diário Espiritual](screenshots/diario-espiritual.png)
+*   **Artigos e Reflexões:** Um blog onde administradores da comunidade podem publicar estudos mais longos e aprofundados.
+![Artigos e Reflexões](screenshots/artigos.png)
+*   **Perfis de Personagens Bíblicos:** Explore perfis detalhados de figuras da Bíblia, com resumos, versículos-chave e planos de estudo.
+![Perfis de Personagens Bíblicos](screenshots/personagens-biblicos.png)
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -48,7 +132,7 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
 *   **UI Framework:** [Shadcn UI](https://ui.shadcn.com/) (construído sobre Tailwind CSS e Radix UI)
 *   **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
 
-## 🚀 Como Executar o Projeto Localmente
+## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos
 
@@ -56,22 +140,7 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
 *   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
 *   [Firebase CLI](https://firebase.google.com/docs/cli)
 
-### Configuração do Firebase
-
-1.  Crie um projeto no [Firebase Console](https://console.firebase.google.com/).
-2.  Ative os serviços de **Authentication** (com o provedor Google), **Firestore** e **Storage**.
-3.  Nas configurações do seu projeto Firebase, adicione um aplicativo da Web.
-4.  Copie as credenciais do Firebase (apiKey, authDomain, etc.).
-5.  Atualize o arquivo `src/lib/firebase.ts` com as credenciais do seu projeto.
-6.  Para as Cloud Functions, configure a autenticação do Firebase CLI no seu ambiente local executando `firebase login`.
-
-### Configuração do Genkit (Google AI)
-
-1.  Certifique-se de ter um projeto no Google Cloud com a API Gemini habilitada.
-2.  Configure a autenticação para o Genkit/Google AI conforme a documentação oficial. Isso pode envolver a configuração de variáveis de ambiente como `GOOGLE_API_KEY` ou o uso do `gcloud auth application-default login`.
-3.  As chaves e configurações da API do Google AI são gerenciadas pelo Genkit, que busca automaticamente as credenciais do ambiente.
-
-### Instalação e Execução
+### Configuração do Ambiente Local
 
 1.  **Clone o repositório:**
     ```bash
@@ -79,7 +148,20 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
     cd <NOME_DO_DIRETORIO>
     ```
 
-2.  **Instale as dependências (raiz e functions):**
+2.  **Crie o arquivo `.env`:**
+    Na raiz do projeto, crie um arquivo chamado `.env` a partir do modelo.
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Preencha o `.env`:**
+    *   **Firebase:** Crie um projeto no [Firebase Console](https://console.firebase.google.com/). Ative **Authentication**, **Firestore** e **Storage**. Nas configurações do projeto, adicione um aplicativo da Web e copie as credenciais para as variáveis `NEXT_PUBLIC_FIREBASE_*` no seu arquivo `.env`.
+    *   **Google AI (Genkit):** Habilite a **API Gemini** no seu projeto Google Cloud. Gere uma chave de API e adicione-a à variável `GEMINI_API_KEY`.
+    *   **API da Bíblia:** Crie uma conta gratuita em [abibliadigital.com.br/api](https://www.abibliadigital.com.br/api) e adicione seu token à variável `ABIBLIA_API_TOKEN`.
+
+### Instalação e Execução
+
+1.  **Instale as dependências (raiz e functions):**
     ```bash
     npm install
     cd functions
@@ -87,24 +169,47 @@ A prática da confissão é um pilar fundamental na vida cristã, baseada em pro
     cd ..
     ```
 
-3.  **Execute o servidor de desenvolvimento do Next.js:**
-    ```bash
-    npm run dev
-    ```
-    A aplicação Next.js estará disponível em `http://localhost:3000`.
+2.  **Execute os servidores de desenvolvimento:**
+    *   **Next.js (Aplicação Principal):**
+        ```bash
+        npm run dev
+        ```
+        Acesse em `http://localhost:3000`.
+    *   **Genkit (Funções de IA):**
+        ```bash
+        npm run genkit:watch
+        ```
+    *   **Firebase (Cloud Functions & Emulators):**
+        ```bash
+        firebase emulators:start --only functions
+        ```
 
-4.  **Execute o servidor de desenvolvimento do Genkit (para as funcionalidades de IA):**
-    Em um novo terminal, na raiz do projeto:
-    ```bash
-    npm run genkit:watch
-    ```
-    O servidor Genkit (ferramentas de IA) estará disponível em `http://localhost:4000` (ou outra porta, verifique o output do terminal).
-    
-5. **Execute o emulador de Cloud Functions:**
-   Para testar as funções de notificações e gerenciamento de comunidade localmente, execute em um novo terminal:
-   ```bash
-   firebase emulators:start --only functions
-   ```
+---
+
+### 🔐 Configuração para Deploy (GitHub Actions)
+
+Para que o deploy automático funcione, você precisa configurar os "Secrets" no seu repositório do GitHub. Isso garante que suas chaves de API não fiquem expostas.
+
+1.  **Navegue até as Configurações do Repositório:**
+    No seu repositório no GitHub, vá para `Settings > Secrets and variables > Actions`.
+
+2.  **Crie os "Repository secrets":**
+    Crie um segredo para cada uma das variáveis de ambiente listadas abaixo. O nome do segredo deve ser exatamente como mostrado, e o valor deve ser a chave correspondente do seu projeto.
+
+    *   `FIREBASE_TOKEN`: Token de CI do Firebase. Gere com o comando `firebase login:ci`.
+    *   `NEXT_PUBLIC_FIREBASE_API_KEY`: A `apiKey` do seu config do Firebase.
+    *   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: O `authDomain` do seu config.
+    *   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: O `projectId`.
+    *   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`: O `storageBucket`.
+    *   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: O `messagingSenderId`.
+    *   `NEXT_PUBLIC_FIREBASE_APP_ID`: O `appId`.
+    *   `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`: O `measurementId`.
+    *   `NEXT_PUBLIC_FIREBASE_VAPID_KEY`: Sua chave pública VAPID do Cloud Messaging.
+    *   `GOOGLE_API_KEY`: Sua chave da API do Google AI (para Genkit, usada no servidor).
+    *   `GEMINI_API_KEY`: A mesma chave da API do Google, mas para uso específico do Gemini no backend.
+    *   `ABIBLIA_API_TOKEN`: Seu token da API da AbibliaDigital.
+
+---
 
 ## 🔍 Debugando Erros de Produção
 
@@ -178,15 +283,6 @@ Esta seção descreve as coleções e estruturas chave no Firestore.
 ## 🤝 Como Contribuir
 
 Agradecemos o interesse em contribuir com o Verbo Vivo! No momento, estamos estruturando nosso processo de contribuição. Em breve, adicionaremos mais informações sobre como você pode participar.
-
-Algumas áreas onde futuras contribuições seriam bem-vindas:
-
-*   Novas funcionalidades
-*   Melhorias na interface do usuário (UI/UX)
-*   Otimizações de performance
-*   Traduções para outros idiomas
-*   Correção de bugs
-*   Testes automatizados
 
 ## 📄 Licença
 

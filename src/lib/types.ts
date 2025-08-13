@@ -6,6 +6,7 @@ import { z } from "zod";
 export interface BibleVerse {
   reference: string;
   text: string;
+  bibleVersion?: string;
 }
 
 export interface Message {
@@ -41,6 +42,12 @@ export interface JournalEntry {
   title?: string;
   content: string;
   category: 'Pedido' | 'Agradecimento' | 'Reflexão';
+  tags?: string[];
+  reminderSchedule?: {
+    isEnabled: boolean;
+    days: string[]; // e.g., ['seg', 'qua', 'sex']
+    time: string; // e.g., "08:00"
+  } | null;
 }
 
 export interface Verse {
@@ -77,6 +84,12 @@ export interface BibleCharacter {
 }
 
 // --- Tipos da Comunidade da Congregação ---
+export interface BibleVersion {
+  id: string;
+  name: string;
+  language: string;
+  apiSource: 'abibliadigital' | 'apibible';
+}
 
 export interface UserProfile {
   uid: string;
@@ -87,12 +100,16 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   armorOnboardingCompleted?: boolean;
   prayerCircleOnboardingCompleted?: boolean;
+  role?: 'USER' | 'ADMIN';
+  preferredLanguage?: string | null;
+  preferredModel?: string | null;
+  preferredBibleVersion?: BibleVersion | null;
+  favoriteArmorIds?: string[];
   congregationId?: string | null;
   congregationStatus?: 'MEMBER' | 'PENDING' | 'ADMIN' | 'NONE';
-  role?: 'USER' | 'ADMIN'; // Adicionado para o portal administrativo
-  preferredLanguage?: string | null;
-  preferredModel?: string | null; // e.g., "gemini-1.5-flash"
-  favoriteArmorIds?: string[];
+  goals?: string[]; // IDs dos objetivos
+  topics?: string[]; // IDs dos tópicos
+  aiCredits?: number;
 }
 
 export interface Congregation {
@@ -116,7 +133,7 @@ export interface CongregationMember {
   status: 'PENDING' | 'MEMBER' | 'ADMIN';
 }
 
-export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT';
+export type PostType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'BACKGROUND_TEXT' | 'BIBLE_VERSE';
 
 export interface TextContent {
   text: string;
@@ -140,6 +157,14 @@ export interface BackgroundTextContent {
   backgroundStyle: string; // ex: 'gradient_blue'
 }
 
+export interface BibleVerseContent {
+  text: string; // The verse text
+  reference: string;
+  version: string;
+  theme?: string; // e.g., "hope", "faith"
+}
+
+
 export interface Post {
   id: string;
   authorId: string;
@@ -147,7 +172,7 @@ export interface Post {
   authorPhotoURL: string | null;
   createdAt: Timestamp;
   postType: PostType;
-  content: TextContent | ImageContent | VideoContent | BackgroundTextContent;
+  content: TextContent | ImageContent | VideoContent | BackgroundTextContent | BibleVerseContent;
   likeCount: number;
   commentCount: number;
   likes?: string[];
@@ -227,7 +252,8 @@ export const SharedContentSchema = z.object({
   sections: z.array(z.object({
     verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
     verse_text: z.string().describe("O texto do versículo."),
-    explanation: z.string().describe("Uma breve e simples explicação de como este versículo oferece esperança para uma situação difícil.")
+    bible_version: z.string().describe("A versão da Bíblia do texto do versículo. Ex: 'NVI'"),
+    explanation: z.string().describe("Uma breve explicação ou aplicação do versículo.")
   })),
   conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
 });
@@ -319,23 +345,25 @@ export interface Article {
 }
 
 // --- Tipos do Portal Administrativo ---
-export interface Study {
+export type ContentType = 'MARKDOWN' | 'VIDEO_URL' | 'ARTICLE_URL' | 'IMAGE_URL';
+
+export interface Content {
   id: string;
   title: string;
-  audioUrl: string;
+  description: string;
   thumbnailUrl: string | null;
-  content: string;
+  contentType: ContentType;
+  contentValue: string; // Markdown text, video URL, article URL, or image URL
   authorId: string;
   authorName: string;
-  practicalChallenge?: string | null;
   tags?: string[];
   status: 'DRAFT' | 'PUBLISHED';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   publishedAt: Timestamp | null;
   viewCount?: number;
-  reactions?: { [key: string]: string[] };
 }
+
 
 export interface Suggestion {
   id: string;
@@ -348,12 +376,7 @@ export interface Suggestion {
 
 // --- Tipos da API da Bíblia ---
 
-export interface BibleVersion {
-  id: string;
-  name: string;
-  language: string;
-  apiSource: 'abibliadigital' | 'apibible';
-}
+
 
 export interface BibleBook {
   id?: string;
@@ -386,12 +409,14 @@ export interface BibleChapter {
 }
 
 // --- Tipos da Minha Armadura ---
-export interface ArmorWeapon {
-  id: string;
-  verseReference: string;
-  verseText: string;
-  bibleVersion: string;
-}
+export const ArmorWeaponSchema = z.object({
+  id: z.string(),
+  verseReference: z.string(),
+  verseText: z.string(),
+  bibleVersion: z.string(),
+});
+export type ArmorWeapon = z.infer<typeof ArmorWeaponSchema>;
+
 
 export interface Armor {
   id: string;
@@ -406,6 +431,66 @@ export interface Armor {
   authorName?: string;
   authorPhotoURL?: string | null;
   originalArmorId?: string; // To track copied armors
+}
+
+// --- Tipos do Centro de Treinamento ---
+export type MissionType = 'BIBLE_READING' | 'PRAYER_SANCTUARY' | 'FEELING_JOURNEY' | 'CONFESSION' | 'JOURNAL_ENTRY' | 'FAITH_CONFESSION' | 'YOUTUBE_VIDEO';
+export type MissionStatus = 'PENDING' | 'COMPLETED';
+export type BattlePlanStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type UserBattlePlanStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+export type MissionFeeling = 'GRATEFUL' | 'CHALLENGED' | 'PEACEFUL' | 'STRENGTHENED' | 'SKIPPED';
+
+export interface Mission {
+  id: string;
+  day: number;
+  title: string;
+  type: MissionType;
+  content: {
+    path: string;
+    completionQueryParam?: string | null;
+    verse?: string | null; // Para 'BIBLE_READING' ou a URL do vídeo
+    details?: any; // Para detalhes extras como livro, capitulo, etc.
+  };
+  leaderNote?: string | null;
+}
+
+export interface BattlePlan {
+  id: string;
+  title: string;
+  description: string;
+  durationDays: number;
+  coverImageUrl: string;
+  creatorId: string;
+  creatorName: string;
+  status: BattlePlanStatus;
+  missions: Mission[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface UserBattlePlan {
+  id: string; // Combinação de userId e planId para unicidade
+  userId: string;
+  planId: string;
+  planTitle: string; // Denormalized for easy display
+  planCoverImageUrl: string; // Denormalized
+  planCreatorId: string; // Denormalized
+  startDate: Timestamp;
+  status: UserBattlePlanStatus;
+  progressPercentage: number;
+  consentToShareProgress: boolean; // Flag para consentimento do líder
+  completedMissionIds: string[];
+}
+
+export interface MissionLog {
+  id: string;
+  userId: string;
+  planId: string;
+  missionId: string;
+  completedAt: Timestamp;
+  feeling: MissionFeeling | 'SKIPPED';
+  planTitle: string;
+  missionTitle: string;
 }
 
 
@@ -429,6 +514,7 @@ export type ChatHistoryItem = z.infer<typeof ChatHistoryItemSchema>;
 // From: bible-chat-response.ts
 export const BibleChatResponseInputSchema = BaseAiInputSchema.extend({
   user_question: z.string().describe("The user's question or message."),
+  bible_version_name: z.string().optional().describe('The preferred Bible version name (e.g., "NVI", "ACF").'),
   history: z.array(ChatHistoryItemSchema).optional().describe('The recent chat history.'),
   userId: z.string(),
   messageId: z.string(),
@@ -440,6 +526,7 @@ export const BibleChatResponseOutputSchema = z.object({
     verses: z.array(z.object({
         reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
         text: z.string().describe("The full text of the verse."),
+        bibleVersion: z.string().optional().describe("The Bible version of the verse text."),
     })).describe('An array of relevant bible verses.'),
 });
 export type BibleChatResponseOutput = z.infer<typeof BibleChatResponseOutputSchema>;
@@ -462,14 +549,6 @@ export const ProcessPrayerInputSchema = BaseAiInputSchema.extend({
 });
 export type ProcessPrayerInput = z.infer<typeof ProcessPrayerInputSchema>;
 
-export const ProcessPrayerOutputSchema = z.object({
-    responseText: z.string().describe('The devotional reflection based on the prayer.'),
-    citedVerses: z.array(z.object({
-      reference: z.string(),
-      text: z.string()
-    })).describe('An array of Bible verse references cited in the response.'),
-});
-export type ProcessPrayerOutput = z.infer<typeof ProcessPrayerOutputSchema>;
 
 // From: study-plan-generation.ts
 export const StudyPlanInputSchema = BaseAiInputSchema.extend({
@@ -504,11 +583,22 @@ export type ChapterSummaryOutput = z.infer<typeof ChapterSummaryOutputSchema>;
 export const GenerateShareableContentInputSchema = BaseAiInputSchema.extend({
   problemDescription: z.string().describe('The problem description provided by the user.'),
   recipientName: z.string().optional().describe("The name of the person receiving the letter, for personalization."),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 export type GenerateShareableContentInput = z.infer<typeof GenerateShareableContentInputSchema>;
 
 // The output is the content object itself.
-export const GenerateShareableContentOutputSchema = SharedContentSchema;
+export const GenerateShareableContentOutputSchema = z.object({
+  title: z.string().describe("Um título curto e acolhedor para a página"),
+  opening: z.string().describe("Um parágrafo de abertura que mostra empatia pelo problema, sem mencioná-lo diretamente."),
+  sections: z.array(z.object({
+    verse: z.string().describe("A referência do versículo. Ex: 'Jeremias 29:11'"),
+    verse_text: z.string().describe("O texto do versículo."),
+    bible_version: z.string().describe("A versão da Bíblia do texto do versículo. Ex: 'NVI'"),
+    explanation: z.string().describe("Uma breve explicação ou aplicação do versículo.")
+  })),
+  conclusion: z.string().describe("Um parágrafo de conclusão com uma palavra de encorajamento e uma pergunta suave para reflexão pessoal.")
+});
 export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableContentOutputSchema>;
 
 
@@ -516,6 +606,7 @@ export type GenerateShareableContentOutput = z.infer<typeof GenerateShareableCon
 export const ProcessFeelingReportInputSchema = BaseAiInputSchema.extend({
   emotion: z.string().describe("The user's selected emotion."),
   reportText: z.string().describe("The user's voice report explaining their feeling."),
+  bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 export type ProcessFeelingReportInput = z.infer<typeof ProcessFeelingReportInputSchema>;
 
@@ -524,6 +615,7 @@ export const ProcessFeelingReportOutputSchema = z.object({
     citedVerses: z.array(z.object({
         reference: z.string().describe('The reference of the verse. Ex: "João 3:16"'),
         text: z.string().describe("The full text of the verse."),
+        bibleVersion: z.string().describe("The Bible version of the verse text."),
     })).describe('An array of relevant bible verses.'),
 });
 export type ProcessFeelingReportOutput = z.infer<typeof ProcessFeelingReportOutputSchema>;
@@ -539,20 +631,30 @@ export const ExplainPassageOutputSchema = z.object({
 });
 export type ExplainPassageOutput = z.infer<typeof ExplainPassageOutputSchema>;
 
-// From: armor-suggestion-flow.ts
-export const ArmorSuggestionInputSchema = BaseAiInputSchema.extend({
-  battle: z.string().describe('The spiritual battle the user is facing (e.g., "Anxiety", "Fear").'),
-});
-export type ArmorSuggestionInput = z.infer<typeof ArmorSuggestionInputSchema>;
 
-export const ArmorWeaponSchema = z.object({
-    verseReference: z.string(),
-    verseText: z.string(),
-    bibleVersion: z.string(),
+// From: battle-plan-generation-flow.ts
+export const GenerateBattlePlanInputSchema = BaseAiInputSchema.extend({
+  problemDescription: z.string().describe('The problem description provided by the user.'),
+  durationDays: z.number().describe('The exact number of days the plan should last.'),
+  missionsPerDay: z.number().describe('The exact number of missions to generate for each day.'),
 });
-export type ArmorWeaponOutput = z.infer<typeof ArmorWeaponSchema>;
+export type GenerateBattlePlanInput = z.infer<typeof GenerateBattlePlanInputSchema>;
 
-export const ArmorSuggestionOutputSchema = z.object({
-    weapons: z.array(ArmorWeaponSchema).describe('An array of bible verses to be used as spiritual weapons.'),
+export const AiMissionSchema = z.object({
+    day: z.number(),
+    title: z.string(),
+    type: z.enum(["BIBLE_READING", "PRAYER_SANCTUARY", "FEELING_JOURNEY", "CONFESSION", "JOURNAL_ENTRY", "FAITH_CONFESSION"]),
+    content: z.object({
+        verse: z.string().optional().nullable(),
+    }),
+    leaderNote: z.string().optional().nullable(),
 });
-export type ArmorSuggestionOutput = z.infer<typeof ArmorSuggestionOutputSchema>;
+export type AiMission = z.infer<typeof AiMissionSchema>;
+
+export const GenerateBattlePlanOutputSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  durationDays: z.number(),
+  missions: z.array(AiMissionSchema),
+});
+export type GenerateBattlePlanOutput = z.infer<typeof GenerateBattlePlanOutputSchema>;

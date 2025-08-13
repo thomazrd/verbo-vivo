@@ -6,8 +6,10 @@ const ABIBLIA_API_URL = 'https://www.abibliadigital.com.br/api';
 export async function GET() {
   const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
 
+  // Se o token não estiver configurado, retorna uma lista vazia para não quebrar a UI
   if (!ABIBLIA_API_TOKEN || ABIBLIA_API_TOKEN === "COLE_SEU_TOKEN_AQUI") {
-    return NextResponse.json({ message: 'Token da API não configurado no servidor.' }, { status: 500 });
+    console.warn('Token da API abibliadigital.com.br não configurado. A busca de livros retornará vazia.');
+    return NextResponse.json([], { status: 200 });
   }
 
   try {
@@ -28,6 +30,7 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Erro no proxy para /books:", error);
-    return NextResponse.json({ message: 'Erro ao buscar livros.' }, { status: 500 });
+    // Em caso de erro na API externa, também retorna uma lista vazia.
+    return NextResponse.json([], { status: 200 });
   }
 }

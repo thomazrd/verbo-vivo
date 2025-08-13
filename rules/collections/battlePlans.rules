@@ -1,0 +1,35 @@
+// collections/battlePlans.rules
+
+match /battlePlans/{planId} {
+  // Leitura: Qualquer usuário autenticado pode ler planos publicados OU se for o criador do plano.
+  allow read: if isSignedIn() && (resource.data.status == 'PUBLISHED' || resource.data.creatorId == request.auth.uid);
+
+  // Criação: Qualquer usuário autenticado pode criar um plano (será um líder).
+  allow create: if isSignedIn();
+
+  // Atualização e Exclusão: Apenas o criador original do plano pode modificar ou apagar.
+  allow update, delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+}
+
+// Subcoleção de 'users' que armazena o progresso dos planos daquele usuário
+match /users/{userId}/battlePlans/{userPlanId} {
+  // Leitura: Um usuário pode ler seu próprio progresso.
+  // Um LÍDER pode ler o progresso de um soldado SE o soldado deu consentimento.
+  allow read: if isOwner(userId) ||
+              (isSignedIn() && resource.data.consentToShareProgress == true &&
+               request.auth.uid == resource.data.planCreatorId);
+
+  // Criação: Um usuário pode criar seu próprio registro de progresso (iniciar um plano).
+  allow create: if isOwner(userId);
+
+  // Atualização: Um usuário só pode atualizar seu próprio progresso.
+  allow update: if isOwner(userId);
+
+  // Exclusão: Um usuário só pode apagar seu próprio progresso.
+  allow delete: if isOwner(userId);
+}
+
+// Logs de missão são privados
+match /missionLogs/{logId} {
+  allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+}

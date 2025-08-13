@@ -20,12 +20,14 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import type { Message } from "@/lib/types";
+import type { Message, ChatHistoryItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { bibleChatResponse } from "@/ai/flows/bible-chat-response";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAiCreditManager } from "@/hooks/use-ai-credit-manager";
+import { OutOfCreditsModal } from "@/components/common/OutOfCreditsModal";
 
 const PAGE_SIZE = 20;
 
@@ -33,6 +35,7 @@ export default function ChatPage() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const { i18n } = useTranslation();
+  const { withCreditCheck, isCreditModalOpen, closeCreditModal } = useAiCreditManager();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,28 +187,40 @@ export default function ChatPage() {
     };
 
     try {
-      // Add user message to Firestore. The onSnapshot listener will handle UI updates.
       const docRef = await addDoc(collection(db, `users/${user.uid}/messages`), userMessage);
       
-      const aiResponse = await bibleChatResponse({
-        model: userProfile?.preferredModel,
-        language: userProfile?.preferredLanguage || i18n.language,
-        user_question: text,
-        bible_verses: ["João 3:16 - Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."],
-        userId: user.uid,
-        messageId: docRef.id,
-      });
+      const conversationHistory: ChatHistoryItem[] = messages
+        .slice(-4)
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }],
+        }));
+      
+      const executeChat = await withCreditCheck(bibleChatResponse);
+      
+      if (executeChat) {
+        const aiResponse = await executeChat({
+            model: userProfile?.preferredModel,
+            language: userProfile?.preferredLanguage || i18n.language,
+            bible_version_name: userProfile?.preferredBibleVersion?.name,
+            user_question: text,
+            history: conversationHistory,
+            userId: user.uid,
+            messageId: docRef.id,
+        });
 
-      const aiMessage: Omit<Message, 'id'> = {
-        text: aiResponse.response,
-        sender: "ai",
-        createdAt: Timestamp.now(),
-        citedVerses: aiResponse.verses,
-        hasPlanButton: true,
-        topic: text,
-      };
-      // Add AI message to Firestore. The onSnapshot listener will handle UI updates.
-      await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
+        if (aiResponse) {
+            const aiMessage: Omit<Message, 'id'> = {
+            text: aiResponse.response,
+            sender: "ai",
+            createdAt: Timestamp.now(),
+            citedVerses: aiResponse.verses,
+            hasPlanButton: true,
+            topic: text,
+            };
+            await addDoc(collection(db, `users/${user.uid}/messages`), aiMessage);
+        }
+      }
 
     } catch (error) {
       console.error("Error sending message:", error);
@@ -226,32 +241,35 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-full flex-col relative">
-      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef} onScroll={handleScroll}>
-        <MessageList 
-          messages={messages} 
-          isLoading={isLoading} 
-          isLoadingMore={isLoadingMore}
-          hasMore={hasMore}
-          loadMore={loadMoreMessages}
-          isSending={isSending}
-        />
+    <>
+      <OutOfCreditsModal isOpen={isCreditModalOpen} onClose={closeCreditModal} />
+      <div className="flex h-full flex-col relative">
+        <div className="flex-1 overflow-y-auto" ref={scrollContainerRef} onScroll={handleScroll}>
+          <MessageList 
+            messages={messages} 
+            isLoading={isLoading} 
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
+            loadMore={loadMoreMessages}
+            isSending={isSending}
+          />
+        </div>
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-10"
+            >
+              <Button size="icon" className="rounded-full shadow-lg h-10 w-10" onClick={scrollToBottom}>
+                <ChevronDown className="h-5 w-5" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <ChatInput onSubmit={handleSendMessage} isSending={isSending} />
       </div>
-      <AnimatePresence>
-        {showScrollButton && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-10"
-          >
-            <Button size="icon" className="rounded-full shadow-lg h-10 w-10" onClick={scrollToBottom}>
-              <ChevronDown className="h-5 w-5" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <ChatInput onSubmit={handleSendMessage} isSending={isSending} />
-    </div>
+    </>
   );
 }

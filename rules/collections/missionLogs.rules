@@ -1,0 +1,8 @@
+
+// Regras para a coleção que registra a conclusão de cada missão
+match /missionLogs/{logId} {
+  // Permite que um usuário crie um log se o ID do usuário no documento for o seu.
+  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+  // Permite que um usuário leia, atualize ou delete seus próprios logs de missão.
+  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}

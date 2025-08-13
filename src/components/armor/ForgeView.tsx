@@ -42,6 +42,7 @@ import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Wand2, BookOpen, Share2
 import { Skeleton } from "../ui/skeleton";
 import { Checkbox } from "../ui/checkbox";
 import { ScrollArea } from "../ui/scroll-area";
+import { useTranslation } from "react-i18next";
 
 const armorFormSchema = z.object({
   name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }).max(50),
@@ -71,7 +72,7 @@ function SortableWeaponItem({ weapon, onRemove }: { weapon: ArmorWeapon; onRemov
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
              </Button>
             <div className="flex-1">
-                <p className="font-semibold text-primary">{weapon.verseReference}</p>
+                <p className="font-semibold text-primary">{weapon.verseReference} <span className="font-normal text-muted-foreground text-xs">({weapon.bibleVersion})</span></p>
                 <p className="text-sm text-muted-foreground line-clamp-2">{weapon.verseText}</p>
             </div>
             <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => onRemove(weapon.id)}>
@@ -82,13 +83,15 @@ function SortableWeaponItem({ weapon, onRemove }: { weapon: ArmorWeapon; onRemov
 }
 
 function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapon, 'id' | 'bibleVersion'> & { bibleVersion?: string }) => void }) {
+    const { userProfile } = useAuth();
+    const { i18n } = useTranslation();
     const [battle, setBattle] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<Omit<ArmorWeapon, 'id'>[]>([]);
     
     const [manualReference, setManualReference] = useState('');
     const [manualText, setManualText] = useState('');
-    const [manualVersion, setManualVersion] = useState('NVI');
+    const [manualVersion, setManualVersion] = useState(userProfile?.preferredBibleVersion?.name || 'NVI');
     
     const { toast } = useToast();
 
@@ -105,6 +108,7 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
         try {
             const result = await getBibleWeaponSuggestion({ 
               battle,
+              bibleVersion: userProfile?.preferredBibleVersion?.name || 'NVI',
               existingVerses: loadMore ? suggestions.map(s => ({...s, id: s.verseReference })) : undefined
             });
             const newSuggestions = result.weapons.filter(
@@ -173,7 +177,7 @@ function AddWeaponModal({ onAddWeapon }: { onAddWeapon: (weapon: Omit<ArmorWeapo
                           {suggestions.map(s => (
                               <div key={s.verseReference} className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
                                   <div className="flex-1">
-                                      <p className="font-semibold text-sm">{s.verseReference}</p>
+                                      <p className="font-semibold text-sm">{s.verseReference} <span className="font-normal text-muted-foreground">({s.bibleVersion})</span></p>
                                       <p className="text-sm text-muted-foreground">{s.verseText}</p>
                                   </div>
                                   <Button size="sm" onClick={() => handleAddSuggestion(s)}>

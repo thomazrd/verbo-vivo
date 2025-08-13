@@ -1,0 +1,12 @@
+
+match /prayerCircles/{circleId} {
+    // Leitura: Qualquer membro do círculo pode ler. Círculos públicos podem ser lidos por todos.
+    allow read: if resource.data.isPublic == true || (isSignedIn() && request.auth.uid in resource.data.members);
+    // Criação: Qualquer usuário autenticado pode criar um círculo.
+    allow create: if isSignedIn();
+    // Atualização: Apenas o criador ou membros podem atualizar (ex: entrar no círculo).
+    // Uma regra mais granular pode ser necessária aqui (ex: só o criador edita o nome).
+    allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+    // Exclusão: Apenas o criador pode excluir.
+    allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+}

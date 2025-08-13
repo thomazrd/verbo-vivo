@@ -1,0 +1,8 @@
+
+match /sharedContent/{contentId} {
+    // Permite leitura pública de conteúdo compartilhado que está ativo.
+    // A criação é feita via app, mas a atualização/exclusão pode ser restrita.
+    allow read: if resource.data.status == 'ACTIVE';
+    allow create: if isSignedIn();
+    allow update, delete: if isOwner(request.resource.data.creatorId);
+}

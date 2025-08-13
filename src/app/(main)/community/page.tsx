@@ -4,20 +4,32 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
 import type { Congregation, UserProfile } from '@/lib/types';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Plus, LogIn, ChevronRight, Loader2, Church } from 'lucide-react';
+import { Users, Plus, LogIn, ChevronRight, Loader2, Church, XCircle } from 'lucide-react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useTranslation } from 'react-i18next';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -29,6 +41,7 @@ export default function CommunityPage() {
   const { t } = useTranslation();
   const [congregation, setCongregation] = useState<Congregation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCongregationName, setNewCongregationName] = useState("");
@@ -81,6 +94,7 @@ export default function CommunityPage() {
         const functions = getFunctions();
         const createCongregation = httpsCallable(functions, 'createCongregation');
         await createCongregation({
+            uid: user.uid,
             name: newCongregationName,
             city: newCongregationCity,
             pastorName: newCongregationPastor,
@@ -107,7 +121,7 @@ export default function CommunityPage() {
       try {
         const functions = getFunctions();
         const requestToJoin = httpsCallable(functions, 'requestToJoinCongregation');
-        const result = await requestToJoin({ inviteCode: inviteCode.trim().toUpperCase() });
+        const result = await requestToJoin({ uid: user.uid, inviteCode: inviteCode.trim().toUpperCase() });
         const data = result.data as { success: boolean, message: string, congregationName?: string };
 
         if(data.success) {
@@ -124,6 +138,31 @@ export default function CommunityPage() {
       } finally {
           setIsJoining(false);
       }
+  }
+
+  const handleCancelRequest = async () => {
+    if (!user || !userProfile?.congregationId) return;
+    setIsProcessing(true);
+    
+    const batch = writeBatch(db);
+    const memberRef = doc(db, 'congregations', userProfile.congregationId, 'members', user.uid);
+    const userRef = doc(db, 'users', user.uid);
+
+    batch.delete(memberRef);
+    batch.update(userRef, {
+      congregationId: null,
+      congregationStatus: 'NONE'
+    });
+
+    try {
+      await batch.commit();
+      toast({ title: "Solicitação cancelada", description: "Você não está mais na fila de espera para esta congregação." });
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível cancelar a solicitação." });
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   const userHasCongregation = !!userProfile?.congregationId;
@@ -235,12 +274,36 @@ export default function CommunityPage() {
         
         {userProfile?.congregationStatus === 'PENDING' && congregation && (
              <Card>
-                <CardHeader className="text-center">
-                    <CardTitle>{t('pending_request_title')}</CardTitle>
-                    <CardDescription>
+                <CardHeader>
+                    <CardTitle className="text-center">{t('pending_request_title')}</CardTitle>
+                    <CardDescription className="text-center">
                         {t('pending_request_desc', { name: congregation.name })}
                     </CardDescription>
                 </CardHeader>
+                <CardFooter className="flex justify-center">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" disabled={isProcessing}>
+                          {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                          Cancelar Solicitação
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar Solicitação?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Você tem certeza que deseja cancelar sua solicitação para entrar na comunidade "{congregation.name}"? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancelRequest} className="bg-destructive hover:bg-destructive/90">
+                          Sim, cancelar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardFooter>
              </Card>
         )}
 
@@ -266,5 +329,3 @@ export default function CommunityPage() {
     </div>
   );
 }
-
-    

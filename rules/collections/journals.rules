@@ -1,0 +1,14 @@
+// Regras para a coleção 'journals'
+
+match /journals/{journalId} {
+  // Permite que um usuário liste apenas as suas próprias entradas no diário.
+  // A consulta DEVE incluir a cláusula `where('userId', '==', request.auth.uid)`.
+  allow list: if request.auth != null;
+
+  // Permite que um usuário leia, atualize ou delete um documento específico
+  // apenas se ele for o proprietário (o userId no documento é o mesmo do usuário autenticado).
+  allow get, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+
+  // Permite a criação se o novo documento pertencer ao usuário que o está criando.
+  allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+}

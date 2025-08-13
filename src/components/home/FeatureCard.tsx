@@ -30,7 +30,7 @@ export function FeatureCard({
         <div className="aspect-video overflow-hidden relative">
           <Image
             src={imageUrl}
-            alt={title}
+            alt={`${title}. ${imageHint}`}
             fill
             unoptimized={true}
             className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"

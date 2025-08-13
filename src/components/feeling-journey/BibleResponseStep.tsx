@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,42 +10,57 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VerseCard } from '@/components/chat/VerseCard';
 import { motion } from 'framer-motion';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
 
 interface BibleResponseStepProps {
   emotion: EmotionOption;
   reportText: string;
   onResponseReady: (response: ProcessFeelingReportOutput) => void;
   language: string;
+  bibleVersion: string;
 }
 
-export function BibleResponseStep({ emotion, reportText, onResponseReady, language }: BibleResponseStepProps) {
+export function BibleResponseStep({ emotion, reportText, onResponseReady, language, bibleVersion }: BibleResponseStepProps) {
   const { userProfile } = useAuth();
+  const { withCreditCheck, CreditModal } = useAiCreditManager();
   const [response, setResponse] = useState<ProcessFeelingReportOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getResponse = async () => {
       try {
-        const result = await processFeelingReport({
+        const executeFeelingReport = await withCreditCheck(processFeelingReport);
+        const result = await executeFeelingReport({
           model: userProfile?.preferredModel,
           language: language,
           emotion: emotion.name,
           reportText: reportText,
+          bibleVersion: bibleVersion,
         });
-        setResponse(result);
+        if (result) {
+            setResponse(result);
+        } else {
+            // If result is null, it means the credit check failed or an error occurred.
+            // The user is already notified by the hook, so we can just show a generic error here.
+             setError("Não foi possível gerar a reflexão. Verifique seus créditos de IA ou tente mais tarde.");
+        }
       } catch (err) {
         console.error("Error getting AI response for journey:", err);
         setError("Não foi possível carregar a reflexão. Por favor, tente novamente mais tarde.");
       }
     };
     getResponse();
-  }, [emotion, reportText, userProfile, language]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emotion, reportText, userProfile, language, bibleVersion]);
 
   if (error) {
     return (
-      <div className="text-center text-destructive">
-        <p>{error}</p>
-      </div>
+        <>
+            <CreditModal />
+            <div className="text-center text-destructive">
+                <p>{error}</p>
+            </div>
+        </>
     );
   }
 
@@ -83,7 +100,7 @@ export function BibleResponseStep({ emotion, reportText, onResponseReady, langua
         <p className="whitespace-pre-wrap leading-relaxed">{response.responseText}</p>
         
         {response.citedVerses.map((verse, index) => (
-            <VerseCard key={index} reference={verse.reference} text={verse.text} />
+            <VerseCard key={index} reference={verse.reference} text={verse.text} version={verse.bibleVersion} />
         ))}
       </div>
       

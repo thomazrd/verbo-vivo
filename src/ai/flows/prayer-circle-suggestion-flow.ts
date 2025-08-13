@@ -18,12 +18,14 @@ const BaseAiInputSchema = z.object({
 const PrayerCircleSuggestionInputSchema = BaseAiInputSchema.extend({
     title: z.string().describe("The title of the prayer circle."),
     description: z.string().optional().describe("The description of the prayer circle."),
+    bibleVersion: z.string().optional().describe('The preferred Bible version (e.g., "NVI", "ACF").'),
 });
 
 const PrayerCircleSuggestionOutputSchema = z.object({
   suggestions: z.array(z.object({
       verse: z.string().describe("The full Bible reference (e.g., 'Isaiah 41:10')."),
       text: z.string().describe("The full text of the verse."),
+      bibleVersion: z.string().describe("The Bible version of the verse text."),
       justification: z.string().describe("A short, compassionate explanation of why this verse is relevant to the user's prayer request."),
   })).length(3).describe("An array of exactly 3 verse suggestions."),
 });
@@ -57,7 +59,7 @@ const prayerCircleSuggestionFlow = ai.defineFlow(
       name: 'prayerCircleSuggestionPrompt',
       input: { schema: PrayerCircleSuggestionInputSchema },
       output: { schema: PrayerCircleSuggestionOutputSchema },
-      system: `You are a compassionate and wise Bible scholar. Your task is to suggest 3 relevant Bible verses for a prayer request. For each verse, provide the reference, the full text, and a short, empathetic justification explaining why it's a good choice for the user's situation. ${languageInstruction}`,
+      system: `You are a compassionate and wise Bible scholar. Your task is to suggest 3 relevant Bible verses for a prayer request. For each verse, provide the reference, the full text, the Bible version ('{{bibleVersion}}'), and a short, empathetic justification explaining why it's a good choice for the user's situation. ${languageInstruction}`,
       prompt: `O pedido de oração tem o título "{{title}}" e a seguinte descrição: "{{description}}". Sugira 3 versículos com base nisso.`,
     });
 

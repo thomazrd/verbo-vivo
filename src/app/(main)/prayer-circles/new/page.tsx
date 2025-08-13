@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { getPrayerCircleSuggestions } from '@/ai/flows/prayer-circle-suggestion-flow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -43,7 +45,6 @@ export default function NewPrayerCirclePage() {
   const [isSaving, setIsSaving] = useState(false);
   
   const [selectedWeapons, setSelectedWeapons] = useState<string[]>([]);
-  const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
   const [manualVerse, setManualVerse] = useState('');
   
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -168,101 +169,8 @@ export default function NewPrayerCirclePage() {
                 <CardDescription>Adicione versículos para fundamentar o propósito desta sala.</CardDescription>
             </CardHeader>
              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button variant={selectionMode === 'manual' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('manual')}>
-                        <Search className="h-6 w-6"/>
-                        <span className="font-semibold">Buscar Manualmente</span>
-                    </Button>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant={selectionMode === 'theme' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => setSelectionMode('theme')}>
-                                <BookOpen className="h-6 w-6"/>
-                                <span className="font-semibold">Explorar por Tema</span>
-                            </Button>
-                        </DialogTrigger>
-                         <DialogContent className="max-h-[90vh] flex flex-col">
-                            <DialogHeader>
-                                <DialogTitle>Explorar por Tema</DialogTitle>
-                                <DialogDescription>Selecione um tema para ver versículos relacionados.</DialogDescription>
-                            </DialogHeader>
-                            <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4">
-                              <div className="space-y-4">
-                                  {Object.keys(prayerThemes).map(theme => {
-                                      const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
-                                      return (
-                                          <div key={theme}>
-                                              <h4 className="font-semibold text-md mb-2 flex items-center gap-2"><ThemeIcon className="h-4 w-4"/> {theme}</h4>
-                                              <div className="space-y-2">
-                                                  {prayerThemes[theme as PrayerTheme].verses.map(verse => (
-                                                      <div key={verse} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
-                                                          <p className="text-sm font-mono">{verse}</p>
-                                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleAddVerse(verse)}><Plus className="h-4 w-4"/></Button>
-                                                      </div>
-                                                  ))}
-                                              </div>
-                                          </div>
-                                      )
-                                  })}
-                              </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                     <Button variant={selectionMode === 'ai' ? 'secondary' : 'outline'} className="h-auto py-3 flex-col gap-2" onClick={() => { setSelectionMode('ai'); handleAiSuggest();}}>
-                        <Sparkles className="h-6 w-6"/>
-                        <span className="font-semibold">Sugestão com IA</span>
-                    </Button>
-                </div>
-
-                {selectionMode === 'manual' && (
-                    <div className="pt-4 border-t">
-                        <div className="flex gap-2">
-                           <Input 
-                             value={manualVerse}
-                             onChange={(e) => setManualVerse(e.target.value)}
-                             placeholder="Digite livro, capítulo e versículo (ex: Fp 4:13)"
-                           />
-                           <Button onClick={() => handleAddVerse(manualVerse)}>Adicionar</Button>
-                        </div>
-                    </div>
-                )}
-                
-                {selectionMode === 'ai' && (
-                    <div className="pt-4 border-t">
-                        {isAiLoading ? (
-                            <div className="text-center py-6 flex flex-col items-center gap-2 text-muted-foreground">
-                                <Loader2 className="h-6 w-6 animate-spin"/>
-                                <p>Analisando seu pedido à luz da Palavra...</p>
-                            </div>
-                        ) : (
-                             <div className="space-y-3">
-                                {aiSuggestions.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma sugestão encontrada.</p>}
-                                {aiSuggestions.map(suggestion => {
-                                    const isAdded = selectedWeapons.includes(suggestion.verse);
-                                    return (
-                                        <Card key={suggestion.verse} className="p-4">
-                                            <p className="font-bold text-primary">{suggestion.verse}</p>
-                                            <blockquote className="text-muted-foreground italic mt-1">"{suggestion.text}"</blockquote>
-                                            <p className="text-xs mt-2"><strong className="text-primary/80">Por que esta Palavra?</strong> {suggestion.justification}</p>
-                                            <div className="text-right mt-2">
-                                                <Button 
-                                                    size="sm"
-                                                    variant={isAdded ? "destructive" : "default"}
-                                                    onClick={() => isAdded ? handleRemoveVerse(suggestion.verse) : handleAddVerse(suggestion.verse)}
-                                                >
-                                                    {isAdded ? <X className="h-4 w-4 mr-2"/> : <Plus className="h-4 w-4 mr-2"/>}
-                                                    {isAdded ? 'Remover' : 'Adicionar à Sala'}
-                                                </Button>
-                                            </div>
-                                        </Card>
-                                    )
-                                })}
-                             </div>
-                        )}
-                    </div>
-                )}
-                
-                {selectedWeapons.length > 0 && (
-                    <div className="pt-4 border-t">
+                 {selectedWeapons.length > 0 && (
+                    <div className="pt-2">
                         <h4 className="text-sm font-semibold mb-2">Versículos Selecionados ({selectedWeapons.length}):</h4>
                         <div className="flex flex-wrap gap-2">
                             {selectedWeapons.map(verse => (
@@ -276,7 +184,98 @@ export default function NewPrayerCirclePage() {
                         </div>
                     </div>
                 )}
-
+                 <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full">
+                            <Plus className="h-4 w-4 mr-2" /> Adicionar Versículos da Palavra
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[90vh] flex flex-col sm:max-w-2xl">
+                         <DialogHeader>
+                            <DialogTitle>Adicionar Versículos</DialogTitle>
+                            <DialogDescription>Selecione versículos para fundamentar esta sala de oração.</DialogDescription>
+                        </DialogHeader>
+                        <Tabs defaultValue="ai" className="flex-1 flex flex-col min-h-0">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="ai"><Sparkles className="h-4 w-4 mr-2" />Sugestão</TabsTrigger>
+                                <TabsTrigger value="theme"><BookOpen className="h-4 w-4 mr-2" />Por Tema</TabsTrigger>
+                                <TabsTrigger value="manual"><Search className="h-4 w-4 mr-2" />Manual</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="ai" className="flex-1 overflow-y-auto mt-4 -mx-6 px-6">
+                                <div className="space-y-4">
+                                     <p className="text-sm text-muted-foreground">Descreva o motivo da oração no campo de título ou descrição da sala e clique no botão para a IA sugerir versículos relevantes.</p>
+                                     <Button onClick={handleAiSuggest} disabled={isAiLoading}> {isAiLoading ? <Loader2 className="animate-spin mr-2"/> : <Wand2 className="mr-2"/>} Gerar Sugestões </Button>
+                                     {isAiLoading ? (
+                                        <div className="text-center py-6 flex flex-col items-center gap-2 text-muted-foreground">
+                                            <Loader2 className="h-6 w-6 animate-spin"/>
+                                            <p>Analisando seu pedido à luz da Palavra...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {aiSuggestions.length === 0 && !isAiLoading && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma sugestão encontrada. Tente descrever melhor o motivo.</p>}
+                                            {aiSuggestions.map(suggestion => {
+                                                const isAdded = selectedWeapons.includes(suggestion.verse);
+                                                return (
+                                                    <Card key={suggestion.verse} className="p-4">
+                                                        <p className="font-bold text-primary">{suggestion.verse}</p>
+                                                        <blockquote className="text-muted-foreground italic mt-1">"{suggestion.text}"</blockquote>
+                                                        <p className="text-xs mt-2"><strong className="text-primary/80">Por que esta Palavra?</strong> {suggestion.justification}</p>
+                                                        <div className="text-right mt-2">
+                                                            <Button 
+                                                                size="sm"
+                                                                variant={isAdded ? "destructive" : "default"}
+                                                                onClick={() => isAdded ? handleRemoveVerse(suggestion.verse) : handleAddVerse(suggestion.verse)}
+                                                            >
+                                                                {isAdded ? <X className="h-4 w-4 mr-2"/> : <Plus className="h-4 w-4 mr-2"/>}
+                                                                {isAdded ? 'Remover' : 'Adicionar à Sala'}
+                                                            </Button>
+                                                        </div>
+                                                    </Card>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </TabsContent>
+                            <TabsContent value="theme" className="flex-1 overflow-y-auto mt-4 -mx-6 px-6">
+                                <div className="space-y-4">
+                                    {Object.keys(prayerThemes).map(theme => {
+                                        const ThemeIcon = prayerThemes[theme as PrayerTheme].icon;
+                                        return (
+                                            <div key={theme}>
+                                                <h4 className="font-semibold text-md mb-2 flex items-center gap-2"><ThemeIcon className="h-4 w-4"/> {theme}</h4>
+                                                <div className="space-y-2">
+                                                    {prayerThemes[theme as PrayerTheme].verses.map(verse => (
+                                                        <div key={verse} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                                            <p className="text-sm font-mono">{verse}</p>
+                                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleAddVerse(verse)}><Plus className="h-4 w-4"/></Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </TabsContent>
+                            <TabsContent value="manual" className="flex-1 overflow-y-auto mt-4 -mx-6 px-6">
+                                <div className="space-y-3">
+                                    <p className="text-sm text-muted-foreground">Digite a referência bíblica que deseja adicionar.</p>
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            value={manualVerse}
+                                            onChange={(e) => setManualVerse(e.target.value)}
+                                            placeholder="Ex: Fp 4:13"
+                                        />
+                                        <Button onClick={() => { handleAddVerse(manualVerse); setManualVerse(''); }}>Adicionar</Button>
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                        <DialogFooter className="mt-4 pt-4 border-t">
+                          <DialogTrigger asChild><Button variant="outline">Fechar</Button></DialogTrigger>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </CardContent>
         </Card>
 
@@ -313,3 +312,4 @@ export default function NewPrayerCirclePage() {
     </div>
   );
 }
+

@@ -3,7 +3,7 @@
 
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { Sparkles, CheckCircle } from 'lucide-react';
 import type { ForgivenessResponse } from './ConfessionSanctuary';
 import { VerseCard } from '../chat/VerseCard';
 
@@ -67,8 +67,8 @@ export function ForgivenessStep({ response, onReset }: ForgivenessStepProps) {
 
       <motion.div variants={itemVariants} className="text-center">
         <Button size="lg" onClick={onReset}>
-          <RefreshCw className="mr-2 h-5 w-5" />
-          Voltar ao Início
+          <CheckCircle className="mr-2 h-5 w-5" />
+          Concluir
         </Button>
       </motion.div>
     </motion.div>

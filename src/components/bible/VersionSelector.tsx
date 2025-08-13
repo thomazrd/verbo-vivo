@@ -8,6 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/use-auth';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface VersionSelectorProps {
   selectedVersion: BibleVersion;
@@ -18,6 +22,8 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
   const [versions, setVersions] = useState<BibleVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const { i18n } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const lang = i18n.language.split('-')[0];
 
@@ -37,12 +43,22 @@ export function VersionSelector({ selectedVersion, onVersionChange }: VersionSel
       }
     };
     fetchVersions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
-  const handleValueChange = (versionId: string) => {
+  const handleValueChange = async (versionId: string) => {
     const version = versions.find(v => v.id === versionId);
     if (version) {
         onVersionChange(version);
+        if (user) {
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                await updateDoc(userRef, { preferredBibleVersion: version });
+            } catch (e) {
+                console.error("Failed to save preferred version", e);
+                toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar sua preferência.' });
+            }
+        }
     }
   }
 

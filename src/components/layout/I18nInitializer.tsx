@@ -10,15 +10,20 @@ const I18nInitializer = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    // This effect runs on language change and ensures the document lang attribute is updated.
+    // This effect runs on language change and ensures the document lang and dir attributes are updated.
     const handleLanguageChange = (lng: string) => {
-      if (document.documentElement.lang !== lng) {
-        document.documentElement.lang = lng;
+      const languageCode = lng.split('-')[0];
+      if (document.documentElement.lang !== languageCode) {
+        document.documentElement.lang = languageCode;
+      }
+      const direction = i18n.dir(languageCode);
+      if (document.documentElement.dir !== direction) {
+        document.documentElement.dir = direction;
       }
     };
     i18n.on('languageChanged', handleLanguageChange);
     
-    // Set initial language
+    // Set initial language and direction
     handleLanguageChange(i18n.language);
 
     return () => {
@@ -39,7 +44,7 @@ const I18nInitializer = () => {
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           const preferredLanguage = userData.preferredLanguage;
-          const currentLanguage = i18n.language;
+          const currentLanguage = i18n.language.split('-')[0];
           
           if (preferredLanguage && preferredLanguage !== currentLanguage) {
             i18n.changeLanguage(preferredLanguage);

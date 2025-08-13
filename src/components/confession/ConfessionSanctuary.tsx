@@ -11,6 +11,7 @@ import { RecordingStep } from './RecordingStep';
 import { ProcessingStep } from './ProcessingStep';
 import { ForgivenessStep } from './ForgivenessStep';
 import { processConfession } from '@/ai/flows/confession-flow';
+import { useToast } from '@/hooks/use-toast';
 
 export type SanctuaryState = 'locked' | 'recording' | 'processing' | 'response';
 export type ForgivenessResponse = {
@@ -18,9 +19,14 @@ export type ForgivenessResponse = {
     verses: { reference: string; text: string; }[];
 }
 
-export function ConfessionSanctuary() {
+interface ConfessionSanctuaryProps {
+    onCompleted?: () => void;
+}
+
+export function ConfessionSanctuary({ onCompleted }: ConfessionSanctuaryProps) {
   const { user, userProfile } = useAuth();
   const { i18n } = useTranslation();
+  const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('locked');
   const [confessionText, setConfessionText] = useState('');
   const [forgivenessResponse, setForgivenessResponse] = useState<ForgivenessResponse | null>(null);
@@ -61,10 +67,18 @@ export function ConfessionSanctuary() {
         setSanctuaryState('response');
     } catch (e) {
         console.error("Error processing confession:", e);
-        // Handle error state appropriately, maybe show a message and go back
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível processar sua confissão. Tente novamente.'})
         setSanctuaryState('recording');
     }
   };
+
+  const handleFinish = () => {
+    if (onCompleted) {
+        onCompleted();
+    } else {
+        handleReset();
+    }
+  }
 
   const handleReset = () => {
     setConfessionText('');
@@ -119,7 +133,7 @@ export function ConfessionSanctuary() {
       case 'processing':
         return <ProcessingStep confessionText={confessionText} />;
       case 'response':
-        return <ForgivenessStep response={forgivenessResponse!} onReset={handleReset} />;
+        return <ForgivenessStep response={forgivenessResponse!} onReset={handleFinish} />;
     }
   };
 

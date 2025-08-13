@@ -4,48 +4,50 @@
 
 @layer base {
   :root {
-    --background: 260 50% 98%;
-    --foreground: 264 10% 20%;
-    --card: 260 50% 98%;
-    --card-foreground: 264 10% 20%;
-    --popover: 260 50% 98%;
-    --popover-foreground: 264 10% 20%;
-    --primary: 262 43% 44%;
-    --primary-foreground: 260 100% 97%;
-    --secondary: 260 20% 94%;
-    --secondary-foreground: 262 43% 44%;
-    --muted: 260 20% 94%;
-    --muted-foreground: 260 10% 45%;
-    --accent: 40 96% 51%;
-    --accent-foreground: 30 10% 20%;
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    /* Cor primária ajustada para contraste (era 53.3%) */
+    --primary: 221.2 83.2% 43.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Cor de destaque ajustada para contraste (era 73%) */
+    --accent: 258 95% 68%;
+    --accent-foreground: 258 100% 15%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 260 20% 88%;
-    --input: 260 20% 88%;
-    --ring: 262 43% 44%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 43.3%; /* Anel de foco usa a cor primária ajustada */
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 264 15% 12%;
-    --foreground: 260 10% 80%;
-    --card: 264 15% 12%;
-    --card-foreground: 260 10% 80%;
-    --popover: 264 15% 12%;
-    --popover-foreground: 260 10% 80%;
-    --primary: 262 60% 70%;
-    --primary-foreground: 260 100% 97%;
-    --secondary: 264 15% 18%;
-    --secondary-foreground: 262 60% 70%;
-    --muted: 264 15% 18%;
-    --muted-foreground: 260 10% 60%;
-    --accent: 40 96% 61%;
-    --accent-foreground: 30 10% 20%;
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 40% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 258 95% 68%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 264 15% 24%;
-    --input: 264 15% 24%;
-    --ring: 262 60% 70%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -55,5 +57,30 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Aplica fontes específicas por idioma */
+  html[lang="ja"] body {
+    @apply font-jp;
+  }
+  html[lang="zh"] body {
+    @apply font-sc;
+  }
+
+  /* Estilos específicos para a leitura da Bíblia */
+  .prose-bible {
+    @apply font-serif;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.7;
+    text-align: justify;
+    color: hsl(var(--foreground) / 0.85);
+  }
+
+  .prose-bible sup {
+    @apply font-sans font-bold no-underline align-super;
+    font-size: 0.65em;
+    line-height: 0;
+    color: hsl(var(--primary));
+    margin-right: 0.4em;
   }
 }

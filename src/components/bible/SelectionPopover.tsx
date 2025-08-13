@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -11,6 +12,7 @@ import { explainPassage } from '@/ai/flows/explain-passage-flow';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { ExplanationCard } from './ExplanationCard';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
 
 interface SelectionPopoverProps {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const { i18n } = useTranslation();
+  const { withCreditCheck, CreditModal } = useAiCreditManager();
 
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -57,7 +60,7 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
       const containerRect = containerRef.current.getBoundingClientRect();
 
       setSelectedText(text);
-      setIsSingleWord(!/\s/.test(text)); // Check if there's any whitespace
+      setIsSingleWord(!/\\s/.test(text)); // Check if there's any whitespace
       setPosition({
         top: rect.top - containerRect.top - 10,
         left: rect.left - containerRect.left + rect.width / 2,
@@ -110,11 +113,14 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
     setIsExplaining(true);
     setExplanationError(null);
     try {
-      const result = await explainPassage({
+      const executeExplain = await withCreditCheck(explainPassage);
+      const result = await executeExplain({
         model: userProfile?.preferredModel,
         passage: selectedText
       });
-      setExplanation(result.explanation);
+      if(result) {
+        setExplanation(result.explanation);
+      }
     } catch (error: any) {
       console.error("Error fetching explanation:", error);
       setExplanationError(error.message || 'Não foi possível gerar a explicação.');
@@ -153,6 +159,7 @@ export function SelectionPopover({ children, containerRef }: SelectionPopoverPro
 
   return (
     <>
+      <CreditModal />
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverAnchor style={{ top: position.top, left: position.left, position: 'absolute' }} />
         {children}

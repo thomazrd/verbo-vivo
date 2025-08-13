@@ -2,24 +2,31 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { Prayer } from '@/lib/types';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
+import type { Prayer, Mission, BattlePlan } from '@/lib/types';
 import { useSpeechToText } from '@/hooks/use-speech-to-text';
 import { processPrayer } from '@/ai/flows/prayer-reflection';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, Square, Loader2, History } from 'lucide-react';
+import { Mic, Square, Loader2, History, Send, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PrayerResponseCard } from '@/components/prayer/PrayerResponseCard';
 import { PlanCreationModal } from '@/components/chat/PlanCreationModal';
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
+import { OutOfCreditsModal } from '@/components/common/OutOfCreditsModal';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -98,7 +105,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
                             <h4 className="font-semibold mb-2 text-primary">Sua Oração:</h4>
                             <p className="text-muted-foreground italic">"{prayer.prayerText}"</p>
                             <h4 className="font-semibold mt-4 mb-2 text-primary">Reflexão Recebida:</h4>
-                            <div dangerouslySetInnerHTML={{ __html: prayer.responseText.replace(/([A-Za-z]+\s\d+:\d+(-\d+)?)/g, '<strong class="font-semibold">$1</strong>') }} />
+                            <div dangerouslySetInnerHTML={{ __html: prayer.responseText.replace(/([A-Za-z]+\\s\\d+:\\d+(-\\d+)?)/g, '<strong class="font-semibold">$1</strong>') }} />
                         </AccordionContent>
                     </AccordionItem>
                 ))}
@@ -107,27 +114,61 @@ function PrayerHistoryList({ userId }: { userId: string }) {
     );
 }
 
-export default function PrayerSanctuaryPage() {
+function PrayerSanctuaryContent() {
   const { t, i18n } = useTranslation();
   const { user, userProfile } = useAuth();
+  const searchParams = useSearchParams();
+  const { withCreditCheck, isCreditModalOpen, closeCreditModal } = useAiCreditManager();
+  
+  const isMission = searchParams.get('mission') === 'true';
+  const userPlanId = searchParams.get('userPlanId');
+  const missionId = searchParams.get('missionId');
+
   const { toast } = useToast();
   const [sanctuaryState, setSanctuaryState] = useState<SanctuaryState>('idle');
+  const [missionContext, setMissionContext] = useState<Mission | null>(null);
   const [latestResponse, setLatestResponse] = useState<{responseText: string, citedVerses: any[]}| null>(null);
   const [processingText, setProcessingText] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [typedPrayer, setTypedPrayer] = useState("");
+  
+  const [missionToComplete, setMissionToComplete] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
+    // Fetch mission context if params are present
+    const fetchMissionContext = async () => {
+      if (!user || !userPlanId || !missionId) return;
+      try {
+        const userPlanRef = doc(db, 'users', user.uid, 'battlePlans', userPlanId);
+        const userPlanSnap = await getDoc(userPlanRef);
+        if (userPlanSnap.exists()) {
+          const planDefRef = doc(db, 'battlePlans', userPlanSnap.data().planId);
+          const planDefSnap = await getDoc(planDefRef);
+          if (planDefSnap.exists()) {
+            const planDef = planDefSnap.data() as BattlePlan;
+            const mission = planDef.missions.find(m => m.id === missionId);
+            setMissionContext(mission || null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching mission context:", error);
+      }
+    };
+    fetchMissionContext();
+  }, [isMission, userPlanId, missionId, user]);
 
   const [audioData, setAudioData] = useState<Array<{ value: number }>>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({});
+  const { isListening, transcript, startListening, stopListening, error } = useSpeechToText({
+      onTranscriptChange: (newTranscript) => {
+        setTypedPrayer(newTranscript);
+      }
+  });
 
   useEffect(() => {
     if (error) {
@@ -187,69 +228,99 @@ export default function PrayerSanctuaryPage() {
     draw();
   }, [toast]);
 
-  const handleStart = async () => {
+  const handleStartRecording = async () => {
     if (isListening) return;
+    setTypedPrayer('');
     setProcessingText("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       visualizeAudio(stream);
       startListening(); // Hook will use the already granted permission
-      setSanctuaryState('recording');
     } catch (err) {
       console.error("Error accessing microphone:", err);
       toast({ variant: 'destructive', title: 'Erro de Microfone', description: 'Não foi possível acessar seu microfone. Verifique as permissões do navegador.' });
     }
   };
   
-  const handleStop = async () => {
+  const processAndSubmitPrayer = async (prayerText: string) => {
+      setProcessingText(prayerText);
+      setSanctuaryState('processing');
+
+      if (!prayerText) {
+          toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro, ou digite sua oração.", variant: "destructive"});
+          setSanctuaryState('idle');
+          setProcessingText("");
+          return;
+      }
+      
+      if(!user) return;
+
+      try {
+          const executePrayerProcessing = await withCreditCheck(processPrayer);
+          const result = await executePrayerProcessing({ 
+              model: userProfile?.preferredModel, 
+              language: userProfile?.preferredLanguage || i18n.language,
+              prayerText 
+          });
+
+          if(result) {
+            await addDoc(collection(db, "prayers"), {
+                userId: user.uid,
+                prayerText,
+                responseText: result.responseText,
+                citedVerses: result.citedVerses,
+                createdAt: serverTimestamp(),
+            });
+            setLatestResponse(result);
+            setSanctuaryState('response');
+          } else {
+             setSanctuaryState('idle'); // Credit check failed or other error handled by hook
+          }
+      } catch (err) {
+          console.error("Error processing prayer:", err);
+          toast({
+              title: "Erro ao processar sua oração.",
+              description: "Não foi possível encontrar uma passagem neste momento, mas saiba que Deus ouviu sua oração.",
+              variant: "destructive"
+          });
+          setSanctuaryState('idle');
+      }
+  }
+
+  const handleStopRecording = () => {
     stopListening();
     cleanupAudio();
-    
-    const prayerText = transcript.trim();
-    setProcessingText(prayerText);
-    setSanctuaryState('processing');
-
-    if (!prayerText) {
-        toast({ title: "Nenhuma oração detectada.", description: "Tente falar um pouco mais alto e claro.", variant: "destructive"});
-        setSanctuaryState('idle');
-        setProcessingText("");
-        return;
-    }
-    
-    if(!user) return;
-
-    try {
-        const result = await processPrayer({ 
-            model: userProfile?.preferredModel, 
-            language: userProfile?.preferredLanguage || i18n.language,
-            prayerText 
-        });
-        await addDoc(collection(db, "prayers"), {
-            userId: user.uid,
-            prayerText,
-            responseText: result.responseText,
-            citedVerses: result.citedVerses,
-            createdAt: serverTimestamp(),
-        });
-        setLatestResponse(result);
-        setSanctuaryState('response');
-    } catch (err) {
-        console.error("Error processing prayer:", err);
-        toast({
-            title: "Erro ao processar sua oração.",
-            description: "Não foi possível encontrar uma passagem neste momento, mas saiba que Deus ouviu sua oração.",
-            variant: "destructive"
-        });
-        setSanctuaryState('idle');
-    }
+    // A oração já está em `typedPrayer` por causa do onTranscriptChange
   };
+
+  const handleSendPrayer = () => {
+      const prayerText = (isListening ? transcript : typedPrayer).trim();
+      if (isListening) {
+          stopListening();
+          cleanupAudio();
+      }
+      processAndSubmitPrayer(prayerText);
+  }
   
   const handleReset = () => {
     setLatestResponse(null);
     setProcessingText("");
+    setTypedPrayer("");
     cleanupAudio();
     setSanctuaryState('idle');
+    setMissionContext(null); // Clear mission context on reset
+  }
+
+  const handleCompleteMission = () => {
+      if (missionUserPlanId) {
+          setMissionToComplete(missionUserPlanId);
+      }
+  }
+
+  const handleModalClose = () => {
+      setMissionToComplete(null);
+      handleReset();
   }
 
   useEffect(() => {
@@ -273,15 +344,42 @@ export default function PrayerSanctuaryPage() {
     switch (sanctuaryState) {
         case 'recording':
             return (
-                <div className="flex flex-col items-center gap-6 w-full max-w-md">
-                    <div className="w-full h-24">
-                        <AudioChart data={audioData} />
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+                     {missionContext && (
+                        <Card className="w-full bg-primary/5 border-primary/20">
+                            <CardHeader>
+                                <CardTitle className="text-primary text-base flex items-center gap-2"><MessageSquare /> Missão de Oração</CardTitle>
+                                <CardDescription className="text-primary/80">{missionContext.title}</CardDescription>
+                            </CardHeader>
+                        </Card>
+                     )}
+                     <div className="w-full p-4 border bg-muted/50 rounded-lg min-h-[200px] flex flex-col">
+                        {isListening && <div className="w-full h-24 mb-4"><AudioChart data={audioData} /></div>}
+                        <Textarea
+                        value={typedPrayer}
+                        onChange={(e) => setTypedPrayer(e.target.value)}
+                        placeholder={isListening ? 'Ouvindo sua oração...' : 'Se preferir, pode digitar aqui...'}
+                        className="w-full h-full bg-transparent border-none focus-visible:ring-0 resize-none p-0 text-base flex-1"
+                        />
                     </div>
-                    <p className="text-xl text-muted-foreground">Ouvindo...</p>
-                    <Button onClick={handleStop} size="lg" variant="destructive">
-                        <Square className="mr-2 h-5 w-5" />
-                        Encerrar Oração
-                    </Button>
+                     <div className="flex items-center gap-4">
+                        <Button
+                            size="lg"
+                            onClick={isListening ? handleStopRecording : handleStartRecording}
+                            className={cn("w-28", isListening && 'bg-destructive hover:bg-destructive/90')}
+                        >
+                            {isListening ? (
+                                <Square className="mr-2 h-5 w-5" />
+                            ) : (
+                                <Mic className="mr-2 h-5 w-5" />
+                            )}
+                            {isListening ? 'Parar' : 'Falar'}
+                        </Button>
+                        <Button size="lg" className="w-28" onClick={handleSendPrayer} disabled={!typedPrayer.trim()}>
+                            <Send className="mr-2 h-5 w-5" />
+                            Enviar
+                        </Button>
+                    </div>
                 </div>
             )
         case 'processing':
@@ -306,16 +404,18 @@ export default function PrayerSanctuaryPage() {
                     prayerTopic={processingText}
                     onReset={handleReset} 
                     onCreatePlan={() => setIsPlanModalOpen(true)}
+                    isMission={isMission}
+                    onCompleteMission={handleCompleteMission}
                 />
             }
-            return null; // Should not happen
+            return null;
         case 'idle':
         default:
             return (
                 <div className="flex flex-col items-center gap-6">
                     <h1 className="text-4xl font-bold tracking-tight text-center">{t('sanctuary_title')}</h1>
                     <p className="text-lg text-muted-foreground max-w-md text-center">Um lugar de calma e reflexão para derramar seu coração diante de Deus.</p>
-                    <Button onClick={handleStart} size="lg">
+                    <Button onClick={() => setSanctuaryState('recording')} size="lg">
                         <Mic className="mr-2 h-5 w-5" />
                         {t('pray_now_button')}
                     </Button>
@@ -326,6 +426,7 @@ export default function PrayerSanctuaryPage() {
 
   return (
     <>
+    <OutOfCreditsModal isOpen={isCreditModalOpen} onClose={closeCreditModal} />
     <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
       {renderMainContent()}
       {user && sanctuaryState === 'idle' && isClient && <PrayerHistoryList userId={user.uid} />}
@@ -335,6 +436,21 @@ export default function PrayerSanctuaryPage() {
         onClose={() => setIsPlanModalOpen(false)}
         topic={processingText}
     />
+    {missionToComplete && (
+      <MissionCompletionModal
+        userPlanId={missionToComplete}
+        onClose={handleModalClose}
+      />
+    )}
     </>
   );
+}
+
+
+export default function PrayerSanctuaryPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <PrayerSanctuaryContent />
+        </Suspense>
+    )
 }

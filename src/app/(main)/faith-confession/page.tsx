@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Carousel,
   CarouselContent,
@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HandHeart, Quote, X } from 'lucide-react';
+import { HandHeart, Quote, X, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { faithAffirmations, introVerse } from '@/lib/faith-affirmations';
+import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 
 function AffirmationCard({ title, text, verseReference, verseText }: {
   title: string;
@@ -61,10 +62,22 @@ function AffirmationCard({ title, text, verseReference, verseText }: {
   );
 }
 
-export default function FaithConfessionPage() {
+function FaithConfessionPageContent() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [userPlanId, setUserPlanId] = useState<string | null>(null);
+  const [isMissionCompleted, setIsMissionCompleted] = useState(false);
+  
+  useEffect(() => {
+    const planId = searchParams.get('userPlanId');
+    if (planId) {
+        setUserPlanId(planId);
+    }
+  }, [searchParams]);
+
 
   useEffect(() => {
     if (!api) return;
@@ -72,7 +85,19 @@ export default function FaithConfessionPage() {
     api.on("select", () => setCurrent(api.selectedScrollSnap()));
   }, [api]);
 
+  const isLastSlide = current === faithAffirmations.length;
+
+  const handleFinishMission = () => {
+    setIsMissionCompleted(true);
+  };
+  
+  const handleModalClose = () => {
+    setIsMissionCompleted(false);
+    router.push('/home'); // Or back to battle plans
+  };
+
   return (
+    <>
     <div className="h-full w-full overflow-hidden bg-background text-foreground flex flex-col items-center justify-center">
       <header className="absolute top-0 right-0 p-4 z-10">
         <Button variant="ghost" size="icon" onClick={() => router.push('/home')}>
@@ -114,8 +139,31 @@ export default function FaithConfessionPage() {
                 </p>
                 <CarouselNext className="static translate-y-0 bg-secondary/80 hover:bg-secondary text-primary h-12 w-12" disabled={!api?.canScrollNext()}/>
             </div>
+            {isLastSlide && userPlanId && (
+                <div className="text-center mt-4">
+                    <Button onClick={handleFinishMission}>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Concluir Missão
+                    </Button>
+                </div>
+            )}
         </div>
       </Carousel>
     </div>
+     {isMissionCompleted && userPlanId && (
+        <MissionCompletionModal 
+            userPlanId={userPlanId}
+            onClose={handleModalClose}
+        />
+      )}
+    </>
   );
+}
+
+export default function FaithConfessionPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <FaithConfessionPageContent />
+    </Suspense>
+  )
 }

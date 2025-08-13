@@ -10,55 +10,35 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { FocusModeProvider, useFocusMode } from '@/contexts/focus-mode-context';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
+import { BottomNavBar } from '@/components/layout/BottomNavBar';
 
 function AppLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user, userProfile, loading } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { isFocusMode } = useFocusMode();
-  
-  // Initialize notification hooks for the logged-in user
+
   useNotifications();
 
-  // This effect handles redirecting unauthenticated users after loading is complete.
   useEffect(() => {
-    if (loading) return; // Wait until authentication check is complete
-
-    const publicPaths = ['/studies', '/ponte', '/blog'];
-    const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
-    if (!user && !isPublicPath) {
-      router.push(`/login?redirect=${pathname}`);
+    if (!loading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding') {
+        router.replace('/onboarding');
+      }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, userProfile, loading, pathname, router]);
 
-  if (loading) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  // If user is not logged in but on a public page, don't show the main layout, just the page content.
-  const publicPaths = ['/studies', '/ponte', '/blog'];
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-  if (!user && isPublicPath) {
-    return <main className="flex-1 overflow-y-auto h-screen">{children}</main>;
-  }
-  
-  // If we are here and there's no user, it means they are on a non-public page and will be redirected by the useEffect.
-  // We can return a loader to avoid a flash of content before redirection.
-  if (!user) {
+  if (loading || !user || (userProfile && !userProfile.onboardingCompleted && pathname !== '/onboarding')) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-
+  
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
@@ -80,16 +60,19 @@ function AppLayout({ children }: { children: ReactNode }) {
       <div
         className={cn(
           "flex flex-col h-screen",
+          "transition-[margin-left] duration-300 ease-in-out",
+          "md:pb-0 pb-16", // Padding at the bottom for mobile nav bar
           isCollapsed
-            ? "md:ml-[68px]"
-            : "md:ml-[220px] lg:ml-[280px]"
+            ? "md:ms-[68px]"
+            : "md:ms-[220px] lg:ml-[280px]"
         )}
       >
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" id="main-content">
           {children}
         </main>
       </div>
+      <BottomNavBar />
     </div>
   );
 }

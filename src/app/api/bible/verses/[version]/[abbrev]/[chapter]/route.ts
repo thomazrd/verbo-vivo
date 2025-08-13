@@ -11,6 +11,7 @@ export async function GET(
   const ABIBLIA_API_TOKEN = process.env.ABIBLIA_API_TOKEN;
 
   if (!ABIBLIA_API_TOKEN || ABIBLIA_API_TOKEN === "COLE_SEU_TOKEN_AQUI") {
+    console.warn('Token da API abibliadigital.com.br não configurado. A busca de versículos retornará erro.');
     return NextResponse.json({ message: 'Token da API não configurado no servidor.' }, { status: 500 });
   }
 

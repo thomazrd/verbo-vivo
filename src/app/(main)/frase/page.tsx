@@ -67,7 +67,7 @@ export default function QuoteGeneratorPage() {
         }
     };
 
-    wrapText(`“${quote}”`, width / 2, height / 2);
+    wrapText(`“${quote}”`, width / 2, height / 2, quoteLineHeight);
     
     // Autor
     const authorFontSize = isHorizontal ? 32 : 48;

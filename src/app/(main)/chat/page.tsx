@@ -196,7 +196,7 @@ export default function ChatPage() {
           parts: [{ text: msg.text }],
         }));
       
-      const executeChat = await withCreditCheck(bibleChatResponse);
+      const executeChat = withCreditCheck(bibleChatResponse);
       const aiResponse = await executeChat({
         model: userProfile?.preferredModel,
         language: userProfile?.preferredLanguage || i18n.language,

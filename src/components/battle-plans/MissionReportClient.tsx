@@ -4,17 +4,26 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import type { MissionLog, MissionFeeling, UserBattlePlan } from '@/lib/types';
+import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import type { MissionLog, MissionFeeling, UserBattlePlan, BattlePlan } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, CheckCircle, LineChart, Target, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { eachDayOfInterval, format, startOfMonth, endOfMonth, isSameDay, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { cn } from '@/lib/utils';
+
+const feelingIcons: Record<MissionFeeling, React.ElementType> = {
+    GRATEFUL: require('lucide-react').Handshake,
+    CHALLENGED: require('lucide-react').BrainCircuit,
+    PEACEFUL: require('lucide-react').Heart,
+    STRENGTHENED: require('lucide-react').Shield,
+    SKIPPED: require('lucide-react').SkipForward,
+};
+
 
 const feelingColors: Record<MissionFeeling, string> = {
   GRATEFUL: '#34D399', // green-400
@@ -31,6 +40,11 @@ const feelingLabels: Record<MissionFeeling, string> = {
     STRENGTHENED: 'Fortalecido',
     SKIPPED: 'Pulei'
 };
+
+interface EnrichedMissionLog extends MissionLog {
+    missionTitle?: string;
+    planTitle?: string;
+}
 
 
 function MissionReportSkeleton() {
@@ -64,7 +78,7 @@ function StatCard({ title, value, icon: Icon }: { title: string, value: string |
 export function MissionReportClient() {
   const { user } = useAuth();
   const router = useRouter();
-  const [logs, setLogs] = useState<MissionLog[]>([]);
+  const [logs, setLogs] = useState<EnrichedMissionLog[]>([]);
   const [completedPlans, setCompletedPlans] = useState<UserBattlePlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,7 +90,6 @@ export function MissionReportClient() {
 
     const fetchData = async () => {
       try {
-        // Fetch Mission Logs
         const logsQuery = query(
           collection(db, 'missionLogs'),
           where('userId', '==', user.uid),
@@ -84,7 +97,28 @@ export function MissionReportClient() {
         );
         const logsSnapshot = await getDocs(logsQuery);
         const fetchedLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MissionLog));
-        setLogs(fetchedLogs);
+        
+        // Enrich logs with mission and plan titles
+        const planCache = new Map<string, BattlePlan>();
+        const enrichedLogs: EnrichedMissionLog[] = [];
+        for (const log of fetchedLogs) {
+            let planDef = planCache.get(log.planId);
+            if (!planDef) {
+                const planRef = doc(db, 'battlePlans', log.planId);
+                const planSnap = await getDoc(planRef);
+                if (planSnap.exists()) {
+                    planDef = planSnap.data() as BattlePlan;
+                    planCache.set(log.planId, planDef);
+                }
+            }
+            const mission = planDef?.missions.find(m => m.id === log.missionId);
+            enrichedLogs.push({
+                ...log,
+                planTitle: planDef?.title,
+                missionTitle: mission?.title
+            });
+        }
+        setLogs(enrichedLogs);
 
         // Fetch Completed Battle Plans
         const plansQuery = query(
@@ -225,6 +259,37 @@ export function MissionReportClient() {
         
         {/* Completed Plans */}
         <Card>
+            <CardHeader>
+                <CardTitle>Histórico de Missões</CardTitle>
+                <CardDescription>Revise suas missões concluídas e os sentimentos registrados.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {logs.length > 0 ? (
+                    <ul className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        {logs.map(log => {
+                            const FeelingIcon = feelingIcons[log.feeling] || CheckCircle;
+                            return (
+                                <li key={log.id} className="flex items-start gap-4 p-3 bg-muted/50 rounded-md">
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-sm">{log.missionTitle || "Missão desconhecida"}</p>
+                                        <p className="text-xs text-muted-foreground">{log.planTitle || "Plano desconhecido"}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{format(log.completedAt.toDate(), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: feelingColors[log.feeling] }}>
+                                        <FeelingIcon className="h-4 w-4" />
+                                        <span>{feelingLabels[log.feeling]}</span>
+                                    </div>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                ) : (
+                     <p className="text-center text-sm text-muted-foreground py-8">Nenhuma missão concluída ainda. Inicie um plano e complete uma missão!</p>
+                )}
+            </CardContent>
+        </Card>
+
+        <Card>
             <CardHeader><CardTitle>Hall da Honra: Planos Concluídos</CardTitle></CardHeader>
             <CardContent>
                 {completedPlans.length > 0 ? (
@@ -245,4 +310,3 @@ export function MissionReportClient() {
     </div>
   );
 }
-

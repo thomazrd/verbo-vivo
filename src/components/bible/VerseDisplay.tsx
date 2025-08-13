@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { Sheet, SheetTrigger, SheetContent } from '../ui/sheet';
 import BookSelector from './BookSelector';
 import { ChapterGrid } from './ChapterGrid';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
 
 interface VerseDisplayProps {
   version: BibleVersion;
@@ -63,6 +65,7 @@ export function VerseDisplay({
   const { isFocusMode } = useFocusMode();
   const { width } = useWindowSize();
   const isDesktop = width >= 768;
+  const { withCreditCheck, CreditModal } = useAiCreditManager();
 
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -130,12 +133,16 @@ export function VerseDisplay({
 
     try {
         const langCode = i18n.language.split('-')[0];
-        const result = await generateChapterSummary({ 
+        const executeSummary = await withCreditCheck(generateChapterSummary);
+        const result = await executeSummary({ 
             model: userProfile?.preferredModel,
             chapterText,
             language: langCode,
         });
-        setSummary(result.summary);
+
+        if(result) {
+            setSummary(result.summary);
+        }
     } catch (error: any) {
         console.error("Error generating summary:", error);
         setSummaryError("Não foi possível gerar a explicação.");
@@ -164,19 +171,22 @@ export function VerseDisplay({
     if (!chapterData) return;
     setIsNarrationLoading(true);
 
-    const chapterText = chapterData.verses.map(v => `${v.number}. ${v.text}`).join('\n');
+    const chapterText = chapterData.verses.map(v => `${v.number}. ${v.text}`).join('\\n');
     try {
-      const result = await narrateChapter({
+      const executeNarration = await withCreditCheck(narrateChapter);
+      const result = await executeNarration({
         model: userProfile?.preferredModel,
         language: userProfile?.preferredLanguage || i18n.language,
         textToNarrate: chapterText,
       });
 
-      const audio = new Audio(result.audioDataUri);
-      setNarrationAudio(audio);
-      audio.play();
-      setIsNarrating(true);
-      audio.onended = () => setIsNarrating(false);
+      if (result) {
+        const audio = new Audio(result.audioDataUri);
+        setNarrationAudio(audio);
+        audio.play();
+        setIsNarrating(true);
+        audio.onended = () => setIsNarrating(false);
+      }
 
     } catch (error: any) {
       console.error("Error generating narration:", error);
@@ -213,6 +223,8 @@ export function VerseDisplay({
   }
 
   return (
+    <>
+    <CreditModal />
     <div className={cn("p-4 sm:p-6 md:p-8", isFocusMode && "bg-[#fdfdf5]")}>
         <header className="mb-8">
             <div className="flex items-center justify-between gap-4">
@@ -299,5 +311,6 @@ export function VerseDisplay({
             </Button>
       </footer>
     </div>
+    </>
   );
 }

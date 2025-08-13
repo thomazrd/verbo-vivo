@@ -25,6 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
+import { OutOfCreditsModal } from '@/components/common/OutOfCreditsModal';
 
 const AudioChart = dynamic(() => import('@/components/prayer/AudioChart'), {
   ssr: false,
@@ -103,7 +105,7 @@ function PrayerHistoryList({ userId }: { userId: string }) {
                             <h4 className="font-semibold mb-2 text-primary">Sua Oração:</h4>
                             <p className="text-muted-foreground italic">"{prayer.prayerText}"</p>
                             <h4 className="font-semibold mt-4 mb-2 text-primary">Reflexão Recebida:</h4>
-                            <div dangerouslySetInnerHTML={{ __html: prayer.responseText.replace(/([A-Za-z]+\s\d+:\d+(-\d+)?)/g, '<strong class="font-semibold">$1</strong>') }} />
+                            <div dangerouslySetInnerHTML={{ __html: prayer.responseText.replace(/([A-Za-z]+\\s\\d+:\\d+(-\\d+)?)/g, '<strong class="font-semibold">$1</strong>') }} />
                         </AccordionContent>
                     </AccordionItem>
                 ))}
@@ -116,6 +118,7 @@ function PrayerSanctuaryContent() {
   const { t, i18n } = useTranslation();
   const { user, userProfile } = useAuth();
   const searchParams = useSearchParams();
+  const { withCreditCheck, isCreditModalOpen, closeCreditModal } = useAiCreditManager();
   
   const isMission = searchParams.get('mission') === 'true';
   const userPlanId = searchParams.get('userPlanId');
@@ -254,21 +257,26 @@ function PrayerSanctuaryContent() {
       if(!user) return;
 
       try {
-          const result = await processPrayer({ 
+          const executePrayerProcessing = await withCreditCheck(processPrayer);
+          const result = await executePrayerProcessing({ 
               model: userProfile?.preferredModel, 
               language: userProfile?.preferredLanguage || i18n.language,
               prayerText 
           });
-          await addDoc(collection(db, "prayers"), {
-              userId: user.uid,
-              prayerText,
-              responseText: result.responseText,
-              citedVerses: result.citedVerses,
-              createdAt: serverTimestamp(),
-          });
-          setLatestResponse(result);
-          setSanctuaryState('response');
-          // Mission completion is now handled by user action
+
+          if(result) {
+            await addDoc(collection(db, "prayers"), {
+                userId: user.uid,
+                prayerText,
+                responseText: result.responseText,
+                citedVerses: result.citedVerses,
+                createdAt: serverTimestamp(),
+            });
+            setLatestResponse(result);
+            setSanctuaryState('response');
+          } else {
+             setSanctuaryState('idle'); // Credit check failed or other error handled by hook
+          }
       } catch (err) {
           console.error("Error processing prayer:", err);
           toast({
@@ -418,6 +426,7 @@ function PrayerSanctuaryContent() {
 
   return (
     <>
+    <OutOfCreditsModal isOpen={isCreditModalOpen} onClose={closeCreditModal} />
     <div className="container mx-auto flex flex-col items-center justify-center min-h-full py-8 px-4 gap-8">
       {renderMainContent()}
       {user && sanctuaryState === 'idle' && isClient && <PrayerHistoryList userId={user.uid} />}

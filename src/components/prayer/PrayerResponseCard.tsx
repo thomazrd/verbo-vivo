@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useTranslation } from 'react-i18next';
@@ -43,7 +44,7 @@ export function PrayerResponseCard({
       <CardContent className="space-y-6">
         <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: responseText }} />
         
-        {citedVerses.length > 0 && (
+        {citedVerses && citedVerses.length > 0 && (
           <div className="pt-4 border-t space-y-3">
             <h4 className="font-semibold text-sm">Versículos Citados:</h4>
             {citedVerses.map((v, index) => (

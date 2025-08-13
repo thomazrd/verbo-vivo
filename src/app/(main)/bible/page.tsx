@@ -17,6 +17,8 @@ import { useFocusMode } from '@/contexts/focus-mode-context';
 import { MissionCompletionModal } from '@/components/battle-plans/MissionCompletionModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslation } from 'react-i18next';
+import { useAiCreditManager } from '@/hooks/use-ai-credit-manager';
+import { OutOfCreditsModal } from '@/components/common/OutOfCreditsModal';
 
 function BibleReaderContent() {
   const router = useRouter();
@@ -25,6 +27,7 @@ function BibleReaderContent() {
   const { isFocusMode, toggleFocusMode } = useFocusMode();
   const { userProfile } = useAuth();
   const { i18n } = useTranslation();
+  const { isCreditModalOpen, closeCreditModal } = useAiCreditManager();
 
   const bookAbbrevParam = searchParams.get('book');
   const chapterNumParam = searchParams.get('chapter');
@@ -220,12 +223,14 @@ function BibleReaderContent() {
             <div className="w-full max-w-4xl">
                 {mainContent}
             </div>
+            <OutOfCreditsModal isOpen={isCreditModalOpen} onClose={closeCreditModal} />
         </main>
      )
   }
 
   return (
     <>
+      <OutOfCreditsModal isOpen={isCreditModalOpen} onClose={closeCreditModal} />
       <div className="grid h-full md:grid-cols-[350px_1fr]">
         <aside className="border-r flex-col hidden md:flex">
             {navigationSidebar}

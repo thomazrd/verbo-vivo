@@ -5,47 +5,51 @@ import { useState } from 'react';
 import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
 import { db } from '@/lib/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, increment } from 'firebase/firestore';
 
 export function useAiCreditManager() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
 
-  const withCreditCheck = async <T, R>(aiFunction: (args: T) => Promise<R>): Promise<(args: T) => Promise<R | null>> => {
+  const withCreditCheck = <T, R>(aiFunction: (args: T) => Promise<R>): (args: T) => Promise<R | null> => {
     
-    const wrappedFunction = async (args: T): Promise<R | null> => {
+    // Retorna uma nova função que envolve a lógica de verificação
+    return async (args: T): Promise<R | null> => {
       if (!user || !userProfile) {
         toast({ variant: 'destructive', title: 'Não autenticado', description: 'Você precisa estar logado.' });
         return null;
       }
 
-      // Allow admins to bypass credit checks
-      if (userProfile.role !== 'ADMIN' && (userProfile.aiCredits === undefined || userProfile.aiCredits <= 0)) {
+      // Admins têm acesso ilimitado
+      const isExempt = userProfile.role === 'ADMIN';
+      const hasCredits = (userProfile.aiCredits ?? 0) > 0;
+
+      if (!isExempt && !hasCredits) {
         setIsCreditModalOpen(true);
         return null;
       }
       
       let result: R | null = null;
       try {
+        // Executa a função de IA
         result = await aiFunction(args);
         
-        // Only debit credit if the user is not an admin
-        if (userProfile.role !== 'ADMIN') {
+        // Debita o crédito apenas se não for admin e a função tiver sucesso
+        if (!isExempt) {
             const userRef = doc(db, 'users', user.uid);
             await runTransaction(db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) {
-                    throw "Documento do usuário não encontrado!";
+                    throw new Error("Documento do usuário não encontrado!");
                 }
-                const newCredits = (userDoc.data().aiCredits || 0) - 1;
-                if (newCredits < 0) {
-                    throw "Créditos já esgotados.";
+                const currentCredits = userDoc.data().aiCredits || 0;
+                if (currentCredits <= 0) {
+                     throw new Error("Créditos insuficientes para debitar.");
                 }
-                transaction.update(userRef, { aiCredits: newCredits });
+                transaction.update(userRef, { aiCredits: increment(-1) });
             });
         }
-
       } catch (error) {
         console.error("AI function or credit debit failed:", error);
         toast({
@@ -58,8 +62,6 @@ export function useAiCreditManager() {
 
       return result;
     };
-
-    return wrappedFunction;
   };
 
   const closeCreditModal = () => setIsCreditModalOpen(false);

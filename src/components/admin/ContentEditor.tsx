@@ -11,7 +11,7 @@ import { db, storage } from "@/lib/firebase";
 import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "@/hooks/use-auth";
-import type { Study } from "@/lib/types";
+import type { Content, ContentType } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,57 +19,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, UploadCloud, X, Save, Send, Link as LinkIcon, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, UploadCloud, X, Save, Send, Link as LinkIcon, Image as ImageIcon, FileText, Video, Newspaper } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { PrayerOfSower } from "./PrayerOfSower";
 import { CelebrationOverlay } from "./CelebrationOverlay";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-const studyFormSchema = z.object({
+
+const contentTypes: { id: ContentType, label: string, icon: React.ElementType }[] = [
+    { id: 'MARKDOWN', label: 'Texto (Markdown)', icon: FileText },
+    { id: 'VIDEO_URL', label: 'Vídeo (URL)', icon: Video },
+    { id: 'ARTICLE_URL', label: 'Artigo (URL)', icon: Newspaper },
+    { id: 'IMAGE_URL', label: 'Imagem (URL)', icon: ImageIcon },
+];
+
+const contentFormSchema = z.object({
   title: z.string().min(5, { message: "O título deve ter pelo menos 5 caracteres." }),
-  audioUrl: z.string().url({ message: "Por favor, insira uma URL válida." }),
-  content: z.string().optional(),
+  description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres." ),
+  contentType: z.enum(['MARKDOWN', 'VIDEO_URL', 'ARTICLE_URL', 'IMAGE_URL']),
+  contentValue: z.string().min(1, "O conteúdo/URL é obrigatório."),
   thumbnailUrl: z.string().url({ message: "Por favor, insira uma URL de imagem válida." }).optional().or(z.literal('')),
-  practicalChallenge: z.string().optional(),
-  tags: z.string().optional(), // Accepting as a comma-separated string for simplicity
+  tags: z.string().optional(),
 });
 
-type StudyFormValues = z.infer<typeof studyFormSchema>;
+type ContentFormValues = z.infer<typeof contentFormSchema>;
 type SubmitAction = 'DRAFT' | 'PUBLISHED';
 
-const generateMetaTagsHtml = (title: string, description: string, imageUrl: string, studyUrl: string): string => {
-    const esc = (str: string) => str.replace(/"/g, '&quot;');
-    const desc = esc(description.substring(0, 150) + '...');
-    const img = esc(imageUrl);
-    const url = esc(studyUrl);
-    const siteName = "Verbo Vivo";
-    const titleText = esc(title);
-
-    return `
-      <meta name="description" content="${desc}" />
-      <meta property="og:title" content="${titleText}" />
-      <meta property="og:description" content="${desc}" />
-      <meta property="og:image" content="${img}" />
-      <meta property="og:url" content="${url}" />
-      <meta property="og:type" content="article" />
-      <meta property="og:site_name" content="${siteName}" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="${titleText}" />
-      <meta name="twitter:description" content="${desc}" />
-      <meta name="twitter:image" content="${img}" />
-    `.trim();
-};
-
-
-export function StudyEditor({ studyId }: { studyId?: string }) {
+export function ContentEditor({ contentId }: { contentId?: string }) {
   const { user, userProfile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [study, setStudy] = useState<Study | null>(null);
-  const [isLoading, setIsLoading] = useState(!!studyId);
+  const [content, setContent] = useState<Content | null>(null);
+  const [isLoading, setIsLoading] = useState(!!contentId);
   const [isSaving, setIsSaving] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const submitActionRef = useRef<SubmitAction>('DRAFT');
@@ -78,58 +63,58 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const form = useForm<StudyFormValues>({
-    resolver: zodResolver(studyFormSchema),
-    defaultValues: { title: "", audioUrl: "", content: "", thumbnailUrl: "", practicalChallenge: "", tags: "" },
+  const form = useForm<ContentFormValues>({
+    resolver: zodResolver(contentFormSchema),
+    defaultValues: { 
+        title: "", 
+        description: "", 
+        contentType: 'MARKDOWN', 
+        contentValue: "", 
+        thumbnailUrl: "", 
+        tags: "" 
+    },
   });
 
   const formThumbnailUrl = form.watch("thumbnailUrl");
+  const selectedContentType = form.watch("contentType");
 
   useEffect(() => {
-    if (studyId && user) {
-      const fetchStudy = async () => {
+    if (contentId && user) {
+      const fetchContent = async () => {
         setIsLoading(true);
-        const docRef = doc(db, "studies", studyId);
+        const docRef = doc(db, "content", contentId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const data = { id: docSnap.id, ...docSnap.data() } as Study;
-          // Temporarily removed for dev
-          // if (data.authorId !== user.uid) {
-          //   toast({ variant: "destructive", title: "Acesso Negado", description: "Você não tem permissão para editar este estudo." });
-          //   router.push("/admin");
-          //   return;
-          // }
-          setStudy(data);
+          const data = { id: docSnap.id, ...docSnap.data() } as Content;
+          setContent(data);
           form.reset({
              title: data.title, 
-             content: data.content, 
-             audioUrl: data.audioUrl,
+             description: data.description,
+             contentType: data.contentType,
+             contentValue: data.contentValue,
              thumbnailUrl: data.thumbnailUrl || "",
-             practicalChallenge: data.practicalChallenge,
              tags: data.tags?.join(', ') || ''
             });
           setThumbnailPreview(data.thumbnailUrl);
         } else {
-          toast({ variant: "destructive", title: "Erro", description: "Estudo não encontrado." });
-          router.push("/admin/studies");
+          toast({ variant: "destructive", title: "Erro", description: "Conteúdo não encontrado." });
+          router.push("/admin/content");
         }
         setIsLoading(false);
       };
-      fetchStudy();
+      fetchContent();
     }
-  }, [studyId, user, form, router, toast]);
+  }, [contentId, user, form, router, toast]);
 
   useEffect(() => {
-    // Update preview if URL is pasted and no file is selected
     if (formThumbnailUrl && !thumbnailFile) {
         setThumbnailPreview(formThumbnailUrl);
-    } else if (!formThumbnailUrl && !thumbnailFile && study?.thumbnailUrl) {
-        // Handle case where user deletes URL, should revert to original if available
-        setThumbnailPreview(study.thumbnailUrl);
+    } else if (!formThumbnailUrl && !thumbnailFile && content?.thumbnailUrl) {
+        setThumbnailPreview(content.thumbnailUrl);
     } else if (!formThumbnailUrl && !thumbnailFile) {
         setThumbnailPreview(null);
     }
-  }, [formThumbnailUrl, thumbnailFile, study?.thumbnailUrl]);
+  }, [formThumbnailUrl, thumbnailFile, content?.thumbnailUrl]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +123,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
       setThumbnailFile(file);
       const filePreviewUrl = URL.createObjectURL(file);
       setThumbnailPreview(filePreviewUrl);
-      form.setValue("thumbnailUrl", ""); // Clear URL field if a file is chosen
+      form.setValue("thumbnailUrl", "");
     }
   };
 
@@ -149,47 +134,43 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleFormSubmit = async (values: StudyFormValues) => {
+  const handleFormSubmit = async (values: ContentFormValues) => {
     const status = submitActionRef.current;
     if (!user || !userProfile) return;
     setIsSaving(true);
-    let finalThumbnailUrl = values.thumbnailUrl || study?.thumbnailUrl || "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
+    let finalThumbnailUrl = values.thumbnailUrl || content?.thumbnailUrl || "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
     try {
-      const docId = studyId || study?.id || doc(collection(db, "studies")).id;
+      const docId = contentId || content?.id || doc(collection(db, "content")).id;
 
       if (thumbnailFile) {
-        const storagePath = `studies/${docId}/${thumbnailFile.name}`;
+        const storagePath = `content/${docId}/thumbnail/${thumbnailFile.name}`;
         const storageRef = ref(storage, storagePath);
         await uploadBytes(storageRef, thumbnailFile);
         finalThumbnailUrl = await getDownloadURL(storageRef);
       }
       
       const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-      
-      const studyUrl = `${window.location.origin}/studies/${docId}`;
-      const metaTags = generateMetaTagsHtml(values.title, values.content || values.title, finalThumbnailUrl, studyUrl);
-
 
       const dataToSave: any = {
         title: values.title,
-        content: values.content || "",
-        audioUrl: values.audioUrl,
+        description: values.description,
+        contentType: values.contentType,
+        contentValue: values.contentValue,
         thumbnailUrl: finalThumbnailUrl,
-        practicalChallenge: values.practicalChallenge || null,
         tags: tagsArray,
-        metaTags: metaTags, // Salva as meta tags pré-geradas
         authorId: user.uid,
         authorName: userProfile.displayName,
         updatedAt: serverTimestamp(),
         status,
       };
 
-      if (studyId) {
-        if (status === 'PUBLISHED' && study?.status !== 'PUBLISHED') {
+      const docRef = doc(db, "content", docId);
+      if (contentId) {
+        if (status === 'PUBLISHED' && content?.status !== 'PUBLISHED') {
             dataToSave.publishedAt = serverTimestamp();
         }
-        await updateDoc(doc(db, "studies", studyId), dataToSave);
+        await updateDoc(docRef, dataToSave);
       } else {
         dataToSave.createdAt = serverTimestamp();
         if (status === 'PUBLISHED') {
@@ -197,20 +178,20 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
         } else {
             dataToSave.publishedAt = null;
         }
-        await setDoc(doc(db, "studies", docId), dataToSave);
+        await setDoc(docRef, dataToSave);
       }
       
-      toast({ title: "Sucesso!", description: `Estudo salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.` });
+      toast({ title: "Sucesso!", description: `Conteúdo salvo como ${status === 'DRAFT' ? 'rascunho' : 'publicado'}.` });
 
       if (status === 'PUBLISHED') {
         setShowCelebration(true);
       } else {
-        router.push('/admin/studies');
+        router.push('/admin/content');
       }
 
     } catch (error) {
-      console.error("Error saving study:", error);
-      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar o estudo." });
+      console.error("Error saving content:", error);
+      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar o conteúdo." });
     } finally {
       setIsSaving(false);
     }
@@ -218,7 +199,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
   
   const onCelebrationEnd = () => {
       setShowCelebration(false);
-      router.push('/admin/studies');
+      router.push('/admin/content');
   }
 
   if (isLoading) {
@@ -230,6 +211,21 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     form.handleSubmit(handleFormSubmit)();
   };
 
+  const renderContentInput = (field: any) => {
+      switch(selectedContentType) {
+          case 'MARKDOWN':
+              return <MarkdownEditor value={field.value} onChange={field.onChange} />;
+          case 'VIDEO_URL':
+              return <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />;
+          case 'ARTICLE_URL':
+              return <Input placeholder="https://meublog.com/artigo" {...field} />;
+          case 'IMAGE_URL':
+              return <Input placeholder="https://site.com/imagem.jpg" {...field} />;
+          default:
+              return null;
+      }
+  }
+
   return (
     <>
     <AnimatePresence>
@@ -237,11 +233,11 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
     </AnimatePresence>
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => router.push('/admin/studies')}>
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => router.push('/admin/content')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{studyId ? 'Editar Estudo' : 'Criar Novo Estudo'}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{contentId ? 'Editar Conteúdo' : 'Criar Novo Conteúdo'}</h1>
         </div>
       </div>
       
@@ -256,7 +252,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg">Título do Estudo</FormLabel>
+                    <FormLabel className="text-lg">Título</FormLabel>
                     <FormControl>
                       <Input placeholder="Um título claro e convidativo" {...field} className="text-lg h-12" />
                     </FormControl>
@@ -266,15 +262,25 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
               />
               <FormField
                 control={form.control}
-                name="content"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-lg">Conteúdo Principal (Opcional)</FormLabel>
+                    <FormLabel className="text-lg">Descrição</FormLabel>
                     <FormControl>
-                        <MarkdownEditor
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                        />
+                      <Textarea placeholder="Uma breve descrição que explique o conteúdo." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="contentValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-lg">Conteúdo Principal</FormLabel>
+                    <FormControl>
+                        {renderContentInput(field)}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -301,7 +307,7 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Pronto para publicar?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          O estudo ficará visível para todos os usuários. Deseja continuar?
+                          O conteúdo ficará visível para todos os usuários. Deseja continuar?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -317,24 +323,42 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Detalhes do Estudo</CardTitle>
+                  <CardTitle>Detalhes do Conteúdo</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="audioUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Link do Áudio (Podbean)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://seu.podbean.com/..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="contentType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Conteúdo</FormLabel>
+                           <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {contentTypes.map(type => {
+                                const Icon = type.icon;
+                                return (
+                                  <SelectItem key={type.id} value={type.id}>
+                                      <div className="flex items-center gap-2">
+                                        <Icon className="h-4 w-4" />
+                                        <span>{type.label}</span>
+                                      </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                   <div>
-                    <FormLabel>Imagem de Capa</FormLabel>
+                    <FormLabel>Imagem de Capa (Thumbnail)</FormLabel>
                     <Tabs defaultValue="upload" className="w-full mt-2">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="upload"><ImageIcon className="mr-2 h-4 w-4"/>Upload</TabsTrigger>
@@ -372,26 +396,12 @@ export function StudyEditor({ studyId }: { studyId?: string }) {
                       </div>
                     )}
                   </div>
-                   <FormField
-                    control={form.control}
-                    name="practicalChallenge"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aplicação Prática (Opcional)</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Sugira uma ação ou pergunta para reflexão." {...field} />
-                        </FormControl>
-                        <FormDescription>Isto aparecerá ao final do estudo.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tags de Batalha (Opcional)</FormLabel>
+                        <FormLabel>Tags (Opcional)</FormLabel>
                         <FormControl>
                           <Input placeholder="ansiedade, fé, perdão" {...field} />
                         </FormControl>

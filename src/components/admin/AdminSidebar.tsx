@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import {
   BookHeart,
   LayoutDashboard,
-  BookCopy,
   Lightbulb,
   LogOut,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,7 +28,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
 
   const navItems = [
     { href: "/admin", label: "Painel", icon: LayoutDashboard },
-    { href: "/admin/studies", label: "Estudos", icon: BookCopy },
+    { href: "/admin/content", label: "Conteúdos", icon: FileText },
     { href: "/admin/suggestions", label: "Sugestões", icon: Lightbulb },
   ];
   

@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Study } from "@/lib/types";
+import type { Content } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -24,55 +24,66 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { BookCopy, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, FileText, Video, Newspaper, Image as ImageIcon } from "lucide-react";
 
-interface StudyListItemProps {
-  study: Study;
+interface ContentListItemProps {
+  content: Content;
 }
+
+const contentTypeIcons = {
+    MARKDOWN: FileText,
+    VIDEO_URL: Video,
+    ARTICLE_URL: Newspaper,
+    IMAGE_URL: ImageIcon
+};
 
 const DEFAULT_THUMBNAIL = "https://dynamic.tiggomark.com.br/images/deep_dive.jpg";
 
-export function StudyListItem({ study }: StudyListItemProps) {
+export function ContentListItem({ content }: ContentListItemProps) {
   const router = useRouter();
   const { toast } = useToast();
 
   const handleDelete = async () => {
     try {
-      await deleteDoc(doc(db, "studies", study.id));
+      await deleteDoc(doc(db, "content", content.id));
       toast({
-        title: "Estudo Excluído",
-        description: `O estudo "${study.title}" foi removido com sucesso.`,
+        title: "Conteúdo Excluído",
+        description: `O conteúdo "${content.title}" foi removido com sucesso.`,
       });
     } catch (error) {
-      console.error("Error deleting study:", error);
+      console.error("Error deleting content:", error);
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Não foi possível excluir o estudo.",
+        description: "Não foi possível excluir o conteúdo.",
       });
     }
   };
 
-  const timeAgo = study.updatedAt
-    ? formatDistanceToNow(study.updatedAt.toDate(), { addSuffix: true, locale: ptBR })
+  const timeAgo = content.updatedAt
+    ? formatDistanceToNow(content.updatedAt.toDate(), { addSuffix: true, locale: ptBR })
     : "data desconhecida";
 
-  const imageUrl = study.thumbnailUrl || DEFAULT_THUMBNAIL;
+  const imageUrl = content.thumbnailUrl || DEFAULT_THUMBNAIL;
+  const TypeIcon = contentTypeIcons[content.contentType] || FileText;
 
   return (
     <Card className="flex items-center p-4 gap-4 hover:bg-muted/50 transition-colors">
       <div className="relative w-24 h-24 sm:w-32 sm:h-20 shrink-0 bg-muted rounded-md overflow-hidden">
         <Image
           src={imageUrl}
-          alt={study.title}
+          alt={content.title}
           fill
           className="object-cover"
           sizes="(max-width: 640px) 96px, 128px"
         />
+        <div className="absolute top-1 left-1 bg-black/50 text-white rounded-full p-1">
+           <TypeIcon className="h-3 w-3" />
+        </div>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          {study.status === "PUBLISHED" ? (
+          {content.status === "PUBLISHED" ? (
             <Badge variant="secondary" className="bg-green-100 text-green-800">
               Publicado
             </Badge>
@@ -80,14 +91,14 @@ export function StudyListItem({ study }: StudyListItemProps) {
             <Badge variant="outline">Rascunho</Badge>
           )}
         </div>
-        <h3 className="font-semibold text-lg truncate">{study.title}</h3>
+        <h3 className="font-semibold text-lg truncate">{content.title}</h3>
         <p className="text-sm text-muted-foreground">Atualizado {timeAgo}</p>
       </div>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
-          onClick={() => router.push(`/admin/studies/edit/${study.id}`)}
+          onClick={() => router.push(`/admin/content/edit/${content.id}`)}
         >
           <Edit className="h-4 w-4" />
           <span className="sr-only">Editar</span>
@@ -103,8 +114,8 @@ export function StudyListItem({ study }: StudyListItemProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente o estudo
-                "{study.title}".
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o conteúdo
+                "{content.title}".
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

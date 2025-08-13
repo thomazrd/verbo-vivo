@@ -344,24 +344,25 @@ export interface Article {
 }
 
 // --- Tipos do Portal Administrativo ---
-export interface Study {
+export type ContentType = 'MARKDOWN' | 'VIDEO_URL' | 'ARTICLE_URL' | 'IMAGE_URL';
+
+export interface Content {
   id: string;
   title: string;
-  audioUrl: string;
+  description: string;
   thumbnailUrl: string | null;
-  content: string;
+  contentType: ContentType;
+  contentValue: string; // Markdown text, video URL, article URL, or image URL
   authorId: string;
   authorName: string;
-  practicalChallenge?: string | null;
   tags?: string[];
   status: 'DRAFT' | 'PUBLISHED';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   publishedAt: Timestamp | null;
   viewCount?: number;
-  reactions?: { [key: string]: string[] };
-  metaTags?: string;
 }
+
 
 export interface Suggestion {
   id: string;

@@ -6,48 +6,50 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
-import type { Study } from "@/lib/types";
+import type { Content } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
-import { Plus, BookCopy, Loader2 } from "lucide-react";
+import { Plus, FileText, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StudyListItem } from "@/components/admin/StudyListItem";
+import { ContentListItem } from "@/components/admin/ContentListItem";
 
-type StudyStatus = "ALL" | "PUBLISHED" | "DRAFT";
+type ContentStatus = "ALL" | "PUBLISHED" | "DRAFT";
 
-export default function StudiesListPage() {
+export default function ContentsListPage() {
   const searchParams = useSearchParams();
-  const initialStatus = (searchParams.get("status")?.toUpperCase() || "ALL") as StudyStatus;
+  const initialStatus = (searchParams.get("status")?.toUpperCase() || "ALL") as ContentStatus;
 
-  const [studies, setStudies] = useState<Study[]>([]);
+  const [contents, setContents] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<StudyStatus>(initialStatus);
+  const [activeTab, setActiveTab] = useState<ContentStatus>(initialStatus);
 
   useEffect(() => {
     setIsLoading(true);
-    let studiesQuery;
+    let contentQuery;
+    const baseQuery = collection(db, "content");
+    
     if (activeTab === "ALL") {
-      studiesQuery = query(collection(db, "studies"), orderBy("updatedAt", "desc"));
+      contentQuery = query(baseQuery, orderBy("updatedAt", "desc"));
     } else {
-      studiesQuery = query(
-        collection(db, "studies"),
+      contentQuery = query(
+        baseQuery,
         where("status", "==", activeTab),
         orderBy("updatedAt", "desc")
       );
     }
 
     const unsubscribe = onSnapshot(
-      studiesQuery,
+      contentQuery,
       (snapshot) => {
-        const fetchedStudies: Study[] = [];
+        const fetchedContent: Content[] = [];
         snapshot.forEach((doc) => {
-          fetchedStudies.push({ id: doc.id, ...doc.data() } as Study);
+          fetchedContent.push({ id: doc.id, ...doc.data() } as Content);
         });
-        setStudies(fetchedStudies);
+        setContents(fetchedContent);
         setIsLoading(false);
       },
       (error) => {
-        console.error("Error fetching studies:", error);
+        console.error("Error fetching contents:", error);
         setIsLoading(false);
       }
     );
@@ -58,16 +60,16 @@ export default function StudiesListPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Estudos</h1>
+        <h1 className="text-3xl font-bold">Conteúdos</h1>
         <Button asChild>
-          <Link href="/admin/studies/create">
+          <Link href="/admin/content/create">
             <Plus className="mr-2 h-4 w-4" />
-            Criar Novo Estudo
+            Criar Novo Conteúdo
           </Link>
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as StudyStatus)}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ContentStatus)}>
         <TabsList>
           <TabsTrigger value="ALL">Todos</TabsTrigger>
           <TabsTrigger value="PUBLISHED">Publicados</TabsTrigger>
@@ -78,18 +80,18 @@ export default function StudiesListPage() {
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : studies.length === 0 ? (
+          ) : contents.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg">
-              <BookCopy className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">Nenhum estudo encontrado</h3>
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">Nenhum conteúdo encontrado</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Crie um novo estudo para começar a compartilhar sabedoria.
+                Crie um novo conteúdo para começar a compartilhar.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {studies.map((study) => (
-                <StudyListItem key={study.id} study={study} />
+              {contents.map((item) => (
+                <ContentListItem key={item.id} content={item} />
               ))}
             </div>
           )}

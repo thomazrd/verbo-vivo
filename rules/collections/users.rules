@@ -1,29 +1,23 @@
-
 match /users/{userId} {
-  // Qualquer usuário autenticado pode ler perfis (para ver nomes, fotos, etc).
-  // Um usuário só pode escrever em seu próprio perfil.
+  // Leitura: Qualquer usuário autenticado pode ler perfis públicos.
+  // Escrita: O próprio usuário ou um administrador podem escrever.
   allow read: if isSignedIn();
-  allow write: if isOwner(userId);
+  allow write: if isUser(userId) || isAdmin();
 
-  // Regras para subcoleções de 'users'
+  // Regras para subcoleções de 'users' (ex: planos de estudo, armaduras)
+  // Geralmente, o usuário só pode acessar seus próprios dados.
   match /plans/{planId} {
-    allow read, write: if isOwner(userId);
-  }
-  
-  match /armors/{armorId} {
-    allow read, write: if isOwner(userId);
+    allow read, write, delete: if isUser(userId);
   }
 
-  match /messages/{messageId} {
-    allow read, write: if isOwner(userId);
+  match /armors/{armorId} {
+    allow read, write, delete: if isUser(userId);
   }
 
   match /battlePlans/{userPlanId} {
-    allow read, write: if isOwner(userId);
+    // A leitura do progresso do usuário pode ser permitida para o líder do plano.
+    allow read: if isUser(userId) || 
+                (isSignedIn() && resource.data.consentToShareProgress == true && get(/databases/$(database)/documents/battlePlans/$(resource.data.planId)).data.creatorId == request.auth.uid);
+    allow create, update, delete: if isUser(userId);
   }
-}
-
-match /userPushTokens/{tokenId} {
-    // Um usuário só pode criar ou gerenciar seu próprio token.
-    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }

@@ -1,19 +1,27 @@
-// Funções de autenticação e propriedade reutilizáveis
+// --- Funções de Autenticação e Permissão ---
 
+// Verifica se o usuário está logado.
 function isSignedIn() {
   return request.auth != null;
 }
 
-function isOwner(userId) {
+// Verifica se o usuário logado é o dono do documento.
+// Ex: `isUser(userId)` em `match /users/{userId}`
+function isUser(userId) {
   return isSignedIn() && request.auth.uid == userId;
 }
 
+// Verifica se o usuário é um membro de uma congregação específica.
 function isCongregationMember(congregationId) {
-    // Permite a ação se o usuário for um MEMBRO ou ADMIN da congregação.
-    let userStatus = get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status;
-    return isSignedIn() && (userStatus == 'MEMBER' || userStatus == 'ADMIN');
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'MEMBER';
 }
 
+// Verifica se o usuário é um administrador de uma congregação específica.
 function isCongregationAdmin(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'ADMIN';
+    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
+}
+
+// Verifica se o usuário tem a função de ADMIN no seu perfil.
+function isAdmin() {
+    return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
 }

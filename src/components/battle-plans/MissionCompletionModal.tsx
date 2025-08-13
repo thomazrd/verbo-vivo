@@ -90,22 +90,17 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
     }, [user, userPlanId, onClose]);
     
     const handleCompleteMission = async (feeling: MissionFeeling | null) => {
-        console.log("handleCompleteMission called. Feeling:", feeling);
-        console.log("Current state:", { user, userPlan, planDef, missionToComplete });
-
         if (!user || !userPlan || !planDef || !missionToComplete) {
-            console.log("Exiting: Missing required data.");
+            toast({ variant: 'destructive', title: 'Erro', description: 'Dados da missão ausentes para completar.' });
             return;
         }
         
         if (!feeling) {
-            console.log("Exiting: No feeling selected.");
             toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, selecione como você se sentiu.' });
             return;
         }
 
         setIsCompleting(true);
-        console.log("Processing completion...");
 
         const newCompletedIds = [...userPlan.completedMissionIds, missionToComplete.id];
         const newProgress = (newCompletedIds.length / planDef.missions.length) * 100;
@@ -125,21 +120,20 @@ export function MissionCompletionModal({ userPlanId, onClose }: MissionCompletio
             userId: user.uid,
             planId: planDef.id,
             missionId: missionToComplete.id,
+            planTitle: planDef.title, // Desnormalizando o título do plano
+            missionTitle: missionToComplete.title, // Desnormalizando o título da missão
             completedAt: new Date(),
             feeling: feeling,
         });
         
         try {
             await batch.commit();
-            console.log("Batch commit successful.");
             toast({ title: 'Missão Cumprida!', description: 'Seu progresso foi salvo.' });
             
             if (nextMission) {
-                console.log("Redirecting to next mission...");
                 router.push(`/battle-plans/mission/${userPlanId}`);
                 onClose();
             } else {
-                console.log("Redirecting to home...");
                 router.push('/home');
             }
         } catch (error) {

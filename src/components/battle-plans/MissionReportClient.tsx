@@ -96,29 +96,9 @@ export function MissionReportClient() {
           orderBy('completedAt', 'desc')
         );
         const logsSnapshot = await getDocs(logsQuery);
-        const fetchedLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MissionLog));
-        
-        // Enrich logs with mission and plan titles
-        const planCache = new Map<string, BattlePlan>();
-        const enrichedLogs: EnrichedMissionLog[] = [];
-        for (const log of fetchedLogs) {
-            let planDef = planCache.get(log.planId);
-            if (!planDef) {
-                const planRef = doc(db, 'battlePlans', log.planId);
-                const planSnap = await getDoc(planRef);
-                if (planSnap.exists()) {
-                    planDef = planSnap.data() as BattlePlan;
-                    planCache.set(log.planId, planDef);
-                }
-            }
-            const mission = planDef?.missions.find(m => m.id === log.missionId);
-            enrichedLogs.push({
-                ...log,
-                planTitle: planDef?.title,
-                missionTitle: mission?.title
-            });
-        }
-        setLogs(enrichedLogs);
+        // Os logs já contêm os títulos, então não precisamos enriquecê-los.
+        const fetchedLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EnrichedMissionLog));
+        setLogs(fetchedLogs);
 
         // Fetch Completed Battle Plans
         const plansQuery = query(
@@ -257,7 +237,7 @@ export function MissionReportClient() {
             </CardContent>
         </Card>
         
-        {/* Completed Plans */}
+        {/* Mission History */}
         <Card>
             <CardHeader>
                 <CardTitle>Histórico de Missões</CardTitle>

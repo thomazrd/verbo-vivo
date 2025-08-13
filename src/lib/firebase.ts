@@ -24,7 +24,7 @@ const googleProvider = new GoogleAuthProvider();
 // Enable offline persistence
 if (typeof window !== 'undefined') {
   try {
-    enableIndexedDbPersistence(db)
+    enableIndexedDbPersistence(db, { synchronizeTabs: true });
   } catch (err: any) {
       if (err.code == 'failed-precondition') {
           // Multiple tabs open, persistence can only be enabled in one tab at a time.

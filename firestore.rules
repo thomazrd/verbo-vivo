@@ -1,294 +1,211 @@
 rules_version = '2';
-
 service cloud.firestore {
-
   match /databases/{database}/documents {
-
     // --- From: auth.rules ---
-
-// --- Funções de Autenticação e Permissão ---
-
-// Verifica se o usuário está logado.
+// Funções relacionadas à autenticação
 function isSignedIn() {
   return request.auth != null;
 }
 
-// Verifica se o usuário logado é o dono do documento.
-// Ex: `isUser(userId)` em `match /users/{userId}`
 function isUser(userId) {
   return isSignedIn() && request.auth.uid == userId;
 }
 
-// Verifica se o usuário é um membro de uma congregação específica.
-function isCongregationMember(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status == 'MEMBER';
-}
-
-// Verifica se o usuário é um administrador de uma congregação específica.
-function isCongregationAdmin(congregationId) {
-    return isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins[request.auth.uid] == true;
-}
-
-// Verifica se o usuário tem a função de ADMIN no seu perfil.
 function isAdmin() {
     return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
 }
 
+// Outras funções de checagem de perfil poderiam vir aqui
+// Ex: function isAdmin() { ... }
 
-    // From: articles.rules
-
-match /articles/{articleId} {
-    // Anyone can read published articles.
-    allow read: if resource.data.status == 'published';
-
-    // Writing is restricted to admins (to be implemented via claims or backend logic)
-    allow write: if false;
+    // --- From: validation.rules ---
+// Funções de validação de dados
+function isString(value) {
+  return value is string;
 }
 
+function isNumber(value) {
+  return value is number;
+}
+
+function isBoolean(value) {
+  return value is bool;
+}
+
+    // From: articles.rules
+match /articles/{articleId} {
+  // Qualquer um pode ler artigos publicados.
+  allow read: if resource.data.status == 'published';
+
+  // Apenas administradores podem criar, atualizar ou deletar.
+  allow write: if isSignedIn() && isAdmin();
+}
 
     // From: battlePlans.rules
-
-// collections/battlePlans.rules
-
 match /battlePlans/{planId} {
-  // Leitura: Qualquer usuário autenticado pode ler planos publicados OU se for o criador do plano.
   allow read: if isSignedIn() && (resource.data.status == 'PUBLISHED' || resource.data.creatorId == request.auth.uid);
-
-  // Criação: Qualquer usuário autenticado pode criar um plano (será um líder).
   allow create: if isSignedIn();
-
-  // Atualização e Exclusão: Apenas o criador original do plano pode modificar ou apagar.
   allow update, delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
 }
 
-// Subcoleção de 'users' que armazena o progresso dos planos daquele usuário
-match /users/{userId}/battlePlans/{userPlanId} {
-  // Leitura: Um usuário pode ler seu próprio progresso.
-  // Um LÍDER pode ler o progresso de um soldado SE o soldado deu consentimento.
-  allow read: if isOwner(userId) ||
-              (isSignedIn() && resource.data.consentToShareProgress == true &&
-               request.auth.uid == resource.data.planCreatorId);
-
-  // Criação: Um usuário pode criar seu próprio registro de progresso (iniciar um plano).
-  allow create: if isOwner(userId);
-
-  // Atualização: Um usuário só pode atualizar seu próprio progresso.
-  allow update: if isOwner(userId);
-
-  // Exclusão: Um usuário só pode apagar seu próprio progresso.
-  allow delete: if isOwner(userId);
+    // From: congregations.rules
+match /congregations/{congregationId} {
+  allow read: if isSignedIn();
+  allow create: if isSignedIn(); // A lógica de quem pode criar é tratada na cloud function
+  allow update: if isSignedIn() && request.auth.uid in resource.data.admins;
+  
+  match /members/{userId} {
+    allow read: if isSignedIn();
+    allow create: if isUser(userId); // Usuário solicita para entrar
+    allow update: if (isUser(userId) && request.resource.data.keys().hasAll(['status'])) || (request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins);
+    allow delete: if isUser(userId) || (request.auth.uid in get(/databases/$(database)/documents/congregations/$(congregationId)).data.admins);
+  }
+  
+  match /posts/{postId} {
+    allow read: if isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+    allow create: if isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'] && request.resource.data.authorId == request.auth.uid;
+    allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    
+    match /comments/{commentId} {
+       allow read: if isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+       allow create: if isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'] && request.resource.data.authorId == request.auth.uid;
+       allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+    
+    match /likes/{userId} {
+       allow read: if isSignedIn() && get(/databases/$(database)/documents/congregations/$(congregationId)/members/$(request.auth.uid)).data.status in ['MEMBER', 'ADMIN'];
+       allow create, delete: if isUser(userId);
+    }
+  }
 }
 
-// Logs de missão são privados
+    // From: content.rules
+match /content/{contentId} {
+  // Permitir leitura se o conteúdo estiver publicado
+  allow get: if resource.data.status == 'PUBLISHED';
+  // Permitir que qualquer um liste, contanto que filtre por 'PUBLISHED'
+  allow list: if request.query.get("status") == "PUBLISHED";
+  
+  // Apenas administradores podem criar, atualizar e deletar
+  allow write: if isSignedIn() && isAdmin();
+}
+
+    // From: feelingJourneys.rules
+match /feelingJourneys/{journeyId} {
+  allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+}
+
+    // From: journals.rules
+match /journals/{entryId} {
+  allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+}
+
+    // From: missionLogs.rules
 match /missionLogs/{logId} {
   allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }
 
-
-    // From: congregations.rules
-
-match /congregations/{congregationId} {
-  allow read: if isSignedIn();
-  allow create: if isSignedIn() && request.auth.uid == request.resource.data.createdBy;
-  allow update, delete: if isCongregationAdmin(congregationId);
-
-  // Subcoleção de membros da congregação
-  match /members/{userId} {
-    allow read, list: if isCongregationMember(congregationId);
-    allow create: if isSignedIn() && isOwner(userId);
-    allow update: if isCongregationAdmin(congregationId);
-    allow delete: if isCongregationAdmin(congregationId) || isOwner(userId);
-  }
-
-  // Subcoleção de posts da congregação
-  match /posts/{postId} {
-    allow read: if isCongregationMember(congregationId);
-    allow create: if isCongregationMember(congregationId) && isOwner(request.resource.data.authorId);
-    allow update, delete: if isOwner(resource.data.authorId);
-
-    // Sub-subcoleção de comentários em um post
-    match /comments/{commentId} {
-      allow read: if isCongregationMember(congregationId);
-      // Qualquer membro da congregação pode criar um comentário.
-      allow create: if isCongregationMember(congregationId) && isOwner(request.resource.data.authorId);
-      // Apenas o dono do comentário pode editar/deletar.
-      allow update, delete: if isOwner(resource.data.authorId);
-    }
-
-    // Sub-subcoleção de likes em um post
-    match /likes/{userId} {
-      allow read: if isCongregationMember(congregationId);
-      // Um membro só pode criar ou deletar o seu próprio like.
-      allow create, delete: if isCongregationMember(congregationId) && isOwner(userId);
-    }
-  }
-}
-
-    // From: journals.rules
-
-// Regras para a coleção 'journals'
-
-match /journals/{journalId} {
-  // Permite que um usuário liste apenas as suas próprias entradas no diário.
-  // A consulta DEVE incluir a cláusula `where('userId', '==', request.auth.uid)`.
-  allow list: if request.auth != null;
-
-  // Permite que um usuário leia, atualize ou delete um documento específico
-  // apenas se ele for o proprietário (o userId no documento é o mesmo do usuário autenticado).
-  allow get, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-
-  // Permite a criação se o novo documento pertencer ao usuário que o está criando.
-  allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-}
-
-
-    // From: missionLogs.rules
-
-
-// Regras para a coleção que registra a conclusão de cada missão
-match /missionLogs/{logId} {
-  // Permite que um usuário crie um log se o ID do usuário no documento for o seu.
-  allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-  // Permite que um usuário leia, atualize ou delete seus próprios logs de missão.
-  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-}
-
-
     // From: notifications.rules
-
-
 match /notifications/{notificationId} {
-  // Um usuário pode ler uma notificação se ele for o destinatário.
-  // A criação é feita apenas pelo backend (Cloud Functions).
-  allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
-  allow write: if false;
+    allow read, write: if isSignedIn() && request.auth.uid == request.resource.data.recipientId;
 }
-
 
     // From: prayerCircles.rules
-
-
 match /prayerCircles/{circleId} {
-    // Leitura: Qualquer membro do círculo pode ler. Círculos públicos podem ser lidos por todos.
-    allow read: if resource.data.isPublic == true || (isSignedIn() && request.auth.uid in resource.data.members);
-    // Criação: Qualquer usuário autenticado pode criar um círculo.
-    allow create: if isSignedIn();
-    // Atualização: Apenas o criador ou membros podem atualizar (ex: entrar no círculo).
-    // Uma regra mais granular pode ser necessária aqui (ex: só o criador edita o nome).
-    allow update: if isSignedIn() && request.auth.uid in resource.data.members;
-    // Exclusão: Apenas o criador pode excluir.
-    allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+  allow read: if resource.data.isPublic == true || request.auth.uid in resource.data.members;
+  allow create: if isSignedIn();
+  allow update: if isSignedIn() && request.auth.uid == resource.data.createdBy;
+  allow delete: if isSignedIn() && request.auth.uid == resource.data.createdBy;
 }
 
-
     // From: prayers.rules
-
 match /prayers/{prayerId} {
-  // O usuário pode criar uma oração se o userId no novo documento for o seu próprio.
-  allow create: if request.auth.uid == request.resource.data.userId;
-  
-  // O usuário pode ler ou atualizar sua própria oração.
-  allow read, update: if request.auth.uid == resource.data.userId;
+    // A oração é privada para o usuário que a fez.
+    allow read, write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 }
 
     // From: sharedArmors.rules
-
-
 match /sharedArmors/{armorId} {
-  allow read: if true;
-  allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-  allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    allow read: if isSignedIn();
+    allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    allow update, delete: if resource.data.userId == request.auth.uid;
 }
-
 
     // From: sharedContent.rules
-
-
 match /sharedContent/{contentId} {
-    // Permite leitura pública de conteúdo compartilhado que está ativo.
-    // A criação é feita via app, mas a atualização/exclusão pode ser restrita.
-    allow read: if resource.data.status == 'ACTIVE';
-    allow create: if isSignedIn();
-    allow update, delete: if isOwner(request.resource.data.creatorId);
-}
-
-
-    // From: studies.rules
-
-match /studies/{studyId} {
-  // Anyone can read published studies.
-  allow read: if resource.data.status == 'PUBLISHED';
-  
-  // Writing is restricted (handled by admin panel/backend functions)
-  allow write: if false; 
-}
-
-
-    // From: userBattlePlans.rules
-
-
-// Regras para a subcoleção que armazena o progresso de um usuário em um plano.
-match /users/{userId}/battlePlans/{userPlanId} {
-  // Um usuário pode ler, criar, atualizar e apagar seu próprio progresso de plano.
-  allow read, write: if request.auth != null && request.auth.uid == userId;
-
-  // TODO: Adicionar regra para que o criador do plano possa LER (mas não escrever)
-  // o progresso se o usuário consentir.
-}
-
-
-    // From: userPushTokens.rules
-
-match /userPushTokens/{tokenId} {
-  // A user can only create or delete their own push token document.
-  // The document ID is the token itself, so we check the userId field.
-  // Read and update are disallowed for security.
-  allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-  allow read, update: if false;
-}
-
-
-    // From: users.rules
-
-match /users/{userId} {
-  // Leitura: Qualquer usuário autenticado pode ler perfis públicos.
-  // Escrita: O próprio usuário ou um administrador podem escrever.
-  allow read: if isSignedIn();
-  allow write: if isUser(userId) || isAdmin();
-
-  // Regras para subcoleções de 'users' (ex: planos de estudo, armaduras)
-  // Geralmente, o usuário só pode acessar seus próprios dados.
-  match /plans/{planId} {
-    allow read, write, delete: if isUser(userId);
-  }
-
-  match /armors/{armorId} {
-    allow read, write, delete: if isUser(userId);
-  }
-
-  match /battlePlans/{userPlanId} {
-    // A leitura do progresso do usuário pode ser permitida para o líder do plano.
-    allow read: if isUser(userId) || 
-                (isSignedIn() && resource.data.consentToShareProgress == true && get(/databases/$(database)/documents/battlePlans/$(resource.data.planId)).data.creatorId == request.auth.uid);
-    allow create, update, delete: if isUser(userId);
-  }
-}
-
-
-    // From: victories.rules
-
-
-match /victories/{victoryId} {
-    // Qualquer um pode ler as vitórias.
-    allow read: if true;
-    // Apenas usuários autenticados podem interagir (dar "Amém").
-    allow update: if isSignedIn();
-    // A criação é restrita (feita pelo moderador do círculo no app).
-    allow create: if isSignedIn();
+    // Qualquer pessoa com o link pode ler o conteúdo
+    allow read: true;
+    
+    // Apenas o criador pode criar ou deletar (soft delete)
+    allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+    allow update: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+    // Ninguém pode deletar permanentemente
     allow delete: if false;
 }
 
+    // From: studies.rules
+match /studies/{studyId} {
+    // Regra específica para 'get': qualquer um pode ler um estudo publicado.
+    allow get: if resource.data.status == 'PUBLISHED';
+    // Regra específica para 'list': qualquer um pode listar estudos, mas a query DEVE ter o filtro `where('status', '==', 'PUBLISHED')`.
+    allow list: if request.query.get('status') == 'PUBLISHED';
+    
+    // Apenas admins podem criar, editar ou deletar estudos.
+    allow write: if isSignedIn() && isAdmin();
+}
 
+    // From: suggestions.rules
+match /suggestions/{suggestionId} {
+    allow create: if isSignedIn();
+    allow read, write: if isSignedIn() && isAdmin();
+}
+
+    // From: userPushTokens.rules
+match /userPushTokens/{token} {
+    // O usuário só pode criar/atualizar seu próprio token.
+    allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    // Ninguém pode ler os tokens (exceto via funções de admin).
+    allow read: if false;
+}
+
+    // From: users.rules
+match /users/{userId} {
+  // Qualquer usuário autenticado pode ler perfis (para ver nomes/fotos).
+  allow read: if isSignedIn();
+  
+  // Um usuário só pode escrever em seu próprio perfil.
+  // Um administrador pode escrever no perfil de qualquer usuário.
+  allow write: if isUser(userId) || isAdmin();
+  
+  match /plans/{planId} {
+  	 allow read, write: if isUser(userId);
   }
 
+  match /armors/{armorId} {
+      allow read, write: if isUser(userId);
+  }
+  
+   match /battlePlans/{userPlanId} {
+      allow read, write: if isUser(userId);
+   }
+
+  match /messages/{messageId} {
+    allow read, write: if isUser(userId);
+  }
+}
+
+    // From: victories.rules
+match /victories/{victoryId} {
+    // Qualquer um pode ler as vitórias (são públicas)
+    allow read: true;
+
+    // Apenas o criador do círculo de oração pode registrar uma vitória
+    // (A validação de que o `recordedBy` é o criador do círculo é feita via lógica de segurança na aplicação)
+    allow create: if isSignedIn();
+
+    // Apenas quem registrou a vitória pode editar ou deletar.
+    allow update, delete: if isSignedIn() && resource.data.recordedBy == request.auth.uid;
+}
+
+  }
 }

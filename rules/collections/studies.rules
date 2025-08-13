@@ -1,7 +1,9 @@
 match /studies/{studyId} {
-  // Anyone can read published studies.
-  allow read: if resource.data.status == 'PUBLISHED';
-  
-  // Writing is restricted (handled by admin panel/backend functions)
-  allow write: if false; 
+    // Regra específica para 'get': qualquer um pode ler um estudo publicado.
+    allow get: if resource.data.status == 'PUBLISHED';
+    // Regra específica para 'list': qualquer um pode listar estudos, mas a query DEVE ter o filtro `where('status', '==', 'PUBLISHED')`.
+    allow list: if request.query.get('status') == 'PUBLISHED';
+    
+    // Apenas admins podem criar, editar ou deletar estudos.
+    allow write: if isSignedIn() && isAdmin();
 }
